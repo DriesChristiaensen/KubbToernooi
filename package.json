@@ -15,7 +15,6 @@
   "dependencies": {
     "@prisma/client": "^6.19.2",
     "bcrypt": "^6.0.0",
-    "docker": "^1.0.0",
     "nuxt": "^3.21.2",
     "nuxt-auth-utils": "^0.5.29",
     "psql": "^0.0.1",

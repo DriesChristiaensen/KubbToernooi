@@ -22,9 +22,6 @@ A full-stack Dutch-language web app for managing and displaying a single-day Kub
 
 ## HOW — Commands
 
-> Project not yet scaffolded (Phase 0.2 incomplete). No `package.json` exists.
-> Commands below are the **expected** scripts once `npx nuxi init` is run.
-
 | Command | Purpose |
 |---|---|
 | `npm run dev` | Start dev server |
@@ -35,7 +32,13 @@ A full-stack Dutch-language web app for managing and displaying a single-day Kub
 | `npx prisma migrate dev` | Apply schema changes (dev) |
 | `npx prisma migrate deploy` | Apply migrations (production) |
 
-**Verify these exist in `package.json` before running them.**
+## HOW — External tools
+
+| Command | Purpose |
+|---|---|
+| `docker compose up -d` | Start PostgreSQL (dev) |
+| `docker compose down` | Stop PostgreSQL (dev) |
+| `docker ps` | List running containers |
 
 ## HOW — Conventions
 

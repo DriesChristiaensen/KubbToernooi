@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: kubb-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kubb
+      POSTGRES_PASSWORD: kubb_dev_password
+      POSTGRES_DB: kubb_toernooi
+    ports:
+      - "5432:5432"
+    volumes:
+      - kubb-pgdata:/var/lib/postgresql/data
+
+volumes:
+  kubb-pgdata:
