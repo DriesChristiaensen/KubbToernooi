@@ -42,7 +42,10 @@ A full-stack Dutch-language web app for managing and displaying a single-day Kub
 
 ## HOW — Conventions
 
-- **Branch naming:** `feature/[story-number]-[description]` — e.g. `feature/1.1-team-management`
+- **Branch strategy:** `main` (production) → `develop` (integration) → `epic/*` → `feature/*`
+  - Epic branches: `epic/[epic-number]-[name]` — e.g. `epic/1-tournament-config` (branched from `develop`)
+  - Feature branches: `feature/[story-number]-[description]` — e.g. `feature/1.1-team-management` (branched from its epic branch)
+  - Merge flow: feature → epic → develop → main
 - **Commit messages:** Conventional Commits — `type(scope): short description in lowercase`
   - Allowed types: `feat`, `fix`, `refactor`, `test`, `chore`, `docs`, `style`
 - **Vue components:** `PascalCase`; composables: `camelCase` with `use` prefix
