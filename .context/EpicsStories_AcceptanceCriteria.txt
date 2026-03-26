@@ -1,0 +1,175 @@
+Gedetailleerd Backlog Kubb-toernooi Website
+Epic 1: Toernooi Configuratie (Admin)
+Story 1.1: Individueel beheer
+
+AC:
+
+• Admin kan via een formulier een individueel team toevoegen (naam verplicht).
+
+• Admin kan een bestaand team wijzigen of verwijderen.
+
+• Admin kan handmatig een veld toevoegen, hernoemen of verwijderen.
+
+Story 1.2: Bulk-import
+
+AC:
+
+• Tekstveld aanwezig dat invoer per regel accepteert (1 teamnaam = 1 regel).
+
+• Systeem valideert op dubbele namen binnen de bulk-lijst en de database.
+
+• Optie voor CSV-upload waarbij de eerste kolom als teamnaam wordt herkend.
+
+Story 1.3: Veldgeneratie
+
+AC:
+
+• Inputveld voor "Aantal velden" (numeriek).
+
+• Systeem genereert automatisch namen (bijv. Veld 1, Veld 2) bij bevestiging.
+
+• Bestaande velden worden niet overschreven tenzij expliciet aangegeven.
+
+Epic 2: Geassisteerd Speelschema Beheer (Admin)
+Story 2.1: Automatische indeling
+
+AC:
+
+• Input voor starttijd toernooi en gemiddelde speelduur per match.
+
+• Systeem verdeelt teams over velden zodat geen enkel team of veld dubbel geboekt staat in een tijdslot.
+
+• Schema houdt rekening met de toernooistructuur (bijv. poule-indeling).
+
+Story 2.2: Conflict-check
+
+AC:
+
+• Bij handmatige aanpassing van een match (tijd of veld) voert het systeem een live validatie uit.
+
+• Toon een duidelijke foutmelding/waarschuwing als een team al op een ander veld moet spelen op dat moment.
+
+Story 2.3: Publicatie-beheer
+
+AC:
+
+• Knop "Publiceer schema" maakt de data zichtbaar op de publieke deelnemers-URL.
+
+• In 'Draft' modus zijn wijzigingen enkel zichtbaar voor de Admin.
+
+Story 2.4: Bulk-tijdsverschuiving (Time Shift)
+
+AC:
+
+• Admin selecteert een start-tijdstip (dropdown van huidige slots).
+
+• Invoer van aantal minuten (positief of negatief).
+
+• Alle opvolgende wedstrijden worden automatisch herrekend in de database en op de live-view.
+
+Epic 3: Deelnemers View (Live Raadplegen)
+Story 3.1: Mobiel Overzicht
+
+AC:
+
+• Interface schaalt correct op smartphones.
+
+• Lijst is gesorteerd op tijd.
+
+• Duidelijk onderscheid tussen teamnamen, veld en tijdslot.
+
+Story 3.2: Persoonlijk Filter
+
+AC:
+
+• Zoekveld bovenaan de lijst die direct (fuzzy search) filtert op teamnaam.
+
+• Systeem onthoudt de laatst gezochte teamnaam via browser-opslag voor snelle toegang bij herladen.
+
+Story 3.3: Automatische Status-indicator
+
+AC:
+
+• 'Live' label verschijnt als huidige tijd >= starttijd EN < geschatte eindtijd (indien geen uitslag).
+
+• 'Gespeeld' status verschijnt zodra een score is ingevoerd.
+
+• 'Wacht op uitslag' indicator verschijnt als tijd verstreken is maar scoreveld leeg is.
+
+Epic 4: Resultaten & Standen (Admin/Ref)
+Story 4.1: Score-invoer
+
+AC:
+
+• Numerieke invoervelden voor beide teams.
+
+• Knop "Opslaan" werkt de status van de match direct bij naar 'Gespeeld'.
+
+Story 4.2: Real-time Puntenberekening
+
+AC:
+
+• Poule-tabel update direct na het opslaan van een score.
+
+• Rangschikking op basis van: Punten -> Saldo -> Onderling resultaat.
+
+Story 4.3: Correctie-modus
+
+AC:
+
+• Reeds ingevoerde scores kunnen door de Admin/Ref worden aangepast.
+
+• Standen worden na correctie onmiddellijk opnieuw berekend.
+
+Epic 5: Toernooi Structuur & Formaat
+Story 5.1: Competitietype
+
+AC:
+
+• Keuzemenu voor Poule-fase, Knock-out of Combinatie (Poule gevolgd door KO).
+
+• Admin kan per poule aangeven hoeveel teams (top 1, 2, etc.) doorstromen naar de KO-fase.
+
+Story 5.2: Wedstrijdlogica per fase
+
+AC:
+
+• Poule-wedstrijden accepteren een gelijkspel (bijv. 1-1).
+
+• Knock-out wedstrijden dwingen een winnaar af (validatiefout bij gelijkspel).
+
+Epic 6: Data Integriteit & Back-up
+Story 6.1: JSON Export
+
+AC:
+
+• Knop downloadt een geformatteerd .json bestand.
+
+• Bestand bevat alle teams, velden, schema-instellingen en uitslagen.
+
+Epic 7: Gebruikersbeheer & Authenticatie
+Story 7.1: Role-Based Access Control (RBAC)
+
+AC:
+
+• Admin: Toegang tot alles (Configuratie, Schema, Scores, Back-up).
+
+• Scheidsrechter (Ref): Enkel toegang tot de score-invoer (Epic 4).
+
+• Deelnemer: Alleen leesrechten op het schema en de standen.
+
+Story 7.2: Authenticatie Mechanisme
+
+AC:
+
+• Inlogscherm voor Admin/Ref via wachtwoord of unieke token.
+
+• Sessie blijft actief op mobiel gedurende de toernooidag (bijv. 12 uur).
+
+Story 7.3: Universele Scheidsrechter-toegang
+
+AC:
+
+• Een ingelogde Ref ziet een lijst van alle velden/wedstrijden.
+
+• Ref kan elke willekeurige wedstrijd aanklikken om de score te noteren zonder specifieke toewijzing.

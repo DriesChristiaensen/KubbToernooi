@@ -1,0 +1,55 @@
+Backlog Kubb-toernooi Website
+Epic 1: Toernooi Configuratie (Admin)
+• Story 1.1: Individueel beheer: Handmatig teams en velden toevoegen, wijzigen of verwijderen.
+
+• Story 1.2: Bulk-import: Teams en velden in bulk toevoegen via een tekstveld (één per regel) of CSV-upload.
+
+• Story 1.3: Veldgeneratie: Automatisch een aantal genummerde velden aanmaken (bijv. "Veld 1" t/m "Veld 10").
+
+Epic 2: Geassisteerd Speelschema Beheer (Admin)
+• Story 2.1: Automatische indeling: Genereren van een conflictvrij schema op basis van teams, velden, starttijd en speelduur.
+
+• Story 2.2: Conflict-check: Automatische validatie bij handmatige wijzigingen om dubbele boekingen te voorkomen.
+
+• Story 2.3: Publicatie-beheer: Wisselen tussen een 'Draft' modus en een 'Live' status voor deelnemers.
+
+• Story 2.4: Bulk-tijdsverschuiving (Time Shift): Alle starttijden vanaf een specifiek uur met X minuten kunnen verplaatsen bij vertraging.
+
+Epic 3: Deelnemers View (Live Raadplegen)
+• Story 3.1: Mobiel Overzicht: Chronologische lijst van wedstrijden geoptimaliseerd voor mobiel (Tijd, Teams, Veld).
+
+• Story 3.2: Persoonlijk Filter: Zoeken op teamnaam om een eigen speelschema te zien (met lokale opslag van voorkeur).
+
+• Story 3.3: Automatische Status-indicator:
+
+  • Live: Automatisch label op basis van huidige tijd vs. starttijd.
+
+  • Gespeeld: Gemarkeerd als de tijd verstreken is én de uitslag is ingevoerd.
+
+  • Wacht op uitslag: Visuele indicator als de match voorbij is maar de score ontbreekt.
+
+Epic 4: Resultaten & Standen (Admin)
+• Story 4.1: Score-invoer: Lijstweergave voor snelle invoer van wedstrijdresultaten.
+
+• Story 4.2: Real-time Puntenberekening: Automatische update van poulestanden (winst, verlies, onderling resultaat).
+
+• Story 4.3: Correctie-modus: Overschrijven van foutieve scores met directe herberekening van de stand.
+
+Epic 5: Toernooi Structuur & Formaat
+• Story 5.1: Competitietype: Keuze tussen Poules, Knock-out of een combinatie. Instellen van aantal doorstromende teams.
+
+• Story 5.2: Wedstrijdlogica per fase: Gelijkspel toestaan in poules, maar winnaar afdwingen in knock-out rondes.
+
+Epic 6: Data Integriteit & Back-up
+• Story 6.1: JSON Export: Volledige configuratie (teams, velden, schema) exporteren naar JSON als back-up.
+
+Epic 7: Gebruikersbeheer & Authenticatie
+Doel: Het waarborgen van de data-integriteit door verschillende toegangsniveaus te bieden voor administrators, scheidsrechters en deelnemers.
+Story 7.1: Role-Based Access Control (RBAC):
+Als Systeem wil ik rollen kunnen onderscheiden zodat de juiste permissies worden toegepast.
+
+Story 7.2: Authenticatie Mechanisme:
+Als Geautoriseerde gebruiker wil ik veilig kunnen inloggen zodat onbevoegden geen data kunnen aanpassen.
+
+Story 7.3: Universele Scheidsrechter-toegang:
+Als Scheidsrechter wil ik direct alle lopende wedstrijden kunnen inzien en bewerken zodat ik direct uitslagen kan invoeren zonder dat een admin mij specifiek per match hoeft toe te wijzen.
