@@ -7,19 +7,33 @@
   - Prisma 6 + PostgreSQL schema (all models: User, Tournament, Team, Field, Pool, PoolTeam, Match, Standing)
   - Nuxt Auth Utils for session-based auth (User type augmented with role)
   - Tailwind CSS with design tokens (colors, fonts, spacing, border-radius, max-width)
-  - Vitest configured for `server/**/*.test.ts`
+  - Vitest configured for `server/**/*.test.ts` with Prisma mock
   - ESLint via `@nuxt/eslint`
   - Zod installed for server-side validation
-  - Directory structure per ProjectRules (components/, composables/, i18n/, pages/, server/api/, server/middleware/, server/utils/, prisma/)
+  - Directory structure per ProjectRules
   - i18n/nl.ts with full Dutch text structure
   - Server utilities: createApiError, logRequest, prisma singleton
-  - Auth middleware for /api/admin/* and /api/ref/* routes
   - usePolling composable with visibility API support
   - Seed script for admin account
+- **Phase 1 — Authentication & Role Management (Epic 7):**
+  - Story 7.1 — RBAC: Server middleware guards `/api/admin/*` (ADMIN only) and `/api/ref/*` (ADMIN + REFEREE). 8 unit tests.
+  - Story 7.2 — Auth mechanism:
+    - `POST /api/auth/login` — unified login for admin (password only) and referee (name + password). 7 unit tests.
+    - `POST /api/auth/logout` — clears session. 1 unit test.
+    - `GET /api/admin/referees` — list referees (no passwords exposed)
+    - `POST /api/admin/referees` — create referee (name + password, duplicate check). 4 unit tests.
+    - `DELETE /api/admin/referees/:id` — delete referee. 2 unit tests.
+    - `/pages/login.vue` — login page with admin/referee toggle, Tailwind-styled
+    - `/composables/useAuth.ts` — login/logout composable with error handling
+    - `/scripts/reset-admin-password.ts` — CLI script for SSH password reset
+    - `/middleware/auth.ts` — client-side route guard for `/admin` and `/ref` pages
+  - Story 7.3 — Universal referee access:
+    - `/pages/ref/index.vue` — referee dashboard shell (matches placeholder, logout)
+    - `/pages/admin/index.vue` — admin dashboard shell with nav to referee management
+    - `/pages/admin/referees.vue` — CRUD page for managing referee accounts
 
 ## Current Task
-Phase 0.4 — Database Migration (requires running PostgreSQL)
-→ Then: Phase 1 — Authentication & Role Management (Epic 7, Stories 7.1–7.3)
+Phase 2 — Tournament Configuration (Epic 1, Stories 1.1–1.3)
 
 ## Blockers
 - Phase 0.3 (DigitalOcean Droplet Setup) is manual infrastructure work — not blocking code development
@@ -29,3 +43,4 @@ Phase 0.4 — Database Migration (requires running PostgreSQL)
 | Iteration | Task | Status | Notes |
 |-----------|------|--------|-------|
 | 0 | Phase 0.2 — Nuxt 3 Scaffolding | Done | All deps installed, lint/typecheck/vitest pass |
+| 1 | Phase 1 — Auth & Roles (Epic 7) | Done | 23 tests pass, lint clean, typecheck clean |
