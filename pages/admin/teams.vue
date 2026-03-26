@@ -1,97 +1,91 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { nl } from '~/i18n/nl'
+import { ref, onMounted } from "vue";
+import { nl } from "~/i18n/nl";
 
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: "auth" });
 
 interface Team {
-  id: number
-  name: string
+  id: number;
+  name: string;
 }
 
-const teams = ref<Team[]>([])
-const newName = ref('')
-const editingId = ref<number | null>(null)
-const editingName = ref('')
-const error = ref('')
-const loading = ref(false)
+const teams = ref<Team[]>([]);
+const newName = ref("");
+const editingId = ref<number | null>(null);
+const editingName = ref("");
+const error = ref("");
+const loading = ref(false);
 
 async function fetchTeams() {
   try {
-    teams.value = await $fetch<Team[]>('/api/admin/teams')
-  }
-  catch {
-    error.value = nl.admin.tournament.notFound
+    teams.value = await $fetch<Team[]>("/api/admin/teams");
+  } catch {
+    error.value = nl.admin.tournament.notFound;
   }
 }
 
 async function addTeam() {
-  if (!newName.value.trim()) return
-  error.value = ''
-  loading.value = true
+  if (!newName.value.trim()) return;
+  error.value = "";
+  loading.value = true;
   try {
-    await $fetch('/api/admin/teams', {
-      method: 'POST',
+    await $fetch("/api/admin/teams", {
+      method: "POST",
       body: { name: newName.value.trim() },
-    })
-    newName.value = ''
-    await fetchTeams()
-  }
-  catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string } } }
-    error.value = fetchErr?.data?.data?.error || nl.common.error
-  }
-  finally {
-    loading.value = false
+    });
+    newName.value = "";
+    await fetchTeams();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    error.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    loading.value = false;
   }
 }
 
 function startEdit(team: Team) {
-  editingId.value = team.id
-  editingName.value = team.name
+  editingId.value = team.id;
+  editingName.value = team.name;
 }
 
 function cancelEdit() {
-  editingId.value = null
-  editingName.value = ''
+  editingId.value = null;
+  editingName.value = "";
 }
 
 async function saveEdit() {
-  if (!editingName.value.trim() || editingId.value === null) return
-  error.value = ''
-  loading.value = true
+  if (!editingName.value.trim() || editingId.value === null) return;
+  error.value = "";
+  loading.value = true;
   try {
     await $fetch(`/api/admin/teams/${editingId.value}` as string, {
-      method: 'PUT',
+      method: "PUT",
       body: { name: editingName.value.trim() },
-    })
-    editingId.value = null
-    editingName.value = ''
-    await fetchTeams()
-  }
-  catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string } } }
-    error.value = fetchErr?.data?.data?.error || nl.common.error
-  }
-  finally {
-    loading.value = false
+    });
+    editingId.value = null;
+    editingName.value = "";
+    await fetchTeams();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    error.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    loading.value = false;
   }
 }
 
 async function deleteTeam(team: Team) {
-  if (!confirm(nl.admin.teams.deleteConfirm)) return
-  error.value = ''
+  if (!confirm(nl.admin.teams.deleteConfirm)) return;
+  error.value = "";
   try {
-    await $fetch(`/api/admin/teams/${team.id}` as string, { method: 'DELETE' })
-    await fetchTeams()
-  }
-  catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string } } }
-    error.value = fetchErr?.data?.data?.error || nl.common.error
+    await $fetch(`/api/admin/teams/${team.id}` as string, { method: "DELETE" });
+    await fetchTeams();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    error.value = fetchErr?.data?.data?.error || nl.common.error;
   }
 }
 
-onMounted(fetchTeams)
+onMounted(fetchTeams);
 </script>
 
 <template>
@@ -106,9 +100,16 @@ onMounted(fetchTeams)
     </header>
 
     <main class="mx-auto max-w-content p-4">
-      <form class="mb-6 flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-sm md:flex-row md:items-end" @submit.prevent="addTeam">
+      <form
+        class="mb-6 flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-sm md:flex-row md:items-end"
+        @submit.prevent="addTeam"
+      >
         <div class="flex-1">
-          <label class="mb-1 block text-sm font-medium text-text" for="team-name">{{ nl.admin.teams.nameLabel }}</label>
+          <label
+            class="mb-1 block text-sm font-medium text-text"
+            for="team-name"
+            >{{ nl.admin.teams.nameLabel }}</label
+          >
           <input
             id="team-name"
             v-model="newName"
@@ -116,7 +117,7 @@ onMounted(fetchTeams)
             required
             :placeholder="nl.admin.teams.namePlaceholder"
             class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          >
+          />
         </div>
         <button
           type="submit"
@@ -138,13 +139,16 @@ onMounted(fetchTeams)
           class="flex items-center justify-between rounded-lg bg-surface p-4 shadow-sm"
         >
           <template v-if="editingId === team.id">
-            <form class="flex flex-1 items-center gap-2" @submit.prevent="saveEdit">
+            <form
+              class="flex flex-1 items-center gap-2"
+              @submit.prevent="saveEdit"
+            >
               <input
                 v-model="editingName"
                 type="text"
                 required
                 class="flex-1 rounded border border-gray-300 px-3 py-1 text-text focus:border-primary focus:outline-none"
-              >
+              />
               <button
                 type="submit"
                 :disabled="loading"

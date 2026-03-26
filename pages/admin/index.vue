@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { nl } from '~/i18n/nl'
-import { useAuth } from '~/composables/useAuth'
+import { nl } from "~/i18n/nl";
+import { useAuth } from "~/composables/useAuth";
 
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: "auth" });
 
-const { logout } = useAuth()
+const { logout } = useAuth();
 </script>
 
 <template>
@@ -43,9 +43,7 @@ const { logout } = useAuth()
           to="/admin/referees"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
-          <h2 class="text-subheading text-text">
-            Scheidsrechters
-          </h2>
+          <h2 class="text-subheading text-text">Scheidsrechters</h2>
         </NuxtLink>
       </nav>
     </main>

@@ -1,6 +1,7 @@
 # Progress
 
 ## Completed
+
 - **Phase 0.1 — Git Repository:** GitHub repo created with `.gitignore`, project docs
 - **Phase 0.2 — Nuxt 3 Project Scaffolding:** Nuxt 3 initialized, all dependencies installed and configured
   - Nuxt 3 with Composition API (`<script setup>`)
@@ -47,15 +48,18 @@
     - `server/utils/tournament.ts` — shared getActiveTournament utility
 
 ## Current Task
+
 Phase 2 — Tournament Configuration (Epic 1, Stories 1.2–1.3)
 
 ## Blockers
+
 - Phase 0.3 (DigitalOcean Droplet Setup) is manual infrastructure work — not blocking code development
 - Phase 0.4 requires a running PostgreSQL instance to run `npx prisma migrate dev`
 
 ## Session Log
-| Iteration | Task | Status | Notes |
-|-----------|------|--------|-------|
-| 0 | Phase 0.2 — Nuxt 3 Scaffolding | Done | All deps installed, lint/typecheck/vitest pass |
-| 1 | Phase 1 — Auth & Roles (Epic 7) | Done | 23 tests pass, lint clean, typecheck clean |
-| 2 | Story 1.1 — Individual Management | Done | 22 new tests (45 total), lint clean, typecheck clean |
+
+| Iteration | Task                              | Status | Notes                                                |
+| --------- | --------------------------------- | ------ | ---------------------------------------------------- |
+| 0         | Phase 0.2 — Nuxt 3 Scaffolding    | Done   | All deps installed, lint/typecheck/vitest pass       |
+| 1         | Phase 1 — Auth & Roles (Epic 7)   | Done   | 23 tests pass, lint clean, typecheck clean           |
+| 2         | Story 1.1 — Individual Management | Done   | 22 new tests (45 total), lint clean, typecheck clean |

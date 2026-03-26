@@ -1,97 +1,93 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { nl } from '~/i18n/nl'
+import { ref, onMounted } from "vue";
+import { nl } from "~/i18n/nl";
 
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: "auth" });
 
 interface Field {
-  id: number
-  name: string
+  id: number;
+  name: string;
 }
 
-const fields = ref<Field[]>([])
-const newName = ref('')
-const editingId = ref<number | null>(null)
-const editingName = ref('')
-const error = ref('')
-const loading = ref(false)
+const fields = ref<Field[]>([]);
+const newName = ref("");
+const editingId = ref<number | null>(null);
+const editingName = ref("");
+const error = ref("");
+const loading = ref(false);
 
 async function fetchFields() {
   try {
-    fields.value = await $fetch<Field[]>('/api/admin/fields')
-  }
-  catch {
-    error.value = nl.admin.tournament.notFound
+    fields.value = await $fetch<Field[]>("/api/admin/fields");
+  } catch {
+    error.value = nl.admin.tournament.notFound;
   }
 }
 
 async function addField() {
-  if (!newName.value.trim()) return
-  error.value = ''
-  loading.value = true
+  if (!newName.value.trim()) return;
+  error.value = "";
+  loading.value = true;
   try {
-    await $fetch('/api/admin/fields', {
-      method: 'POST',
+    await $fetch("/api/admin/fields", {
+      method: "POST",
       body: { name: newName.value.trim() },
-    })
-    newName.value = ''
-    await fetchFields()
-  }
-  catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string } } }
-    error.value = fetchErr?.data?.data?.error || nl.common.error
-  }
-  finally {
-    loading.value = false
+    });
+    newName.value = "";
+    await fetchFields();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    error.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    loading.value = false;
   }
 }
 
 function startEdit(field: Field) {
-  editingId.value = field.id
-  editingName.value = field.name
+  editingId.value = field.id;
+  editingName.value = field.name;
 }
 
 function cancelEdit() {
-  editingId.value = null
-  editingName.value = ''
+  editingId.value = null;
+  editingName.value = "";
 }
 
 async function saveEdit() {
-  if (!editingName.value.trim() || editingId.value === null) return
-  error.value = ''
-  loading.value = true
+  if (!editingName.value.trim() || editingId.value === null) return;
+  error.value = "";
+  loading.value = true;
   try {
     await $fetch(`/api/admin/fields/${editingId.value}` as string, {
-      method: 'PUT',
+      method: "PUT",
       body: { name: editingName.value.trim() },
-    })
-    editingId.value = null
-    editingName.value = ''
-    await fetchFields()
-  }
-  catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string } } }
-    error.value = fetchErr?.data?.data?.error || nl.common.error
-  }
-  finally {
-    loading.value = false
+    });
+    editingId.value = null;
+    editingName.value = "";
+    await fetchFields();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    error.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    loading.value = false;
   }
 }
 
 async function deleteField(field: Field) {
-  if (!confirm(nl.admin.fields.deleteConfirm)) return
-  error.value = ''
+  if (!confirm(nl.admin.fields.deleteConfirm)) return;
+  error.value = "";
   try {
-    await $fetch(`/api/admin/fields/${field.id}` as string, { method: 'DELETE' })
-    await fetchFields()
-  }
-  catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string } } }
-    error.value = fetchErr?.data?.data?.error || nl.common.error
+    await $fetch(`/api/admin/fields/${field.id}` as string, {
+      method: "DELETE",
+    });
+    await fetchFields();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    error.value = fetchErr?.data?.data?.error || nl.common.error;
   }
 }
 
-onMounted(fetchFields)
+onMounted(fetchFields);
 </script>
 
 <template>
@@ -106,9 +102,16 @@ onMounted(fetchFields)
     </header>
 
     <main class="mx-auto max-w-content p-4">
-      <form class="mb-6 flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-sm md:flex-row md:items-end" @submit.prevent="addField">
+      <form
+        class="mb-6 flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-sm md:flex-row md:items-end"
+        @submit.prevent="addField"
+      >
         <div class="flex-1">
-          <label class="mb-1 block text-sm font-medium text-text" for="field-name">{{ nl.admin.fields.nameLabel }}</label>
+          <label
+            class="mb-1 block text-sm font-medium text-text"
+            for="field-name"
+            >{{ nl.admin.fields.nameLabel }}</label
+          >
           <input
             id="field-name"
             v-model="newName"
@@ -116,7 +119,7 @@ onMounted(fetchFields)
             required
             :placeholder="nl.admin.fields.namePlaceholder"
             class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          >
+          />
         </div>
         <button
           type="submit"
@@ -138,13 +141,16 @@ onMounted(fetchFields)
           class="flex items-center justify-between rounded-lg bg-surface p-4 shadow-sm"
         >
           <template v-if="editingId === field.id">
-            <form class="flex flex-1 items-center gap-2" @submit.prevent="saveEdit">
+            <form
+              class="flex flex-1 items-center gap-2"
+              @submit.prevent="saveEdit"
+            >
               <input
                 v-model="editingName"
                 type="text"
                 required
                 class="flex-1 rounded border border-gray-300 px-3 py-1 text-text focus:border-primary focus:outline-none"
-              >
+              />
               <button
                 type="submit"
                 :disabled="loading"
