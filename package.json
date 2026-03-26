@@ -10,7 +10,8 @@
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "typecheck": "nuxi typecheck",
-    "test": "vitest run"
+    "test": "vitest run",
+    "ralph": "bash scripts/ralph-loop.sh"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
