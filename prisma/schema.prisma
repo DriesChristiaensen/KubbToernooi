@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  REFEREE
+}
+
+enum TournamentStatus {
+  DRAFT
+  LIVE
+}
+
+enum TournamentType {
+  POOLS
+  KNOCKOUT
+  COMBINATION
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  AWAITING_RESULT
+  PLAYED
+}
+
+enum MatchPhase {
+  POOL
+  KO
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tournament {
+  id            Int              @id @default(autoincrement())
+  name          String
+  status        TournamentStatus @default(DRAFT)
+  type          TournamentType   @default(COMBINATION)
+  startTime     DateTime
+  matchDuration Int              @default(15)
+  breakTime     Int              @default(5)
+  pointsWin     Int              @default(3)
+  pointsDraw    Int              @default(1)
+  pointsLoss    Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  teams  Team[]
+  fields Field[]
+  pools  Pool[]
+}
+
+model Team {
+  id           Int      @id @default(autoincrement())
+  name         String
+  tournamentId Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  poolTeams  PoolTeam[]
+  matchesA   Match[]    @relation("teamA")
+  matchesB   Match[]    @relation("teamB")
+  koWins     Match[]    @relation("koWinner")
+  standings  Standing[]
+
+  @@unique([name, tournamentId])
+}
+
+model Field {
+  id           Int      @id @default(autoincrement())
+  name         String
+  tournamentId Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matches    Match[]
+
+  @@unique([name, tournamentId])
+}
+
+model Pool {
+  id             Int      @id @default(autoincrement())
+  name           String
+  tournamentId   Int
+  teamsAdvancing Int      @default(2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  poolTeams  PoolTeam[]
+  matches    Match[]
+  standings  Standing[]
+
+  @@unique([name, tournamentId])
+}
+
+model PoolTeam {
+  id     Int @id @default(autoincrement())
+  poolId Int
+  teamId Int
+
+  pool Pool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, teamId])
+}
+
+model Match {
+  id         Int         @id @default(autoincrement())
+  phase      MatchPhase
+  round      Int         @default(1)
+  startTime  DateTime
+  fieldId    Int
+  poolId     Int?
+  teamAId    Int
+  teamBId    Int
+  scoreA     Int?
+  scoreB     Int?
+  status     MatchStatus @default(SCHEDULED)
+  koWinnerId Int?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  field    Field @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  pool     Pool? @relation(fields: [poolId], references: [id], onDelete: SetNull)
+  teamA    Team  @relation("teamA", fields: [teamAId], references: [id], onDelete: Cascade)
+  teamB    Team  @relation("teamB", fields: [teamBId], references: [id], onDelete: Cascade)
+  koWinner Team? @relation("koWinner", fields: [koWinnerId], references: [id], onDelete: SetNull)
+}
+
+model Standing {
+  id             Int      @id @default(autoincrement())
+  poolId         Int
+  teamId         Int
+  played         Int      @default(0)
+  won            Int      @default(0)
+  drawn          Int      @default(0)
+  lost           Int      @default(0)
+  goalsFor       Int      @default(0)
+  goalsAgainst   Int      @default(0)
+  goalDifference Int      @default(0)
+  points         Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  pool Pool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, teamId])
+}
