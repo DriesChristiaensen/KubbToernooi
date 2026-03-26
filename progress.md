@@ -31,9 +31,23 @@
     - `/pages/ref/index.vue` — referee dashboard shell (matches placeholder, logout)
     - `/pages/admin/index.vue` — admin dashboard shell with nav to referee management
     - `/pages/admin/referees.vue` — CRUD page for managing referee accounts
+- **Phase 2 — Tournament Configuration (Epic 1):**
+  - Story 1.1 — Individual Management:
+    - `GET /api/admin/teams` — list teams for active tournament. 2 unit tests.
+    - `POST /api/admin/teams` — create team (name required, duplicate check). 3 unit tests.
+    - `PUT /api/admin/teams/:id` — rename team (duplicate check). 4 unit tests.
+    - `DELETE /api/admin/teams/:id` — delete team. 2 unit tests.
+    - `GET /api/admin/fields` — list fields for active tournament. 2 unit tests.
+    - `POST /api/admin/fields` — create field (name required, duplicate check). 3 unit tests.
+    - `PUT /api/admin/fields/:id` — rename field (duplicate check). 4 unit tests.
+    - `DELETE /api/admin/fields/:id` — delete field. 2 unit tests.
+    - `/pages/admin/teams.vue` — CRUD page with inline edit and delete confirmation
+    - `/pages/admin/fields.vue` — CRUD page with inline edit and delete confirmation
+    - Admin dashboard updated with Teams and Fields navigation cards
+    - `server/utils/tournament.ts` — shared getActiveTournament utility
 
 ## Current Task
-Phase 2 — Tournament Configuration (Epic 1, Stories 1.1–1.3)
+Phase 2 — Tournament Configuration (Epic 1, Stories 1.2–1.3)
 
 ## Blockers
 - Phase 0.3 (DigitalOcean Droplet Setup) is manual infrastructure work — not blocking code development
@@ -44,3 +58,4 @@ Phase 2 — Tournament Configuration (Epic 1, Stories 1.1–1.3)
 |-----------|------|--------|-------|
 | 0 | Phase 0.2 — Nuxt 3 Scaffolding | Done | All deps installed, lint/typecheck/vitest pass |
 | 1 | Phase 1 — Auth & Roles (Epic 7) | Done | 23 tests pass, lint clean, typecheck clean |
+| 2 | Story 1.1 — Individual Management | Done | 22 new tests (45 total), lint clean, typecheck clean |
