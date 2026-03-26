@@ -24,6 +24,22 @@ const { logout } = useAuth()
     <main class="mx-auto max-w-content p-4">
       <nav class="grid gap-4 md:grid-cols-2">
         <NuxtLink
+          to="/admin/teams"
+          class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
+        >
+          <h2 class="text-subheading text-text">
+            {{ nl.admin.teams.title }}
+          </h2>
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/fields"
+          class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
+        >
+          <h2 class="text-subheading text-text">
+            {{ nl.admin.fields.title }}
+          </h2>
+        </NuxtLink>
+        <NuxtLink
           to="/admin/referees"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
