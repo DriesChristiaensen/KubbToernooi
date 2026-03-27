@@ -33,6 +33,12 @@
     - `/pages/admin/index.vue` — admin dashboard shell with nav to referee management
     - `/pages/admin/referees.vue` — CRUD page for managing referee accounts
 - **Phase 2 — Tournament Configuration (Epic 1):**
+  - Story 1.2 — Bulk Import:
+    - `POST /api/admin/teams/bulk-import` — accepts `names[]` or `csv`, validates within-list and DB duplicates, bulk creates via createMany. 8 unit tests.
+    - `/pages/admin/teams.vue` — updated with textarea (one name per line) and CSV file upload sections
+  - Story 1.3 — Field Generation:
+    - `POST /api/admin/fields/generate` — generates Veld 1..N, returns 409 if fields exist (unless `overwrite:true`). 8 unit tests.
+    - `/pages/admin/fields.vue` — updated with count input and overwrite confirmation UI
   - Story 1.1 — Individual Management:
     - `GET /api/admin/teams` — list teams for active tournament. 2 unit tests.
     - `POST /api/admin/teams` — create team (name required, duplicate check). 3 unit tests.
@@ -49,7 +55,7 @@
 
 ## Current Task
 
-Phase 2 — Tournament Configuration (Epic 1, Stories 1.2–1.3)
+Phase 3 — Tournament Structure & Format (Epic 5, Story 5.1)
 
 ## Blockers
 
@@ -63,3 +69,4 @@ Phase 2 — Tournament Configuration (Epic 1, Stories 1.2–1.3)
 | 0         | Phase 0.2 — Nuxt 3 Scaffolding    | Done   | All deps installed, lint/typecheck/vitest pass       |
 | 1         | Phase 1 — Auth & Roles (Epic 7)   | Done   | 23 tests pass, lint clean, typecheck clean           |
 | 2         | Story 1.1 — Individual Management | Done   | 22 new tests (45 total), lint clean, typecheck clean |
+| 3         | Stories 1.2 & 1.3 — Bulk Import + Field Generation | Done   | 16 new tests (61 total), lint clean, typecheck clean |
