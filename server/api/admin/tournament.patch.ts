@@ -3,6 +3,7 @@ import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
 
 const VALID_TYPES = ["POOLS", "KNOCKOUT", "COMBINATION"] as const;
+const VALID_STATUSES = ["DRAFT", "LIVE"] as const;
 
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
@@ -19,6 +20,17 @@ export default defineEventHandler(async (event) => {
       });
     }
     data.type = body.type;
+  }
+
+  if (body?.status !== undefined) {
+    if (!VALID_STATUSES.includes(body.status)) {
+      throw createApiError({
+        error: "Ongeldige status",
+        code: 400,
+        reason: "Invalid tournament status",
+      });
+    }
+    data.status = body.status;
   }
 
   if (body?.name !== undefined) data.name = body.name;

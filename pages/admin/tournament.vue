@@ -33,6 +33,8 @@ const pools = ref<Pool[]>([]);
 const settingsError = ref("");
 const settingsSuccess = ref("");
 const settingsLoading = ref(false);
+const publishLoading = ref(false);
+const publishError = ref("");
 
 const poolCount = ref<number | null>(null);
 const poolGenError = ref("");
@@ -86,6 +88,25 @@ async function saveSettings() {
     settingsError.value = fetchErr?.data?.data?.error || nl.common.error;
   } finally {
     settingsLoading.value = false;
+  }
+}
+
+async function togglePublish() {
+  if (!tournament.value) return;
+  publishError.value = "";
+  publishLoading.value = true;
+  const newStatus = tournament.value.status === "LIVE" ? "DRAFT" : "LIVE";
+  try {
+    await $fetch("/api/admin/tournament", {
+      method: "PATCH",
+      body: { status: newStatus },
+    });
+    tournament.value.status = newStatus;
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    publishError.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    publishLoading.value = false;
   }
 }
 
@@ -269,13 +290,34 @@ onMounted(async () => {
           <p v-if="settingsSuccess" class="mb-2 text-sm text-success">
             {{ settingsSuccess }}
           </p>
-          <button
-            :disabled="settingsLoading"
-            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-            @click="saveSettings"
-          >
-            {{ nl.admin.tournament.save }}
-          </button>
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              :disabled="settingsLoading"
+              class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              @click="saveSettings"
+            >
+              {{ nl.admin.tournament.save }}
+            </button>
+
+            <span class="text-sm font-medium text-text-light">
+              {{ tournament.status === 'LIVE' ? nl.admin.tournament.statusLive : nl.admin.tournament.statusDraft }}
+            </span>
+
+            <button
+              :disabled="publishLoading"
+              :class="tournament.status === 'LIVE'
+                ? 'bg-secondary hover:opacity-80'
+                : 'bg-success hover:opacity-80'"
+              class="rounded px-4 py-2 font-medium text-white disabled:opacity-50"
+              @click="togglePublish"
+            >
+              {{ tournament.status === 'LIVE' ? nl.admin.tournament.unpublish : nl.admin.tournament.publish }}
+            </button>
+
+            <p v-if="publishError" class="text-sm text-error">
+              {{ publishError }}
+            </p>
+          </div>
         </section>
 
         <section v-if="hasPools" class="mb-6 rounded-lg bg-surface p-4 shadow-sm">

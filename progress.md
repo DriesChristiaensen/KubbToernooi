@@ -53,9 +53,13 @@
     - Admin dashboard updated with Teams and Fields navigation cards
     - `server/utils/tournament.ts` — shared getActiveTournament utility
 
+- **Phase 3 — Tournament Structure & Format (Epic 5):** Done
+  - Story 5.1: Competition type selector, pool generation/management (92 tests total)
+  - Story 5.2: Match score entry API and ref dashboard
+
 ## Current Task
 
-Phase 3 — Tournament Structure & Format (Epic 5, Story 5.1)
+Phase 4 — Assisted Schedule Management (Epic 2, Story 2.3 — Publication Management)
 
 ## Blockers
 
@@ -70,3 +74,4 @@ Phase 3 — Tournament Structure & Format (Epic 5, Story 5.1)
 | 1         | Phase 1 — Auth & Roles (Epic 7)   | Done   | 23 tests pass, lint clean, typecheck clean           |
 | 2         | Story 1.1 — Individual Management | Done   | 22 new tests (45 total), lint clean, typecheck clean |
 | 3         | Stories 1.2 & 1.3 — Bulk Import + Field Generation | Done   | 16 new tests (61 total), lint clean, typecheck clean |
+| 4         | Phase 3 — Epic 5 Stories 5.1 & 5.2                 | Done   | Epic 5 merged into develop; 92 tests pass            |

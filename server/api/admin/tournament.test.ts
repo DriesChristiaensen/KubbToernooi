@@ -122,4 +122,41 @@ describe("PATCH /api/admin/tournament", () => {
     });
     expect(result).toMatchObject({ pointsWin: 2 });
   });
+
+  it("returns 400 when status is invalid", async () => {
+    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    vi.mocked(readBody).mockResolvedValue({ status: "PUBLISHED" });
+
+    await expect(patchTournamentHandler(createMockEvent())).rejects.toThrow(
+      "Invalid tournament status",
+    );
+  });
+
+  it("updates status to LIVE successfully", async () => {
+    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    vi.mocked(readBody).mockResolvedValue({ status: "LIVE" });
+    mockTournamentUpdate.mockResolvedValue({ id: 1, status: "LIVE" });
+
+    const result = await patchTournamentHandler(createMockEvent());
+
+    expect(mockTournamentUpdate).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: expect.objectContaining({ status: "LIVE" }),
+    });
+    expect(result).toMatchObject({ status: "LIVE" });
+  });
+
+  it("updates status to DRAFT successfully", async () => {
+    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    vi.mocked(readBody).mockResolvedValue({ status: "DRAFT" });
+    mockTournamentUpdate.mockResolvedValue({ id: 1, status: "DRAFT" });
+
+    const result = await patchTournamentHandler(createMockEvent());
+
+    expect(mockTournamentUpdate).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: expect.objectContaining({ status: "DRAFT" }),
+    });
+    expect(result).toMatchObject({ status: "DRAFT" });
+  });
 });
