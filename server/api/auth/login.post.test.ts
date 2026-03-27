@@ -3,9 +3,11 @@ import bcrypt from 'bcrypt'
 
 const mockPrismaUserFindFirst = vi.hoisted(() => vi.fn())
 const mockReplaceUserSession = vi.hoisted(() => vi.fn())
+const mockCheckRateLimit = vi.hoisted(() => vi.fn())
 
 vi.stubGlobal('defineEventHandler', (handler: any) => handler)
 vi.stubGlobal('readBody', vi.fn())
+vi.stubGlobal('getRequestIP', vi.fn().mockReturnValue('127.0.0.1'))
 vi.stubGlobal('replaceUserSession', mockReplaceUserSession)
 vi.stubGlobal('createApiError', ({ error, code, reason }: any) => {
   const err = new Error(reason) as any
@@ -26,6 +28,10 @@ vi.mock('~/server/utils/logger', () => ({
   logRequest: vi.fn(),
 }))
 
+vi.mock('~/server/utils/rate-limit', () => ({
+  checkRateLimit: mockCheckRateLimit,
+}))
+
 const { default: loginHandler } = await import('./login.post')
 
 function createMockEvent(body: any) {
@@ -38,6 +44,7 @@ describe('POST /api/auth/login', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockReplaceUserSession.mockResolvedValue(undefined)
+    mockCheckRateLimit.mockReturnValue(true)
   })
 
   it('rejects request without password', async () => {
@@ -123,6 +130,15 @@ describe('POST /api/auth/login', () => {
       await expect(loginHandler(event)).rejects.toMatchObject({
         statusCode: 401,
       })
+    })
+  })
+
+  it('returns 429 when rate limit exceeded', async () => {
+    mockCheckRateLimit.mockReturnValue(false)
+    const event = createMockEvent({ password: 'any' })
+
+    await expect(loginHandler(event)).rejects.toMatchObject({
+      statusCode: 429,
     })
   })
 })

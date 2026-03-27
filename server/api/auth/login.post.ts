@@ -1,8 +1,18 @@
 import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
 import { logRequest } from '~/server/utils/logger'
+import { checkRateLimit } from '~/server/utils/rate-limit'
 
 export default defineEventHandler(async (event) => {
+  const ip = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown'
+  if (!checkRateLimit(ip)) {
+    throw createApiError({
+      error: 'Te veel inlogpogingen. Probeer het later opnieuw.',
+      code: 429,
+      reason: 'Too many login attempts',
+    })
+  }
+
   const body = await readBody(event)
 
   if (!body?.password) {
