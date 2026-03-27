@@ -78,14 +78,26 @@
   - Story 6.2: POST /api/admin/import restores from JSON, requires password when data exists (6 tests)
   - 140 tests total
 
+- **Phase 7 — KO Bracket Generation:** Done
+  - Story 7.1: POST /api/admin/ko-bracket/generate — reads standings, creates KO Match records (7 tests)
+  - Story 7.2: PATCH /api/admin/ko-bracket/matches/:id — swap teams before publishing (5 tests)
+  - GET /api/admin/ko-bracket/matches — list KO matches for admin page
+  - Auto-advance: after all KO matches in a round are PLAYED, generate next-round matches (1 test added)
+  - /pages/admin/ko-bracket.vue — bracket admin page with generate + swap UI
+  - Admin dashboard updated with KO bracket nav card
+  - 153 tests total, all passing
+
 ## Current Task
 
-Phase 7 — KO Bracket Generation (extends Epic 5)
+Phase 9 — Integration, Testing & Go-Live
 
 ## Blockers
 
 - Phase 0.3 (DigitalOcean Droplet Setup) is manual infrastructure work — not blocking code development
 - Phase 0.4 requires a running PostgreSQL instance to run `npx prisma migrate dev`
+- Phase 9.1 (End-to-End Testing on devices) is manual testing — cannot be automated
+- Phase 9.3 (First Deploy) requires a running DigitalOcean droplet — manual infrastructure
+- Phase 9.4 (Documentation / README) is manual documentation work
 
 ## Session Log
 
@@ -100,3 +112,4 @@ Phase 7 — KO Bracket Generation (extends Epic 5)
 | 6         | Phase 5 — Epic 4 Stories 4.1, 4.2, 4.3             | Done   | Standings utility added; 124 tests pass              |
 | 7         | Phase 6 — Epic 3 Stories 3.1-3.4                   | Done   | Public schedule/standings pages; 131 tests pass      |
 | 8         | Phase 8 — Epic 6 Stories 6.1 & 6.2                 | Done   | JSON export/import with password; 140 tests pass     |
+| 9         | Phase 7 — KO Bracket Stories 7.1 & 7.2             | Done   | KO generation + adjustment + auto-advance; 153 tests |
