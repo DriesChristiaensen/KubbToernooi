@@ -35,9 +35,9 @@
 **Estimated duration: 2–3 days**
 
 ### 0.1 Git Repository
-- Create a GitHub repository with `.gitignore`, `README.md`.
+- Local git repository with `.gitignore`, `README.md`.
 - Simple branching strategy: `main` (production) + feature branches per story (e.g. `feature/1.1-team-management`).
-- No CI/CD pipeline — deployment is done manually via SSH (`git pull` + `npm run build` + PM2 restart).
+- All development is local only — never push to a remote repository.
 
 ### 0.2 Nuxt 3 Project Scaffolding
 - `npx nuxi init kubb-toernooi` — monorepo with everything in a single project.
@@ -310,27 +310,6 @@ Design the Prisma schema with the following models:
 
 ---
 
-## Manual Deploy Process (no CI/CD)
+## Deploy Process
 
-```bash
-# SSH into the droplet
-ssh kubb@<droplet-ip>
-
-# Navigate to the project directory
-cd /var/www/kubb-toernooi
-
-# Pull latest code
-git pull origin main
-
-# Update dependencies
-npm install
-
-# Run database migrations
-npx prisma migrate deploy
-
-# Rebuild
-npm run build
-
-# Restart the application
-pm2 restart kubb
-```
+Deployment strategy is TBD. All development is local only — code is never pushed to a remote repository.

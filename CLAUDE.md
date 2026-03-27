@@ -48,6 +48,7 @@ A full-stack Dutch-language web app for managing and displaying a single-day Kub
   - Merge flow: feature → epic → develop → main
   - When a feature branch is complete (tests pass, committed), merge it into its epic branch and delete the feature branch
   - When all stories in an epic are merged, merge the epic branch into `develop` and delete the epic branch
+- **Local only:** Never push to a remote repository. All development happens locally.
 - **Commit messages:** Conventional Commits — `type(scope): short description in lowercase`
   - Allowed types: `feat`, `fix`, `refactor`, `test`, `chore`, `docs`, `style`
 - **Vue components:** `PascalCase`; composables: `camelCase` with `use` prefix

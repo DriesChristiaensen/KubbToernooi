@@ -334,7 +334,7 @@
     },
     "maintainability": {
       "repoStructure": "Single monorepo, single deployment unit",
-      "deployment": "Manual deploy via SSH (git pull, npm run build, PM2 restart)",
+      "deployment": "Local only — code is never pushed to a remote repository. Deploy strategy TBD.",
       "commitConvention": "Conventional Commits",
       "testing": "TDD with Vitest for API route handlers"
     }
@@ -474,7 +474,7 @@
     "No offline mode: Participants need an active internet connection.",
     "Dutch only: All user-facing text is in Dutch. No multi-language support.",
     "No real-time push: Updates via polling (60-second interval), not WebSockets.",
-    "Manual deploy: No CI/CD. Deployment via SSH."
+    "Local only: Code is never pushed to a remote repository. All development happens locally. Deploy strategy TBD."
   ],
   "outOfScope": [
     "Multi-tournament management",
