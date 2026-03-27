@@ -3,7 +3,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockMatchFindMany = vi.hoisted(() => vi.fn());
 const mockMatchFindFirst = vi.hoisted(() => vi.fn());
 const mockMatchUpdate = vi.hoisted(() => vi.fn());
+const mockMatchCreateMany = vi.hoisted(() => vi.fn());
 const mockTournamentFindFirst = vi.hoisted(() => vi.fn());
+const mockFieldFindMany = vi.hoisted(() => vi.fn());
 
 vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("readBody", vi.fn());
@@ -21,9 +23,13 @@ vi.mock("~/server/utils/prisma", () => ({
       findMany: mockMatchFindMany,
       findFirst: mockMatchFindFirst,
       update: mockMatchUpdate,
+      createMany: mockMatchCreateMany,
     },
     tournament: {
       findFirst: mockTournamentFindFirst,
+    },
+    field: {
+      findMany: mockFieldFindMany,
     },
   },
 }));
@@ -172,13 +178,9 @@ describe("PATCH /api/ref/matches/:id", () => {
     vi.mocked(getRouterParam).mockReturnValue("1");
     vi.mocked(readBody).mockResolvedValue({ scoreA: 3, scoreB: 1 });
     mockMatchFindFirst.mockResolvedValue({ ...mockMatch, phase: "KO" });
-    mockMatchUpdate.mockResolvedValue({
-      ...mockMatch,
-      phase: "KO",
-      scoreA: 3,
-      scoreB: 1,
-      status: "PLAYED",
-    });
+    const updatedMatch = { ...mockMatch, phase: "KO", scoreA: 3, scoreB: 1, status: "PLAYED" };
+    mockMatchUpdate.mockResolvedValue(updatedMatch);
+    mockMatchFindMany.mockResolvedValue([updatedMatch]);
 
     const result = await patchMatchHandler(createMockEvent());
 
@@ -194,14 +196,9 @@ describe("PATCH /api/ref/matches/:id", () => {
     vi.mocked(getRouterParam).mockReturnValue("1");
     vi.mocked(readBody).mockResolvedValue({ scoreA: 2, scoreB: 2, koWinnerId: 1 });
     mockMatchFindFirst.mockResolvedValue({ ...mockMatch, phase: "KO", teamAId: 1, teamBId: 2 });
-    mockMatchUpdate.mockResolvedValue({
-      ...mockMatch,
-      phase: "KO",
-      scoreA: 2,
-      scoreB: 2,
-      koWinnerId: 1,
-      status: "PLAYED",
-    });
+    const updatedMatch = { ...mockMatch, phase: "KO", scoreA: 2, scoreB: 2, koWinnerId: 1, status: "PLAYED" };
+    mockMatchUpdate.mockResolvedValue(updatedMatch);
+    mockMatchFindMany.mockResolvedValue([updatedMatch]);
 
     const result = await patchMatchHandler(createMockEvent());
 
@@ -211,5 +208,28 @@ describe("PATCH /api/ref/matches/:id", () => {
       }),
     );
     expect(result).toMatchObject({ koWinnerId: 1 });
+  });
+
+  it("generates next KO round when all round-1 matches are played", async () => {
+    vi.mocked(getRouterParam).mockReturnValue("2");
+    vi.mocked(readBody).mockResolvedValue({ scoreA: 2, scoreB: 0 });
+    const match1 = { ...mockMatch, id: 1, phase: "KO", round: 1, teamAId: 10, teamBId: 20, scoreA: 3, scoreB: 1, status: "PLAYED", fieldId: 100 };
+    const match2 = { ...mockMatch, id: 2, phase: "KO", round: 1, teamAId: 30, teamBId: 40, status: "SCHEDULED", fieldId: 101 };
+    mockMatchFindFirst.mockResolvedValue(match2);
+    const updatedMatch2 = { ...match2, scoreA: 2, scoreB: 0, status: "PLAYED" };
+    mockMatchUpdate.mockResolvedValue(updatedMatch2);
+    mockMatchFindMany.mockResolvedValue([match1, updatedMatch2]);
+    mockTournamentFindFirst.mockResolvedValue({ id: 1, startTime: new Date("2025-06-01T14:00:00Z"), matchDuration: 15, breakTime: 5 });
+    mockMatchCreateMany.mockResolvedValue({ count: 1 });
+
+    await patchMatchHandler(createMockEvent());
+
+    expect(mockMatchCreateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ phase: "KO", round: 2, teamAId: 10, teamBId: 30 }),
+        ]),
+      }),
+    );
   });
 });
