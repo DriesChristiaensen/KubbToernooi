@@ -36,6 +36,12 @@ const editSuccess = ref("");
 const conflictResult = ref<{ ok: boolean; conflicts: string[] } | null>(null);
 const conflictLoading = ref(false);
 
+const timeShiftFrom = ref("");
+const timeShiftMinutes = ref<number>(0);
+const timeShiftLoading = ref(false);
+const timeShiftError = ref("");
+const timeShiftSuccess = ref("");
+
 async function fetchMatches() {
   try {
     matches.value = await $fetch<Match[]>("/api/admin/schedule/matches");
@@ -123,6 +129,32 @@ async function saveMatch() {
   }
 }
 
+async function applyTimeShift() {
+  timeShiftError.value = "";
+  timeShiftSuccess.value = "";
+  if (!timeShiftFrom.value) {
+    timeShiftError.value = nl.admin.schedule.shiftFrom;
+    return;
+  }
+  timeShiftLoading.value = true;
+  try {
+    const result = await $fetch<{ shifted: number }>("/api/admin/schedule/time-shift", {
+      method: "POST",
+      body: {
+        fromTime: new Date(timeShiftFrom.value).toISOString(),
+        offsetMinutes: timeShiftMinutes.value,
+      },
+    });
+    timeShiftSuccess.value = `${result.shifted} wedstrijden verschoven`;
+    await fetchMatches();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    timeShiftError.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    timeShiftLoading.value = false;
+  }
+}
+
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" });
 }
@@ -180,6 +212,59 @@ onMounted(async () => {
             </button>
           </template>
         </div>
+      </section>
+
+      <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+        <h2 class="mb-4 font-semibold text-text">
+          {{ nl.admin.schedule.timeShift }}
+        </h2>
+        <div class="grid gap-3 md:grid-cols-3">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text">
+              {{ nl.admin.schedule.shiftFrom }}
+            </label>
+            <select
+              v-model="timeShiftFrom"
+              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            >
+              <option value="" disabled>
+                —
+              </option>
+              <option
+                v-for="time in [...new Set(matches.map(m => m.startTime))].sort()"
+                :key="time"
+                :value="time"
+              >
+                {{ formatTime(time) }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text">
+              {{ nl.admin.schedule.shiftMinutes }}
+            </label>
+            <input
+              v-model.number="timeShiftMinutes"
+              type="number"
+              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            >
+          </div>
+          <div class="flex items-end">
+            <button
+              :disabled="timeShiftLoading"
+              class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              @click="applyTimeShift"
+            >
+              {{ nl.admin.schedule.shiftApply }}
+            </button>
+          </div>
+        </div>
+        <p v-if="timeShiftError" class="mt-2 text-sm text-error">
+          {{ timeShiftError }}
+        </p>
+        <p v-if="timeShiftSuccess" class="mt-2 text-sm text-success">
+          {{ timeShiftSuccess }}
+        </p>
       </section>
 
       <section class="rounded-lg bg-surface p-4 shadow-sm">
