@@ -114,6 +114,16 @@ export const nl = {
       matchSaved: "Wedstrijd opgeslagen",
       existingMatches: "Er zijn al wedstrijden. Overschrijven?",
     },
+    koBracket: {
+      title: "Knock-out Schema",
+      generate: "KO-schema genereren",
+      generated: "KO-wedstrijden gegenereerd",
+      existingWarning: "Er is al een KO-schema. Overschrijven?",
+      notEnoughStandings: "Niet genoeg poule-standen om KO-schema te genereren",
+      noFields: "Geen velden beschikbaar voor KO-wedstrijden",
+      round: "Ronde",
+      swapTeams: "Teams wisselen",
+    },
     export: {
       title: "Exporteren",
       button: "Exporteer toernooi",
