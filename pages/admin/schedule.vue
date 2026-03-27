@@ -4,23 +4,37 @@ import { nl } from "~/i18n/nl";
 
 definePageMeta({ middleware: "auth" });
 
+interface Field {
+  id: number;
+  name: string;
+}
+
 interface Match {
   id: number;
   phase: string;
   round: number;
   startTime: string;
   status: string;
-  field: { id: number; name: string };
+  field: Field;
   teamA: { id: number; name: string };
   teamB: { id: number; name: string };
   pool: { id: number; name: string } | null;
 }
 
 const matches = ref<Match[]>([]);
+const fields = ref<Field[]>([]);
 const generateLoading = ref(false);
 const generateError = ref("");
 const generateSuccess = ref("");
 const showOverwrite = ref(false);
+
+const editingMatch = ref<Match | null>(null);
+const editFieldId = ref<number>(0);
+const editStartTime = ref("");
+const editError = ref("");
+const editSuccess = ref("");
+const conflictResult = ref<{ ok: boolean; conflicts: string[] } | null>(null);
+const conflictLoading = ref(false);
 
 async function fetchMatches() {
   try {
@@ -28,6 +42,10 @@ async function fetchMatches() {
   } catch {
     generateError.value = nl.common.error;
   }
+}
+
+async function fetchFields() {
+  fields.value = await $fetch<Field[]>("/api/admin/fields").catch(() => []);
 }
 
 async function generateSchedule(overwrite = false) {
@@ -55,11 +73,63 @@ async function generateSchedule(overwrite = false) {
   }
 }
 
+function startEditMatch(match: Match) {
+  editingMatch.value = match;
+  editFieldId.value = match.field.id;
+  editStartTime.value = new Date(match.startTime).toISOString().slice(0, 16);
+  editError.value = "";
+  editSuccess.value = "";
+  conflictResult.value = null;
+}
+
+function cancelEditMatch() {
+  editingMatch.value = null;
+  conflictResult.value = null;
+}
+
+async function checkConflict() {
+  if (!editingMatch.value) return;
+  conflictLoading.value = true;
+  conflictResult.value = null;
+  try {
+    conflictResult.value = await $fetch<{ ok: boolean; conflicts: string[] }>(
+      `/api/admin/schedule/conflict-check?matchId=${editingMatch.value.id}&fieldId=${editFieldId.value}&startTime=${new Date(editStartTime.value).toISOString()}`,
+    );
+  } catch {
+    conflictResult.value = { ok: false, conflicts: [nl.common.error] };
+  } finally {
+    conflictLoading.value = false;
+  }
+}
+
+async function saveMatch() {
+  if (!editingMatch.value) return;
+  editError.value = "";
+  editSuccess.value = "";
+  try {
+    await $fetch(`/api/admin/schedule/matches/${editingMatch.value.id}` as string, {
+      method: "PATCH",
+      body: {
+        fieldId: editFieldId.value,
+        startTime: new Date(editStartTime.value).toISOString(),
+      },
+    });
+    editSuccess.value = nl.admin.schedule.matchSaved;
+    editingMatch.value = null;
+    await fetchMatches();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    editError.value = fetchErr?.data?.data?.error || nl.common.error;
+  }
+}
+
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" });
 }
 
-onMounted(fetchMatches);
+onMounted(async () => {
+  await Promise.all([fetchMatches(), fetchFields()]);
+});
 </script>
 
 <template>
@@ -113,6 +183,10 @@ onMounted(fetchMatches);
       </section>
 
       <section class="rounded-lg bg-surface p-4 shadow-sm">
+        <p v-if="editSuccess" class="mb-2 text-sm text-success">
+          {{ editSuccess }}
+        </p>
+
         <p v-if="matches.length === 0" class="text-text-light">
           {{ nl.common.noResults }}
         </p>
@@ -123,20 +197,96 @@ onMounted(fetchMatches);
             :key="match.id"
             class="py-3"
           >
-            <div class="flex flex-col gap-1 md:flex-row md:items-center md:gap-4">
-              <span class="text-sm font-medium text-text-light">
-                {{ formatTime(match.startTime) }}
-              </span>
-              <span class="font-semibold text-text">
-                {{ match.teamA.name }} vs {{ match.teamB.name }}
-              </span>
-              <span class="text-sm text-text-light">
-                {{ match.field.name }}
-              </span>
-              <span v-if="match.pool" class="text-sm text-text-light">
-                {{ match.pool.name }}
-              </span>
-            </div>
+            <template v-if="editingMatch?.id === match.id">
+              <div class="flex flex-col gap-3 rounded-lg border border-primary p-3">
+                <div class="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label class="mb-1 block text-sm font-medium text-text">
+                      {{ nl.admin.schedule.fieldLabel }}
+                    </label>
+                    <select
+                      v-model="editFieldId"
+                      class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+                    >
+                      <option v-for="f in fields" :key="f.id" :value="f.id">
+                        {{ f.name }}
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-sm font-medium text-text">
+                      {{ nl.admin.schedule.timeLabel }}
+                    </label>
+                    <input
+                      v-model="editStartTime"
+                      type="datetime-local"
+                      class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+                    >
+                  </div>
+                </div>
+
+                <div
+                  v-if="conflictResult"
+                  :class="conflictResult.ok ? 'text-success' : 'text-error'"
+                  class="text-sm"
+                >
+                  <span v-if="conflictResult.ok">{{ nl.admin.schedule.noConflict }}</span>
+                  <ul v-else>
+                    <li v-for="c in conflictResult.conflicts" :key="c">{{ c }}</li>
+                  </ul>
+                </div>
+
+                <p v-if="editError" class="text-sm text-error">
+                  {{ editError }}
+                </p>
+
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    :disabled="conflictLoading"
+                    class="rounded bg-secondary px-3 py-1 text-sm text-white hover:opacity-80 disabled:opacity-50"
+                    @click="checkConflict"
+                  >
+                    {{ nl.admin.schedule.checkConflict }}
+                  </button>
+                  <button
+                    class="rounded bg-success px-3 py-1 text-sm text-white hover:opacity-80"
+                    @click="saveMatch"
+                  >
+                    {{ nl.admin.schedule.saveMatch }}
+                  </button>
+                  <button
+                    class="rounded bg-gray-400 px-3 py-1 text-sm text-white hover:opacity-80"
+                    @click="cancelEditMatch"
+                  >
+                    {{ nl.common.cancel }}
+                  </button>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex flex-col gap-1 md:flex-row md:items-center md:gap-4">
+                  <span class="text-sm font-medium text-text-light">
+                    {{ formatTime(match.startTime) }}
+                  </span>
+                  <span class="font-semibold text-text">
+                    {{ match.teamA.name }} vs {{ match.teamB.name }}
+                  </span>
+                  <span class="text-sm text-text-light">
+                    {{ match.field.name }}
+                  </span>
+                  <span v-if="match.pool" class="text-sm text-text-light">
+                    {{ match.pool.name }}
+                  </span>
+                </div>
+                <button
+                  class="rounded bg-primary px-2 py-1 text-sm text-white hover:bg-primary-dark"
+                  @click="startEditMatch(match)"
+                >
+                  {{ nl.common.edit }}
+                </button>
+              </div>
+            </template>
           </li>
         </ul>
       </section>
