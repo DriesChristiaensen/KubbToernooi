@@ -62,9 +62,15 @@
   - Story 2.2: conflict check + match PATCH (10 tests); Story 2.4: time shift (6 tests)
   - 119 tests total, all passing
 
+- **Phase 5 — Results & Standings (Epic 4):** Done
+  - Stories 4.1/4.2/4.3: Score entry already done in Story 5.2; standings utility added
+  - server/utils/standings.ts: recalculatePoolStandings (5 tests)
+  - Score corrections work automatically via full recalculation
+  - 124 tests total, all passing
+
 ## Current Task
 
-Phase 5 — Results & Standings (Epic 4, Story 4.1 — Score Entry)
+Phase 6 — Participants View (Epic 3, Story 3.1 — Mobile Overview)
 
 ## Blockers
 
@@ -81,3 +87,4 @@ Phase 5 — Results & Standings (Epic 4, Story 4.1 — Score Entry)
 | 3         | Stories 1.2 & 1.3 — Bulk Import + Field Generation | Done   | 16 new tests (61 total), lint clean, typecheck clean |
 | 4         | Phase 3 — Epic 5 Stories 5.1 & 5.2                 | Done   | Epic 5 merged into develop; 92 tests pass            |
 | 5         | Phase 4 — Epic 2 Stories 2.3, 2.1, 2.2, 2.4        | Done   | Epic 2 merged into develop; 119 tests pass           |
+| 6         | Phase 5 — Epic 4 Stories 4.1, 4.2, 4.3             | Done   | Standings utility added; 124 tests pass              |
