@@ -73,9 +73,14 @@
   - GET /api/public/schedule and GET /api/public/standings
   - 131 tests total
 
+- **Phase 8 — Data Integrity & Backup (Epic 6):** Done
+  - Story 6.1: GET /api/admin/export returns full JSON dump (3 tests)
+  - Story 6.2: POST /api/admin/import restores from JSON, requires password when data exists (6 tests)
+  - 140 tests total
+
 ## Current Task
 
-Phase 8 — Data Integrity & Backup (Epic 6, Story 6.1 — JSON Export)
+Phase 7 — KO Bracket Generation (extends Epic 5)
 
 ## Blockers
 
@@ -94,3 +99,4 @@ Phase 8 — Data Integrity & Backup (Epic 6, Story 6.1 — JSON Export)
 | 5         | Phase 4 — Epic 2 Stories 2.3, 2.1, 2.2, 2.4        | Done   | Epic 2 merged into develop; 119 tests pass           |
 | 6         | Phase 5 — Epic 4 Stories 4.1, 4.2, 4.3             | Done   | Standings utility added; 124 tests pass              |
 | 7         | Phase 6 — Epic 3 Stories 3.1-3.4                   | Done   | Public schedule/standings pages; 131 tests pass      |
+| 8         | Phase 8 — Epic 6 Stories 6.1 & 6.2                 | Done   | JSON export/import with password; 140 tests pass     |
