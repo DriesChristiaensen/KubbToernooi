@@ -45,6 +45,14 @@ const { logout } = useAuth();
         >
           <h2 class="text-subheading text-text">Scheidsrechters</h2>
         </NuxtLink>
+        <NuxtLink
+          to="/admin/tournament"
+          class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
+        >
+          <h2 class="text-subheading text-text">
+            {{ nl.admin.tournament.title }}
+          </h2>
+        </NuxtLink>
       </nav>
     </main>
   </div>
