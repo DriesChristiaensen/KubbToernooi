@@ -1,5 +1,6 @@
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
+import { recalculatePoolStandings } from "~/server/utils/standings";
 
 export default defineEventHandler(async (event) => {
   const idParam = getRouterParam(event, "id");
@@ -48,6 +49,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const updated = await prisma.match.update({ where: { id }, data: updateData });
+
+  if (match.phase === "POOL" && match.poolId != null) {
+    await recalculatePoolStandings(match.poolId);
+  }
 
   logRequest(event, "success", `Match ${id} score saved: ${scoreA}-${scoreB}`);
   return updated;
