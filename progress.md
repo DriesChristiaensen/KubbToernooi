@@ -68,9 +68,14 @@
   - Score corrections work automatically via full recalculation
   - 124 tests total, all passing
 
+- **Phase 6 — Participants View (Epic 3):** Done
+  - Stories 3.1-3.4: Public schedule with filter, status indicators, polling; standings page
+  - GET /api/public/schedule and GET /api/public/standings
+  - 131 tests total
+
 ## Current Task
 
-Phase 6 — Participants View (Epic 3, Story 3.1 — Mobile Overview)
+Phase 8 — Data Integrity & Backup (Epic 6, Story 6.1 — JSON Export)
 
 ## Blockers
 
@@ -88,3 +93,4 @@ Phase 6 — Participants View (Epic 3, Story 3.1 — Mobile Overview)
 | 4         | Phase 3 — Epic 5 Stories 5.1 & 5.2                 | Done   | Epic 5 merged into develop; 92 tests pass            |
 | 5         | Phase 4 — Epic 2 Stories 2.3, 2.1, 2.2, 2.4        | Done   | Epic 2 merged into develop; 119 tests pass           |
 | 6         | Phase 5 — Epic 4 Stories 4.1, 4.2, 4.3             | Done   | Standings utility added; 124 tests pass              |
+| 7         | Phase 6 — Epic 3 Stories 3.1-3.4                   | Done   | Public schedule/standings pages; 131 tests pass      |
