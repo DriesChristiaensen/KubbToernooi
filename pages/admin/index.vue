@@ -1,10 +1,33 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { nl } from "~/i18n/nl";
 import { useAuth } from "~/composables/useAuth";
 
 definePageMeta({ middleware: "auth" });
 
 const { logout } = useAuth();
+const exportLoading = ref(false);
+const exportError = ref("");
+
+async function downloadExport() {
+  exportLoading.value = true;
+  exportError.value = "";
+  try {
+    const data = await $fetch("/api/admin/export");
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "kubb-toernooi-export.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    exportError.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    exportLoading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -62,6 +85,22 @@ const { logout } = useAuth();
           </h2>
         </NuxtLink>
       </nav>
+
+      <div class="mt-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+        <h2 class="mb-3 font-semibold text-text">
+          {{ nl.admin.export.title }}
+        </h2>
+        <p v-if="exportError" class="mb-2 text-sm text-error">
+          {{ exportError }}
+        </p>
+        <button
+          :disabled="exportLoading"
+          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+          @click="downloadExport"
+        >
+          {{ nl.admin.export.button }}
+        </button>
+      </div>
     </main>
   </div>
 </template>
