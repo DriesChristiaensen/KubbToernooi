@@ -57,9 +57,14 @@
   - Story 5.1: Competition type selector, pool generation/management (92 tests total)
   - Story 5.2: Match score entry API and ref dashboard
 
+- **Phase 4 — Assisted Schedule Management (Epic 2):** Done
+  - Story 2.3: Status toggle PATCH (3 tests); Story 2.1: schedule generation (8 tests)
+  - Story 2.2: conflict check + match PATCH (10 tests); Story 2.4: time shift (6 tests)
+  - 119 tests total, all passing
+
 ## Current Task
 
-Phase 4 — Assisted Schedule Management (Epic 2, Story 2.3 — Publication Management)
+Phase 5 — Results & Standings (Epic 4, Story 4.1 — Score Entry)
 
 ## Blockers
 
@@ -75,3 +80,4 @@ Phase 4 — Assisted Schedule Management (Epic 2, Story 2.3 — Publication Mana
 | 2         | Story 1.1 — Individual Management | Done   | 22 new tests (45 total), lint clean, typecheck clean |
 | 3         | Stories 1.2 & 1.3 — Bulk Import + Field Generation | Done   | 16 new tests (61 total), lint clean, typecheck clean |
 | 4         | Phase 3 — Epic 5 Stories 5.1 & 5.2                 | Done   | Epic 5 merged into develop; 92 tests pass            |
+| 5         | Phase 4 — Epic 2 Stories 2.3, 2.1, 2.2, 2.4        | Done   | Epic 2 merged into develop; 119 tests pass           |
