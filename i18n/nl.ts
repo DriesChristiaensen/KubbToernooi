@@ -127,6 +127,13 @@ export const nl = {
       scoreB: "Score Team B",
       koWinner: "Winnaar aanduiden",
       saveScore: "Score opslaan",
+      scoresSaved: "Score opgeslagen",
+      notFound: "Wedstrijd niet gevonden",
+      invalidScore: "Score moet een niet-negatief geheel getal zijn",
+      koWinnerRequired: "Winnaar is verplicht bij gelijkspel in een knock-out wedstrijd",
+      invalidKoWinner: "Winnaar moet één van de spelende teams zijn",
+      phasePool: "Poule",
+      phaseKo: "Knock-out",
     },
   },
 
