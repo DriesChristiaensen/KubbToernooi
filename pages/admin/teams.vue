@@ -16,6 +16,16 @@ const editingName = ref("");
 const error = ref("");
 const loading = ref(false);
 
+const bulkText = ref("");
+const bulkError = ref("");
+const bulkSuccess = ref("");
+const bulkLoading = ref(false);
+
+const csvFile = ref<File | null>(null);
+const csvError = ref("");
+const csvSuccess = ref("");
+const csvLoading = ref(false);
+
 async function fetchTeams() {
   try {
     teams.value = await $fetch<Team[]>("/api/admin/teams");
@@ -85,6 +95,61 @@ async function deleteTeam(team: Team) {
   }
 }
 
+async function bulkImport() {
+  bulkError.value = "";
+  bulkSuccess.value = "";
+  const names = bulkText.value
+    .split("\n")
+    .map((n) => n.trim())
+    .filter((n) => n.length > 0);
+  if (names.length === 0) {
+    bulkError.value = nl.admin.teams.bulkEmpty;
+    return;
+  }
+  bulkLoading.value = true;
+  try {
+    const result = await $fetch<{ imported: number }>(
+      "/api/admin/teams/bulk-import",
+      { method: "POST", body: { names } },
+    );
+    bulkText.value = "";
+    bulkSuccess.value = `${result.imported} ${nl.admin.teams.imported}`;
+    await fetchTeams();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    bulkError.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    bulkLoading.value = false;
+  }
+}
+
+function onCsvChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  csvFile.value = input.files?.[0] ?? null;
+}
+
+async function importCsv() {
+  csvError.value = "";
+  csvSuccess.value = "";
+  if (!csvFile.value) return;
+  const text = await csvFile.value.text();
+  csvLoading.value = true;
+  try {
+    const result = await $fetch<{ imported: number }>(
+      "/api/admin/teams/bulk-import",
+      { method: "POST", body: { csv: text } },
+    );
+    csvFile.value = null;
+    csvSuccess.value = `${result.imported} ${nl.admin.teams.imported}`;
+    await fetchTeams();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    csvError.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    csvLoading.value = false;
+  }
+}
+
 onMounted(fetchTeams);
 </script>
 
@@ -117,7 +182,7 @@ onMounted(fetchTeams);
             required
             :placeholder="nl.admin.teams.namePlaceholder"
             class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          />
+          >
         </div>
         <button
           type="submit"
@@ -131,6 +196,56 @@ onMounted(fetchTeams);
       <p v-if="error" class="mb-4 text-sm text-error">
         {{ error }}
       </p>
+
+      <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+        <h2 class="mb-3 font-semibold text-text">
+          {{ nl.admin.teams.bulkImport }}
+        </h2>
+        <textarea
+          v-model="bulkText"
+          :placeholder="nl.admin.teams.bulkPlaceholder"
+          rows="5"
+          class="mb-3 w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+        />
+        <p v-if="bulkError" class="mb-2 text-sm text-error">
+          {{ bulkError }}
+        </p>
+        <p v-if="bulkSuccess" class="mb-2 text-sm text-success">
+          {{ bulkSuccess }}
+        </p>
+        <button
+          :disabled="bulkLoading"
+          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+          @click="bulkImport"
+        >
+          {{ nl.admin.teams.bulkImport }}
+        </button>
+      </section>
+
+      <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+        <h2 class="mb-3 font-semibold text-text">
+          {{ nl.admin.teams.csvUpload }}
+        </h2>
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          class="mb-3 block text-sm text-text"
+          @change="onCsvChange"
+        >
+        <p v-if="csvError" class="mb-2 text-sm text-error">
+          {{ csvError }}
+        </p>
+        <p v-if="csvSuccess" class="mb-2 text-sm text-success">
+          {{ csvSuccess }}
+        </p>
+        <button
+          :disabled="csvLoading || !csvFile"
+          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+          @click="importCsv"
+        >
+          {{ nl.admin.teams.csvUpload }}
+        </button>
+      </section>
 
       <ul class="space-y-2">
         <li
@@ -148,7 +263,7 @@ onMounted(fetchTeams);
                 type="text"
                 required
                 class="flex-1 rounded border border-gray-300 px-3 py-1 text-text focus:border-primary focus:outline-none"
-              />
+              >
               <button
                 type="submit"
                 :disabled="loading"

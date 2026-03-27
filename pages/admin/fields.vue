@@ -16,6 +16,12 @@ const editingName = ref("");
 const error = ref("");
 const loading = ref(false);
 
+const generateCount = ref<number | null>(null);
+const generateError = ref("");
+const generateSuccess = ref("");
+const generateLoading = ref(false);
+const showOverwriteConfirm = ref(false);
+
 async function fetchFields() {
   try {
     fields.value = await $fetch<Field[]>("/api/admin/fields");
@@ -87,6 +93,36 @@ async function deleteField(field: Field) {
   }
 }
 
+async function generateFields(overwrite = false) {
+  generateError.value = "";
+  generateSuccess.value = "";
+  showOverwriteConfirm.value = false;
+  if (!generateCount.value || generateCount.value <= 0) {
+    generateError.value = nl.admin.fields.countRequired;
+    return;
+  }
+  generateLoading.value = true;
+  try {
+    const result = await $fetch<{ generated: number }>(
+      "/api/admin/fields/generate",
+      { method: "POST", body: { count: generateCount.value, overwrite } },
+    );
+    generateCount.value = null;
+    generateSuccess.value = `${result.generated} ${nl.admin.fields.generated}`;
+    await fetchFields();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string; code?: number } } };
+    if (fetchErr?.data?.data?.code === 409) {
+      showOverwriteConfirm.value = true;
+      generateError.value = nl.admin.fields.existingWarning;
+    } else {
+      generateError.value = fetchErr?.data?.data?.error || nl.common.error;
+    }
+  } finally {
+    generateLoading.value = false;
+  }
+}
+
 onMounted(fetchFields);
 </script>
 
@@ -119,7 +155,7 @@ onMounted(fetchFields);
             required
             :placeholder="nl.admin.fields.namePlaceholder"
             class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          />
+          >
         </div>
         <button
           type="submit"
@@ -133,6 +169,57 @@ onMounted(fetchFields);
       <p v-if="error" class="mb-4 text-sm text-error">
         {{ error }}
       </p>
+
+      <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+        <h2 class="mb-3 font-semibold text-text">
+          {{ nl.admin.fields.generateTitle }}
+        </h2>
+        <div
+          class="flex flex-col gap-3 md:flex-row md:items-end"
+        >
+          <div class="flex-1">
+            <label
+              class="mb-1 block text-sm font-medium text-text"
+              for="field-count"
+              >{{ nl.admin.fields.countLabel }}</label
+            >
+            <input
+              id="field-count"
+              v-model.number="generateCount"
+              type="number"
+              min="1"
+              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            >
+          </div>
+          <button
+            :disabled="generateLoading"
+            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+            @click="generateFields(false)"
+          >
+            {{ nl.admin.fields.generateButton }}
+          </button>
+        </div>
+        <p v-if="generateError" class="mt-2 text-sm text-error">
+          {{ generateError }}
+        </p>
+        <p v-if="generateSuccess" class="mt-2 text-sm text-success">
+          {{ generateSuccess }}
+        </p>
+        <div v-if="showOverwriteConfirm" class="mt-3 flex gap-2">
+          <button
+            class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            @click="generateFields(true)"
+          >
+            {{ nl.common.confirm }}
+          </button>
+          <button
+            class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="showOverwriteConfirm = false; generateError = ''"
+          >
+            {{ nl.common.cancel }}
+          </button>
+        </div>
+      </section>
 
       <ul class="space-y-2">
         <li
@@ -150,7 +237,7 @@ onMounted(fetchFields);
                 type="text"
                 required
                 class="flex-1 rounded border border-gray-300 px-3 py-1 text-text focus:border-primary focus:outline-none"
-              />
+              >
               <button
                 type="submit"
                 :disabled="loading"
