@@ -54,6 +54,42 @@ export default defineEventHandler(async (event) => {
     await recalculatePoolStandings(match.poolId);
   }
 
+  if (match.phase === "KO") {
+    const roundMatches = await prisma.match.findMany({ where: { phase: "KO", round: match.round } });
+    if (roundMatches.every((m) => m.status === "PLAYED") && roundMatches.length >= 2) {
+      const winners = roundMatches.map((m) => {
+        const sa = m.scoreA ?? 0;
+        const sb = m.scoreB ?? 0;
+        if (sa > sb) return m.teamAId;
+        if (sb > sa) return m.teamBId;
+        return m.koWinnerId ?? m.teamAId;
+      });
+      const pairs: Array<{ teamAId: number; teamBId: number; fieldId: number }> = [];
+      for (let i = 0; i + 1 < winners.length; i += 2) {
+        pairs.push({ teamAId: winners[i]!, teamBId: winners[i + 1]!, fieldId: roundMatches[i]!.fieldId });
+      }
+      if (pairs.length > 0) {
+        const tournament = await prisma.tournament.findFirst();
+        if (tournament) {
+          const nextRound = match.round + 1;
+          const slotMs = (tournament.matchDuration + tournament.breakTime) * 60 * 1000;
+          await prisma.match.createMany({
+            data: pairs.map((pair) => ({
+              phase: "KO" as const,
+              round: nextRound,
+              fieldId: pair.fieldId,
+              teamAId: pair.teamAId,
+              teamBId: pair.teamBId,
+              poolId: null,
+              startTime: new Date(tournament.startTime.getTime() + (nextRound - 1) * slotMs),
+              status: "SCHEDULED" as const,
+            })),
+          });
+        }
+      }
+    }
+  }
+
   logRequest(event, "success", `Match ${id} score saved: ${scoreA}-${scoreB}`);
   return updated;
 });

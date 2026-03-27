@@ -131,6 +131,14 @@ function handleImportFile(event: Event) {
             {{ nl.admin.schedule.title }}
           </h2>
         </NuxtLink>
+        <NuxtLink
+          to="/admin/ko-bracket"
+          class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
+        >
+          <h2 class="text-subheading text-text">
+            {{ nl.admin.koBracket.title }}
+          </h2>
+        </NuxtLink>
       </nav>
 
       <div class="mt-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
