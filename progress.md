@@ -87,9 +87,15 @@
   - Admin dashboard updated with KO bracket nav card
   - 153 tests total, all passing
 
+- **Phase 9.2 — Security Hardening (code parts):** Done
+  - server/utils/rate-limit.ts: in-memory rate limiter (5 req / 15 min per IP, 4 tests)
+  - login.post.ts: integrated rate limiting with getRequestIP
+  - 158 tests total, all passing
+  - Remaining Phase 9 work: manual (see Blockers)
+
 ## Current Task
 
-Phase 9 — Integration, Testing & Go-Live
+Phase 9 — Integration, Testing & Go-Live (manual infrastructure tasks remaining)
 
 ## Blockers
 
@@ -113,3 +119,4 @@ Phase 9 — Integration, Testing & Go-Live
 | 7         | Phase 6 — Epic 3 Stories 3.1-3.4                   | Done   | Public schedule/standings pages; 131 tests pass      |
 | 8         | Phase 8 — Epic 6 Stories 6.1 & 6.2                 | Done   | JSON export/import with password; 140 tests pass     |
 | 9         | Phase 7 — KO Bracket Stories 7.1 & 7.2             | Done   | KO generation + adjustment + auto-advance; 153 tests |
+| 10        | Phase 9.2 — Security Hardening (code)              | Done   | Rate limiting on login; 158 tests pass               |
