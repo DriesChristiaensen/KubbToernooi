@@ -1,0 +1,502 @@
+{
+  "product": {
+    "name": "Kubb Toernooi",
+    "owner": "Chiro Sint-Antonius",
+    "version": "1.0",
+    "lastUpdated": "2026-03-27",
+    "status": "In development"
+  },
+  "problemStatement": "Chiro Sint-Antonius organizes an annual single-day Kubb tournament. Currently, tournament logistics — team registration, scheduling, score tracking, and standings — are managed manually or with ad-hoc tools. This leads to scheduling conflicts, delayed score updates, and a poor experience for participants trying to find their next match on the day itself. A purpose-built web application will centralize all tournament operations, provide real-time information to participants on their phones, and reduce the organizational burden on volunteers.",
+  "goalsAndObjectives": [
+    {
+      "goal": "Eliminate manual scheduling errors",
+      "measurableOutcome": "Zero double-bookings through automated conflict detection"
+    },
+    {
+      "goal": "Real-time match information for participants",
+      "measurableOutcome": "Standings and schedule update within 60 seconds of a score entry"
+    },
+    {
+      "goal": "Minimize admin effort on tournament day",
+      "measurableOutcome": "Bulk import of teams, automatic schedule generation, automatic standings calculation"
+    },
+    {
+      "goal": "Work reliably on the day",
+      "measurableOutcome": "Single self-hosted server, no external service dependencies, offline-resilient architecture"
+    },
+    {
+      "goal": "Accessible to all participants",
+      "measurableOutcome": "Mobile-first public pages, no login required for viewing"
+    }
+  ],
+  "targetUsers": [
+    {
+      "role": "Administrator (Admin)",
+      "who": "One or two Chiro volunteers managing the tournament",
+      "access": "Full access to all configuration, scheduling, scoring, and data management",
+      "login": "Password-only authentication. Password is reset via SSH on the server.",
+      "keyNeeds": "Set up the tournament quickly before the day, manage the schedule live, correct mistakes, export data afterward"
+    },
+    {
+      "role": "Referee (Ref)",
+      "who": "Volunteers assigned to officiate matches across multiple fields",
+      "access": "Score entry for any match (universal access — no per-match assignment)",
+      "login": "Name + password, accounts created and managed by the admin",
+      "keyNeeds": "Quickly find the current match, enter scores on a phone, move to the next match"
+    },
+    {
+      "role": "Participant (Public)",
+      "who": "Players and spectators at the tournament",
+      "access": "Read-only view of the schedule, match statuses, and standings",
+      "login": "None required",
+      "keyNeeds": "Find their team's next match, check live scores, view pool standings and KO bracket on a phone"
+    }
+  ],
+  "functionalRequirements": {
+    "epic1_tournamentConfiguration": {
+      "title": "Tournament Configuration",
+      "requirements": [
+        {
+          "id": "FR-1.1",
+          "title": "Individual team and field management",
+          "details": [
+            "Admin can add a team (name required), edit its name, or delete it",
+            "Admin can add a field, rename it, or delete it",
+            "Deletion requires a confirmation dialog"
+          ]
+        },
+        {
+          "id": "FR-1.2",
+          "title": "Bulk import",
+          "details": [
+            "Text field that accepts one team name per line",
+            "Server validates for duplicates within the bulk list and against existing teams in the database",
+            "CSV upload option: first column is parsed as team name, same validation applies"
+          ]
+        },
+        {
+          "id": "FR-1.3",
+          "title": "Field generation",
+          "details": [
+            "Numeric input for 'Number of fields'",
+            "Generates fields named 'Veld 1' through 'Veld N'",
+            "Existing fields are not overwritten unless the admin explicitly confirms"
+          ]
+        }
+      ]
+    },
+    "epic2_scheduleManagement": {
+      "title": "Schedule Management",
+      "requirements": [
+        {
+          "id": "FR-2.1",
+          "title": "Automatic schedule generation",
+          "details": [
+            "Inputs: tournament start time, average match duration, break time per round",
+            "Algorithm generates all round-robin matchups per pool",
+            "Distributes matches across time slots and fields with constraints: no team plays twice in one time slot, no field double-booked",
+            "Output: complete schedule with times, fields, and team pairings"
+          ]
+        },
+        {
+          "id": "FR-2.2",
+          "title": "Conflict check",
+          "details": [
+            "On any manual modification of a match (time or field), a live validation runs",
+            "Displays a clear error if a team or field is already occupied at that time"
+          ]
+        },
+        {
+          "id": "FR-2.3",
+          "title": "Publication management",
+          "details": [
+            "Toggle between 'Draft' and 'Live' status",
+            "Draft: schedule visible only to admin and referees",
+            "Live: schedule visible on the public participant pages"
+          ]
+        },
+        {
+          "id": "FR-2.4",
+          "title": "Bulk time shift",
+          "details": [
+            "Admin selects a starting time slot from a dropdown",
+            "Inputs a number of minutes (positive = later, negative = earlier)",
+            "All matches from that slot onward are recalculated",
+            "Conflict check runs automatically after the shift"
+          ]
+        }
+      ]
+    },
+    "epic3_participantsView": {
+      "title": "Participants View",
+      "requirements": [
+        {
+          "id": "FR-3.1",
+          "title": "Mobile schedule overview",
+          "details": [
+            "Public page showing a chronological list of matches: time, Team A vs. Team B, field",
+            "Mobile-first responsive design",
+            "Polls the API every 60 seconds for updates"
+          ]
+        },
+        {
+          "id": "FR-3.2",
+          "title": "Personal team filter",
+          "details": [
+            "Search field at the top with fuzzy matching on team name",
+            "Last searched team name persisted in localStorage",
+            "On reload, automatically filters by the stored team name"
+          ]
+        },
+        {
+          "id": "FR-3.3",
+          "title": "Automatic status indicators",
+          "details": [
+            "Live: current time >= match start time AND < start time + match duration, no score entered",
+            "Played: score has been entered",
+            "Awaiting result: match time has passed but no score is entered",
+            "Status is calculated client-side based on fetched data and the system clock"
+          ]
+        },
+        {
+          "id": "FR-3.4",
+          "title": "Public standings page",
+          "details": [
+            "Shows pool tables with ranking: points, won, drawn, lost, goal difference",
+            "Shows KO bracket visualization with matchups and results",
+            "Same polling interval as the schedule page. No login required"
+          ]
+        }
+      ]
+    },
+    "epic4_resultsAndStandings": {
+      "title": "Results & Standings",
+      "requirements": [
+        {
+          "id": "FR-4.1",
+          "title": "Score entry",
+          "details": [
+            "List view of matches for admin and referees",
+            "Per match: numeric input fields for Team A and Team B scores",
+            "'Save' updates the match status to 'played'",
+            "In KO phase with a draw: an additional field appears for the referee to designate the winner"
+          ]
+        },
+        {
+          "id": "FR-4.2",
+          "title": "Real-time standings calculation",
+          "details": [
+            "After saving a score, the server recalculates the pool standing",
+            "Ranking order: Points > Goal difference > Head-to-head result",
+            "Standings table is updated in the database (cached Standing records)"
+          ]
+        },
+        {
+          "id": "FR-4.3",
+          "title": "Score correction",
+          "details": [
+            "Admin or referee can overwrite previously entered scores",
+            "Standings are immediately recalculated after correction",
+            "In KO: winner designation can also be corrected"
+          ]
+        }
+      ]
+    },
+    "epic5_tournamentStructure": {
+      "title": "Tournament Structure & Format",
+      "requirements": [
+        {
+          "id": "FR-5.1",
+          "title": "Competition type selection",
+          "details": [
+            "Dropdown in tournament settings: Pools / Knockout / Combination",
+            "For Pools or Combination: automatic pool allocation (random, balanced by team count)",
+            "Manual adjustment: move teams between pools",
+            "For Combination: configure per pool how many teams advance (top 1, 2, etc.)",
+            "Pool allocation remains editable both before and after going live"
+          ]
+        },
+        {
+          "id": "FR-5.2",
+          "title": "Match logic per phase",
+          "details": [
+            "Pool matches: draws are allowed",
+            "Knockout matches: draws are allowed but the referee must designate a winner via a ko_winner field",
+            "Point values (win/draw/loss) are configurable by the admin. Default: 3/1/0"
+          ]
+        },
+        {
+          "id": "FR-5.3",
+          "title": "KO bracket generation",
+          "details": [
+            "Triggered by admin when pool phase is complete",
+            "Reads standings and configured number of advancing teams per pool",
+            "Seeding: random team from the top half of qualifiers vs. random team from the bottom half",
+            "Generated bracket is presented for admin review before publishing"
+          ]
+        },
+        {
+          "id": "FR-5.4",
+          "title": "KO bracket adjustment",
+          "details": [
+            "Admin can swap teams or change matchups before publishing",
+            "Once published, bracket matches appear in the schedule and are assignable to fields and time slots",
+            "Subsequent KO rounds (semis, finals) are generated automatically as results come in"
+          ]
+        }
+      ]
+    },
+    "epic6_dataIntegrity": {
+      "title": "Data Integrity & Backup",
+      "requirements": [
+        {
+          "id": "FR-6.1",
+          "title": "JSON export",
+          "details": [
+            "Button in admin dashboard: 'Export tournament'",
+            "Downloads a .json file containing: tournament settings, teams, fields, pools, full schedule, and all results"
+          ]
+        },
+        {
+          "id": "FR-6.2",
+          "title": "JSON import",
+          "details": [
+            "Button in admin dashboard: 'Import tournament'",
+            "Accepts a .json file in the same format as the export",
+            "If the database is empty: import runs directly, no confirmation needed",
+            "If data already exists: admin must confirm by entering the admin password. Existing data is fully replaced",
+            "File structure is validated before import; clear error on invalid format"
+          ]
+        }
+      ]
+    },
+    "epic7_authentication": {
+      "title": "Authentication & User Management",
+      "requirements": [
+        {
+          "id": "FR-7.1",
+          "title": "Role-based access control",
+          "details": [
+            "Two roles in the system: ADMIN and REFEREE",
+            "Participants have no account; public routes are unprotected",
+            "Server middleware enforces ADMIN on /api/admin/** routes",
+            "Server middleware enforces ADMIN or REFEREE on /api/ref/** routes"
+          ]
+        },
+        {
+          "id": "FR-7.2",
+          "title": "Authentication mechanism",
+          "details": [
+            "Admin login: password field only. Validated against a bcrypt hash",
+            "Admin password reset: CLI script run via SSH on the server",
+            "Referee login: name + password fields. Accounts managed by admin",
+            "Session duration: ~12 hours (covers one tournament day)"
+          ]
+        },
+        {
+          "id": "FR-7.3",
+          "title": "Universal referee access",
+          "details": [
+            "Referee dashboard shows all matches, grouped by field or time slot",
+            "Referee clicks any match to enter a score. No per-match assignment needed"
+          ]
+        }
+      ]
+    }
+  },
+  "nonFunctionalRequirements": {
+    "performance": {
+      "pageLoadTime": "Public pages must load within 2 seconds on a mobile connection",
+      "pollingInterval": "60 seconds on public pages",
+      "pollingBehavior": "Pauses when the browser tab is inactive, resumes with an instant fetch when the tab becomes active",
+      "concurrentUsers": "~20-40 concurrent users"
+    },
+    "security": {
+      "authentication": "Session-based via Nuxt Auth Utils with bcrypt password hashing",
+      "sessionExpiry": "~12 hours",
+      "rateLimiting": "On login endpoints (/api/admin/login, /api/ref/login)",
+      "networkAccess": "Nginx is the only external entry point (ports 80/443). Nuxt listens on 127.0.0.1:3000 only",
+      "databaseAccess": "PostgreSQL accepts only local connections",
+      "inputValidation": "All user input validated server-side. Prisma parameterized queries prevent SQL injection",
+      "xssPrevention": "User-provided strings rendered in HTML are sanitized"
+    },
+    "reliability": {
+      "architecture": "Single self-hosted server with no external service dependencies",
+      "backup": "JSON export serves as a manual backup mechanism",
+      "restore": "JSON import allows full tournament restore"
+    },
+    "usability": {
+      "designApproach": "Mobile-first",
+      "breakpoint": "md (768px) separating mobile from desktop",
+      "desktopOptimization": "~1366px wide screens. Content has a max-width with centered whitespace on wider screens",
+      "language": "All UI text in Dutch, managed from a centralized i18n file",
+      "errorLanguage": "Error messages displayed to users are in Dutch"
+    },
+    "maintainability": {
+      "repoStructure": "Single monorepo, single deployment unit",
+      "deployment": "Manual deploy via SSH (git pull, npm run build, PM2 restart)",
+      "commitConvention": "Conventional Commits",
+      "testing": "TDD with Vitest for API route handlers"
+    }
+  },
+  "technicalArchitecture": {
+    "stack": {
+      "framework": "Nuxt 3 (frontend + Nitro API routes)",
+      "orm": "Prisma",
+      "database": "PostgreSQL (local to the server)",
+      "auth": "Nuxt Auth Utils (session-based, bcrypt)",
+      "styling": "Tailwind CSS (design tokens in tailwind.config.ts)",
+      "testing": "Vitest (unit tests on API handlers)",
+      "validation": "Zod (server-side input validation)",
+      "processManager": "PM2",
+      "reverseProxy": "Nginx with Certbot SSL",
+      "hosting": "DigitalOcean Droplet (2 GB RAM / 1 vCPU)"
+    },
+    "apiNamespaces": [
+      {
+        "prefix": "/api/public/*",
+        "access": "Everyone",
+        "purpose": "Schedule, standings, match status"
+      },
+      {
+        "prefix": "/api/ref/*",
+        "access": "Referee + Admin",
+        "purpose": "Score entry, match list"
+      },
+      {
+        "prefix": "/api/admin/*",
+        "access": "Admin only",
+        "purpose": "Configuration, teams, fields, schedule, users, export/import"
+      }
+    ],
+    "stateManagement": "No global store (no Pinia). Local component state via ref/reactive/computed. Shared logic via composables (useAuth, usePolling, etc.)"
+  },
+  "dataModel": [
+    {
+      "model": "User",
+      "purpose": "Admin and referee accounts",
+      "keyFields": ["role", "name", "passwordHash"]
+    },
+    {
+      "model": "Tournament",
+      "purpose": "Tournament settings",
+      "keyFields": ["name", "status (draft/live)", "type (pool/KO/combination)", "startTime", "matchDuration", "breakTime", "pointsWin", "pointsDraw", "pointsLoss"]
+    },
+    {
+      "model": "Team",
+      "purpose": "Participating teams",
+      "keyFields": ["name", "tournamentId"]
+    },
+    {
+      "model": "Field",
+      "purpose": "Playing fields",
+      "keyFields": ["name", "tournamentId"]
+    },
+    {
+      "model": "Pool",
+      "purpose": "Pool groupings",
+      "keyFields": ["name", "tournamentId", "teamsAdvancing"]
+    },
+    {
+      "model": "PoolTeam",
+      "purpose": "Team-pool assignment",
+      "keyFields": ["teamId", "poolId"]
+    },
+    {
+      "model": "Match",
+      "purpose": "Scheduled and played matches",
+      "keyFields": ["phase (pool/KO)", "round", "timeSlot", "fieldId", "teamAId", "teamBId", "scoreA", "scoreB", "status (scheduled/live/awaiting_result/played)", "koWinner"]
+    },
+    {
+      "model": "Standing",
+      "purpose": "Cached pool standings",
+      "keyFields": ["teamId", "poolId", "points", "won", "drawn", "lost", "goalDifference"]
+    }
+  ],
+  "keyUserFlows": [
+    {
+      "name": "Tournament Setup (Admin)",
+      "steps": [
+        "Admin logs in with password",
+        "Creates a tournament with name, start time, match duration, break time, and point values",
+        "Imports teams via bulk text or CSV",
+        "Generates fields ('Veld 1' through 'Veld N')",
+        "Selects competition type and configures pool allocation",
+        "Generates the schedule automatically",
+        "Reviews the schedule, makes manual adjustments if needed",
+        "Publishes the schedule (Draft -> Live)"
+      ]
+    },
+    {
+      "name": "Tournament Day — Referee",
+      "steps": [
+        "Referee logs in with name + password",
+        "Sees a list of all matches",
+        "Selects a match that just finished",
+        "Enters scores for Team A and Team B",
+        "If KO phase and draw: designates the winner",
+        "Saves. Standings update automatically"
+      ]
+    },
+    {
+      "name": "Tournament Day — Participant",
+      "steps": [
+        "Opens the public URL on their phone (no login)",
+        "Sees the full schedule sorted by time",
+        "Searches for their team name; filter is remembered on reload",
+        "Sees match statuses: upcoming, live, awaiting result, played",
+        "Navigates to standings page to view pool tables and KO bracket"
+      ]
+    },
+    {
+      "name": "Schedule Delay",
+      "steps": [
+        "Admin notices the tournament is running behind",
+        "Selects the time slot where the delay starts",
+        "Enters the delay in minutes (e.g., +15)",
+        "System shifts all subsequent matches and runs conflict check",
+        "Participants see updated times on the next poll cycle"
+      ]
+    },
+    {
+      "name": "End of Tournament",
+      "steps": [
+        "Admin exports the full tournament as JSON (backup/archive)",
+        "Optionally, admin can later import the JSON to restore or review the tournament"
+      ]
+    }
+  ],
+  "constraintsAndAssumptions": [
+    "Single tournament: The system manages one tournament at a time. No multi-tournament support.",
+    "Single day: The tournament takes place in a single day. No multi-day logic needed.",
+    "Small scale: Expected ~20-40 teams, ~4-10 fields, ~50-150 matches.",
+    "Local network: Server runs on a DigitalOcean Droplet. API traffic originates from localhost via Nginx proxy.",
+    "No offline mode: Participants need an active internet connection.",
+    "Dutch only: All user-facing text is in Dutch. No multi-language support.",
+    "No real-time push: Updates via polling (60-second interval), not WebSockets.",
+    "Manual deploy: No CI/CD. Deployment via SSH."
+  ],
+  "outOfScope": [
+    "Multi-tournament management",
+    "Multi-day tournaments",
+    "Player-level registration (only team-level)",
+    "WebSocket/SSE real-time push",
+    "Email or SMS notifications",
+    "Payment integration",
+    "Statistics and analytics beyond standings",
+    "Multi-language support",
+    "Native mobile app",
+    "CI/CD pipeline",
+    "Automated backups (beyond manual JSON export)"
+  ],
+  "glossary": [
+    { "term": "Kubb", "definition": "A Swedish lawn game played between two teams" },
+    { "term": "Poule / Pool", "definition": "A group of teams that play round-robin matches against each other" },
+    { "term": "KO / Knockout", "definition": "Single-elimination bracket phase" },
+    { "term": "Combinatie / Combination", "definition": "Tournament format with a pool phase followed by a knockout phase" },
+    { "term": "Veld / Field", "definition": "A physical playing area where matches take place" },
+    { "term": "Tijdslot / Time slot", "definition": "A specific start time assigned to a match" },
+    { "term": "Scheidsrechter / Referee", "definition": "A volunteer who officiates matches and enters scores" },
+    { "term": "Deelnemer / Participant", "definition": "A player or spectator viewing the public schedule" }
+  ]
+}
