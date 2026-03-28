@@ -11,7 +11,15 @@
     "lint": "eslint .",
     "typecheck": "nuxi typecheck",
     "test": "vitest run",
-    "ralph": "bash scripts/ralph-loop.sh"
+    "ralph": "bash scripts/ralph-loop.sh",
+    "seed": "npx tsx prisma/seed.ts combined",
+    "seed:pool": "npx tsx prisma/seed.ts pool",
+    "seed:ko": "npx tsx prisma/seed.ts ko",
+    "seed:combined": "npx tsx prisma/seed.ts combined",
+    "reset-rate-limit": "npx tsx scripts/reset-rate-limit.ts"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts combined"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
