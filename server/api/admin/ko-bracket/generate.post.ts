@@ -48,21 +48,39 @@ export default defineEventHandler(async (event) => {
     }
     participants = teams.map((t) => ({ teamId: t.id }));
   } else {
-    const standings = await prisma.standing.findMany({
-      orderBy: [
-        { points: "desc" },
-        { goalDifference: "desc" },
-        { goalsFor: "desc" },
-      ],
+    // COMBINATION / POOLS: take only top teamsAdvancing from each pool
+    const pools = await prisma.pool.findMany({
+      where: { tournamentId: tournament.id },
+      include: {
+        standings: {
+          orderBy: [
+            { points: "desc" },
+            { goalDifference: "desc" },
+            { goalsFor: "desc" },
+          ],
+        },
+      },
     });
-    if (standings.length < 2) {
+
+    if (pools.length === 0) {
       throw createApiError({
         error: "Niet genoeg poule-standen om KO-schema te genereren",
         code: 400,
         reason: "Not enough standings to generate KO bracket",
       });
     }
-    participants = standings;
+
+    participants = pools.flatMap((pool) =>
+      pool.standings.slice(0, pool.teamsAdvancing).map((s) => ({ teamId: s.teamId })),
+    );
+
+    if (participants.length < 2) {
+      throw createApiError({
+        error: "Niet genoeg poule-standen om KO-schema te genereren",
+        code: 400,
+        reason: "Not enough standings to generate KO bracket",
+      });
+    }
   }
 
   if (existingCount > 0) {

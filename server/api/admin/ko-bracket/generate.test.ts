@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockTournamentFindFirst = vi.hoisted(() => vi.fn());
-const mockStandingFindMany = vi.hoisted(() => vi.fn());
+const mockPoolFindMany = vi.hoisted(() => vi.fn());
 const mockTeamFindMany = vi.hoisted(() => vi.fn());
 const mockMatchCount = vi.hoisted(() => vi.fn());
 const mockMatchDeleteMany = vi.hoisted(() => vi.fn());
@@ -20,7 +20,7 @@ vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
 vi.mock("~/server/utils/prisma", () => ({
   prisma: {
     tournament: { findFirst: mockTournamentFindFirst },
-    standing: { findMany: mockStandingFindMany },
+    pool: { findMany: mockPoolFindMany },
     team: { findMany: mockTeamFindMany },
     match: {
       count: mockMatchCount,
@@ -45,8 +45,12 @@ const baseTournament = {
 
 const knockoutTournament = { ...baseTournament, type: "KNOCKOUT" };
 
-function makeStandings(teams: { teamId: number; points: number }[], poolId = 10) {
-  return teams.map((t) => ({ poolId, teamId: t.teamId, points: t.points, goalDifference: 0, goalsFor: 0 }));
+function makePool(id: number, teamsAdvancing: number, teamIds: { teamId: number; points: number }[]) {
+  return {
+    id,
+    teamsAdvancing,
+    standings: teamIds.map((t) => ({ teamId: t.teamId, points: t.points, goalDifference: 0, goalsFor: 0 })),
+  };
 }
 
 function createMockEvent() {
@@ -63,11 +67,11 @@ describe("POST /api/admin/ko-bracket/generate", () => {
     await expect(handler(createMockEvent())).rejects.toThrow("No tournament found");
   });
 
-  it("returns 400 when no standings exist", async () => {
+  it("returns 400 when no pools exist", async () => {
     mockTournamentFindFirst.mockResolvedValue(baseTournament);
     vi.mocked(readBody).mockResolvedValue({});
     mockMatchCount.mockResolvedValue(0);
-    mockStandingFindMany.mockResolvedValue([]);
+    mockPoolFindMany.mockResolvedValue([]);
     mockFieldFindMany.mockResolvedValue([{ id: 1 }]);
 
     await expect(handler(createMockEvent())).rejects.toThrow("Not enough standings");
@@ -77,7 +81,7 @@ describe("POST /api/admin/ko-bracket/generate", () => {
     mockTournamentFindFirst.mockResolvedValue(baseTournament);
     vi.mocked(readBody).mockResolvedValue({});
     mockMatchCount.mockResolvedValue(0);
-    mockStandingFindMany.mockResolvedValue(makeStandings([{ teamId: 1, points: 3 }, { teamId: 2, points: 0 }]));
+    mockPoolFindMany.mockResolvedValue([makePool(10, 2, [{ teamId: 1, points: 3 }, { teamId: 2, points: 0 }])]);
     mockFieldFindMany.mockResolvedValue([]);
 
     await expect(handler(createMockEvent())).rejects.toThrow("No fields");
@@ -91,13 +95,29 @@ describe("POST /api/admin/ko-bracket/generate", () => {
     await expect(handler(createMockEvent())).rejects.toThrow("KO matches already exist");
   });
 
+  it("advances only teamsAdvancing teams per pool (2 pools × 2 advancing = 2 matches)", async () => {
+    mockTournamentFindFirst.mockResolvedValue(baseTournament);
+    vi.mocked(readBody).mockResolvedValue({});
+    mockMatchCount.mockResolvedValue(0);
+    mockPoolFindMany.mockResolvedValue([
+      makePool(10, 2, [{ teamId: 1, points: 9 }, { teamId: 2, points: 6 }, { teamId: 3, points: 3 }]),
+      makePool(11, 2, [{ teamId: 4, points: 9 }, { teamId: 5, points: 6 }, { teamId: 6, points: 3 }]),
+    ]);
+    mockFieldFindMany.mockResolvedValue([{ id: 100 }]);
+    mockMatchCreateMany.mockResolvedValue({ count: 2 });
+
+    const result = await handler(createMockEvent());
+
+    const data = mockMatchCreateMany.mock.calls[0][0].data;
+    expect(data).toHaveLength(2);
+    expect(result).toMatchObject({ generated: 2 });
+  });
+
   it("generates KO matches from standings (2 teams → 1 match)", async () => {
     mockTournamentFindFirst.mockResolvedValue(baseTournament);
     vi.mocked(readBody).mockResolvedValue({});
     mockMatchCount.mockResolvedValue(0);
-    mockStandingFindMany.mockResolvedValue(
-      makeStandings([{ teamId: 1, points: 3 }, { teamId: 2, points: 0 }]),
-    );
+    mockPoolFindMany.mockResolvedValue([makePool(10, 2, [{ teamId: 1, points: 3 }, { teamId: 2, points: 0 }])]);
     mockFieldFindMany.mockResolvedValue([{ id: 100 }]);
     mockMatchCreateMany.mockResolvedValue({ count: 1 });
 
@@ -115,14 +135,10 @@ describe("POST /api/admin/ko-bracket/generate", () => {
     mockTournamentFindFirst.mockResolvedValue(baseTournament);
     vi.mocked(readBody).mockResolvedValue({});
     mockMatchCount.mockResolvedValue(0);
-    mockStandingFindMany.mockResolvedValue(
-      makeStandings([
-        { teamId: 1, points: 9 },
-        { teamId: 2, points: 6 },
-        { teamId: 3, points: 3 },
-        { teamId: 4, points: 0 },
-      ]),
-    );
+    mockPoolFindMany.mockResolvedValue([
+      makePool(10, 2, [{ teamId: 1, points: 9 }, { teamId: 2, points: 6 }, { teamId: 5, points: 3 }]),
+      makePool(11, 2, [{ teamId: 3, points: 9 }, { teamId: 4, points: 6 }, { teamId: 6, points: 3 }]),
+    ]);
     mockFieldFindMany.mockResolvedValue([{ id: 100 }, { id: 101 }]);
     mockMatchCreateMany.mockResolvedValue({ count: 2 });
 
@@ -138,9 +154,7 @@ describe("POST /api/admin/ko-bracket/generate", () => {
     vi.mocked(readBody).mockResolvedValue({ overwrite: true });
     mockMatchCount.mockResolvedValue(1);
     mockMatchDeleteMany.mockResolvedValue({ count: 1 });
-    mockStandingFindMany.mockResolvedValue(
-      makeStandings([{ teamId: 1, points: 3 }, { teamId: 2, points: 0 }]),
-    );
+    mockPoolFindMany.mockResolvedValue([makePool(10, 2, [{ teamId: 1, points: 3 }, { teamId: 2, points: 0 }])]);
     mockFieldFindMany.mockResolvedValue([{ id: 100 }]);
     mockMatchCreateMany.mockResolvedValue({ count: 1 });
 
@@ -150,7 +164,7 @@ describe("POST /api/admin/ko-bracket/generate", () => {
     expect(mockMatchCreateMany).toHaveBeenCalled();
   });
 
-  it("generates KO matches from teams for KNOCKOUT tournament (no standings needed)", async () => {
+  it("generates KO matches from teams for KNOCKOUT tournament (no pools needed)", async () => {
     mockTournamentFindFirst.mockResolvedValue(knockoutTournament);
     vi.mocked(readBody).mockResolvedValue({});
     mockMatchCount.mockResolvedValue(0);
@@ -160,7 +174,7 @@ describe("POST /api/admin/ko-bracket/generate", () => {
 
     const result = await handler(createMockEvent());
 
-    expect(mockStandingFindMany).not.toHaveBeenCalled();
+    expect(mockPoolFindMany).not.toHaveBeenCalled();
     expect(mockMatchCreateMany).toHaveBeenCalledWith({
       data: expect.arrayContaining([
         expect.objectContaining({ phase: "KO", round: 1 }),
