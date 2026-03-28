@@ -1,144 +1,138 @@
 # Bug Report — Kubb Tournament WebApp
 
 **Generated:** 2026-03-28
-**Total Bugs:** 4
-**Critical:** 2
-**High:** 1
-**Medium:** 1
+**Total Bugs:** 5
+**Critical:** 3
+**High:** 2
 
 ---
 
 ## Summary
 
-Bugs focused on referee dashboard loading states, score save button logic, and KO bracket UI/generation logic. Core issues involve state management, conditional rendering, and tournament schema generation complexity.
+Bugs focused on referee match page loading states, score save button state persistence, schema generation, and KO bracket match pre-generation with nullable team slots and dynamic winner linking. Core issues involve component state management, schema design, and match tree structure generation.
 
 ---
 
 ## Category 1: Critical Bugs
 
-### Bug #1: Incorrect Loading State Messages on Referee & Public Match Pages — DONE AND RESOLVED
+### Bug #1: Referee Page Loading State — Incorrect Error Display
 
-- **Location:**
-  - Referee dashboard: `pages/ref/index.vue`
-  - Public page: `pages/index.vue` (or public match viewing page)
-- **Issue:**
-  - Referee page shows error message "Er is een fout opgetreden" (An error has occurred) instead of loading state
-  - Public page shows "Geen wedstrijden gevonden" (No matches found) instead of loading state
-- **Expected behavior:** Both pages should display "Laden..." (Loading...) spinner while fetching tournament/matches data
-- **Likely cause:** Conditional rendering checks for data before `isLoading` flag is checked; error displayed prematurely
+- **Location:** `pages/ref/index.vue` — match listing page
+- **Issue:** Page shows error message "Er is een fout opgetreden" (An error has occurred) instead of loading state when the matches database call is still in progress
+- **Expected behavior:** Should display "Laden..." (Loading...) spinner while fetching match data from database
 - **Affected states:** Initial page load, page refresh, data polling
-- **Fix approach:** Reorder conditional logic: `if (isLoading) show Loading... else if (error) show Error else if (data) show Data else show EmptyState`
-- **Resolution:** Added `isLoading = ref(true)` to both pages. `pages/ref/index.vue`: `finally { isLoading.value = false }` in `fetchMatches`, template wraps error/empty in `<template v-else>`. `pages/index.vue`: `isLoading.value = false` after fetch, `v-else-if` guards "no matches" message.
+- **Likely cause:** Conditional rendering checks for error/empty state before `isLoading` flag is evaluated
+- **Fix approach:** Reorder conditional logic to check `isLoading` first: `if (isLoading) show Loading else if (error) show Error else if (data) show Data else show EmptyState`
 
 ---
 
-### Bug #2: Score Save Button Logic — Multi-Save Capability — DONE AND RESOLVED
+### Bug #2: Referee Score Button State Persistence — Separate State Per Match
 
-- **Location:** Referee dashboard — `pages/ref/index.vue`
-- **Issue:** Save button can only save a score once; after first save, button becomes permanently disabled even when score values change
-- **Current behavior:** After first save, disabled state never re-enables
-- **Expected behavior:** Button state should toggle based on:
+- **Location:** `pages/ref/index.vue` — score input fields and save buttons
+- **Issue:** After refreshing the page, refs can only modify an existing score once. The save button disable/enable logic does not properly track state per match after reload.
+- **Root cause:** Button state tied to a single shared state variable or not properly keyed to individual matches; state not persisting across page reloads
+- **Expected behavior:** Each match's score save button should:
   1. **Enabled** — if no score has been saved yet (initial state)
   2. **Enabled** — if user-entered score differs from last saved database value
   3. **Disabled** — if user-entered score equals last saved database value
-- **Formula for button state:** `isDisabled = (savedScore !== null) && (currentInput === savedScore)`
-- **Data to track:**
-  - `savedScore` — value stored in database
-  - `currentInput` — value currently in form field
-- **Likely cause:** State not reset after save; comparison logic missing or inverted
-- **Implementation approach:** On successful save, store returned `savedScore` and re-evaluate button enable condition
-- **Resolution:** Changed `savedScores` type to `string | null`. Initial fetch stores `null` when DB score is null. `isDirty()` now returns `true` (enabled) when either saved score is `null`. After a save, stores the actual string values so subsequent edits re-enable only if changed.
+- **Implementation requirement:** Button state must be stored independently per match with a unique identifier per match (e.g., `matchId + '_dirty'` or separate state object keyed by `matchId`)
+- **Fix approach:** Use `Map<matchId, savedScore>` or object keyed by `matchId` instead of single state variable; ensure each button checks its own match ID for state
 
 ---
 
-## Category 2: High Priority Bug
+### Bug #3: Schema Generation — Missing DateTime Start Time Parameter
 
-### Bug #3: KO Bracket Dashboard — Tree Structure UI & Generation Logic — DONE AND RESOLVED (Sub-issue A)
-
-- **Location:** `pages/admin/ko-bracket.vue` (or similar) + `server/api/admin/ko-bracket/generate.post.ts`
-- **Issue:** Multiple sub-issues with KO bracket representation and generation:
-
-#### Sub-issue A: Visual Tree Structure
-- **Problem:** Current UI does not clearly display bracket tree structure
-- **Expected format:** Table-based bracket view where:
-  - First row: One cell per match (1st round matches)
-  - Each subsequent row: Cells double the width of previous row (containing winners matches)
-  - Structure converges toward the final (champion row)
-- **First round match count:** Must always be a power of 2 (1, 2, 4, 8, 16, 32, 64, etc.)
-- **Empty matches:** If fewer teams than match slots, matches remain empty or contain only 1 team
-- **Bye rounds:** Teams without opponents advance automatically (they "win" the empty match) to next round
-- **Key constraint:** A match can NEVER have 0 teams; every match has ≥1 team
-
-#### Sub-issue B: KO Tournament Generation (Pure KO)
-- **Trigger:** User clicks generate/refresh button on KO tournament
-- **Logic:**
-  - Calculate: `firstRoundMatches = 2^ceil(log2(teamCount))`
-  - Maximum total matches: `(teamCount * 2) - 1`
-  - Example: 10 teams → 4 matches in round 1 (power of 2), total 7 matches max
-- **Match assignment algorithm:**
-  1. First, fill all matches with ≥1 team each (distribute `teamCount` teams across `firstRoundMatches` slots)
-  2. Then assign remaining teams as opponents (pair up available teams)
-  3. Unpaired teams advance with a bye (auto-win)
-  4. Winners bracket toward final
-- **Expected result:** Balanced bracket where every team gets a match position
-
-#### Sub-issue C: Combination Tournament Generation (Pools + KO)
-- **Trigger:** Two-step process
-  - **Step 1 (Generate button):** Create empty KO bracket structure
-  - **Step 2 (Assign Teams button):** Populate bracket with qualified teams
-- **Step 1 constraints:**
-  - Calculate advancing teams: `totalAdvancing = sum(pool.teamsThrough for all pools)`
-  - First round matches: `2^ceil(log2(totalAdvancing))`
-  - Does NOT require pool phase to be complete
-- **Step 2 constraints:**
-  - **Disabled state** with warning message: "Poulefase is nog niet afgerond" (Pool phase not yet completed) until ALL pool matches are played
-  - Once enabled, populate bracket with qualified teams
-- **Team seeding/sorting** (if too few teams for first round slots):
-  - Sort by: Pool finish position → Points → Goal difference → Goals scored → Head-to-head → Random tiebreak
-  - Assign best teams to fill slots, allowing excess teams to fill remaining first-round slots
-  - Format second row (and beyond): cells are double width of round 1, one match per cell
-- **Likely causes:**
-  - Missing tree structure CSS/layout
-  - Incorrect first-round match calculation (not enforcing power of 2)
-  - No bye-handling logic
-  - Pool completion check missing for "Assign Teams" button
-  - Hardcoded match counts instead of dynamic calculation
-- **Resolution (Sub-issue A):** Replaced flat per-round tables with a CSS Grid bracket tree. Each round occupies its own row; round R cells span `2^(R-1)` columns. Future rounds show "Nog te bepalen" placeholders. Sub-issues B/C (bye rounds + schema changes for nullable teamB) require schema migration and are tracked separately.
+- **Location:** Schema generation endpoint — `server/api/admin/[...]/generate.post.ts` (pool/KO/schedule generation)
+- **Issue:** Schema generation does not accept or use a datetime parameter for setting the tournament start time
+- **Expected behavior:** Generation function must accept a `startDateTime` parameter (ISO 8601 or similar format) and use it to:
+  - Set match start times based on schedule rules (e.g., each match starts `X` minutes after previous)
+  - Propagate to all generated matches in the schema
+- **Implementation approach:** Add `startDateTime` to request body validation (Zod schema); pass to match generation logic
+- **Affected endpoints:** All schema generation endpoints (pool generation, KO generation, schedule generation)
+- **Data to set:** Match `scheduledAt` field should be derived from `startDateTime + (matchIndex * intervalMinutes)`
 
 ---
 
-## Category 3: Medium Priority Bug
+## Category 2: High Priority Bugs
 
-*(To be added when new bugs are identified)*
+### Bug #4: KO Bracket Pre-Generation — Complete Match Tree with Nullable TeamB
+
+- **Location:** `server/api/admin/ko-bracket/generate.post.ts` + KO match schema
+- **Issue:** Currently, KO matches are generated only up to the current round. Must pre-generate ALL matches up to and including the final at once, with linking between rounds and nullable team slots.
+- **Current state:** Matches created on-demand when scores are entered
+- **Expected behavior:**
+  - **Generation:** All rounds generated in one call; match tree fully formed
+  - **Match linking:** Each match contains `nextMatchId` (ID of corresponding match in round n+1)
+  - **Round n+1 structure:** Each round n+1 match has 2 preceding matches in round n (except round 1, which has 0 or 1)
+  - **Team assignment:** Each KO match has `teamA` and `teamB` which can be `null`
+    - **Round 1 null meaning:** `null teamB` = automatic advancement (bye); `null teamA` = invalid state
+    - **Round n≥2 null meaning:** `null` = "Team to be determined" (waiting for winner from preceding match)
+  - **Schema change:** `teamB` must be nullable in KO match model
+- **Match generation algorithm:**
+  ```
+  1. Calculate firstRoundMatches = 2^ceil(log2(totalTeams))
+  2. For round 1: Create firstRoundMatches matches
+  3. For round n≥2: Create ceil(matchesInRound(n-1) / 2) matches
+  4. Continue until round has 1 match (the final)
+  5. Link each round n match to 2 matches in round n-1 (their input matches)
+  6. Assign teams to round 1; leave all other rounds with null teams
+  ```
+- **Database schema changes needed:**
+  - `KoMatch.teamB` → nullable (allow `null`)
+  - `KoMatch.nextMatchId` → add field (FK to next round's match)
+- **Likely cause:** Current implementation generates matches on-the-fly rather than upfront; no pre-linking logic
+
+---
+
+### Bug #5: KO Bracket Score Entry — Automatic Next Match Creation with Null Opponent
+
+- **Location:** `server/api/ref/matches/[id].patch.ts` (score save for KO matches)
+- **Issue:** When entering a score in a KO bracket match, a new match is created in the next round if it doesn't exist (this is correct behavior), but the opponent (the team from the other preceding match) is not yet filled in.
+- **Current state:** May be incorrectly pre-assigning both teams to the next round match
+- **Expected behavior:**
+  - When match score is entered and winner determined:
+    1. If next match exists: Update the appropriate team slot (`teamA` or `teamB`) with the winner
+    2. If next match doesn't exist: Create it with the winner in the correct slot; other slot remains `null`
+    3. Other team slots in the next match remain `null` until their corresponding match is completed
+- **Implementation approach:**
+  - Determine winner from score
+  - Query next match (use `nextMatchId` from current match)
+  - If next match exists: update correct team slot (`teamA` or `teamB`) based on which preceding match this is
+  - If next match doesn't exist: create with winner in correct slot
+  - Leave other team slot as `null` with message "Team to be determined" (waiting for other match)
+- **Constraint:** A next-round match can have at most 1 team filled initially; second team only filled when the other preceding match is completed
+- **Likely cause:** Score save logic may not distinguish between "winner of preceding match" vs "both opponents in next match"
 
 ---
 
 ## Recommended Fix Order
 
-1. **Bug #1** (Loading state messages) — Quick UX win; affects user perception of app
-2. **Bug #2** (Score save button) — Blocking referee workflow; must fix for tournament scoring
-3. **Bug #3-A** (KO bracket UI structure) — Prerequisite for understanding bracket generation
-4. **Bug #3-B** (Pure KO generation) — Core logic; establish power-of-2 first-round rule
-5. **Bug #3-C** (Combination KO generation) — Extends pure KO; pool integration + seeding logic
+1. **Bug #3** (DateTime parameter) — Prerequisite for tournament setup; must be in place before other generation bugs
+2. **Bug #1** (Loading state) — Quick UX fix affecting ref experience
+3. **Bug #2** (Button state per match) — Blocking referee workflow; must fix for tournament scoring
+4. **Bug #4** (Match pre-generation) — Foundational schema design; must be in place before score entry works correctly
+5. **Bug #5** (Dynamic next match creation) — Depends on Bug #4; score entry logic
 
 ---
 
 ## Files to Inspect
 
 ### Frontend (Vue components)
-- `pages/ref/index.vue` — Bug #1 (loading state), Bug #2 (button logic)
-- `pages/admin/ko-bracket.vue` (or similar) — Bug #3-A (UI structure)
-- KO bracket component (if separate) — bracket rendering, match layout
+- `pages/ref/index.vue` — Bug #1 (loading state), Bug #2 (button state per match)
+- KO bracket match scoring component — Bug #5 (verify winner → next match logic)
 
 ### Backend (Nitro API)
-- `server/api/admin/ko-bracket/generate.post.ts` — Bug #3-B & #3-C (generation logic)
-- `server/api/admin/ko-bracket/assign-teams.post.ts` (if exists) — Bug #3-C (team assignment, pool completion check)
-- Pool-related endpoints — validate `teamsThrough` values
+- `server/api/admin/[tournament-type]/generate.post.ts` — Bug #3 (datetime parameter), Bug #4 (match tree generation)
+- `server/api/ref/matches/[id].patch.ts` — Bug #5 (score entry → next match creation)
 
-### Data/Logic
-- KO match model — verify supports empty/bye matches
-- Pool standings calculation — ensure seeding sort logic available
-- Tournament type detection — distinguish KNOCKOUT vs COMBINATION vs POOLS
+### Database Schema
+- `prisma/schema.prisma` — KoMatch model
+  - Add `nextMatchId` (FK to KoMatch)
+  - Make `teamB` nullable (change from required to optional)
+
+### Utilities
+- Match generation logic (separate utility file or API handler)
+- Winner determination logic
 
 ---
 
@@ -146,7 +140,8 @@ Bugs focused on referee dashboard loading states, score save button logic, and K
 
 After each fix:
 1. Run `npx vitest run` to ensure no test regressions
-2. Test in browser: reproduce original issue, verify fix works
-3. For Bug #3: Test with edge cases (1 team, 3 teams, 5 teams, 10 teams, 16 teams, etc.)
-4. Verify database state and bracket structure
-5. Move to next bug
+2. For Bug #3: Verify generated matches have correct `scheduledAt` times
+3. For Bug #4: Test with edge cases (1 team, 3 teams, 5 teams, 10 teams, 16 teams); verify bracket tree structure
+4. For Bug #5: Enter scores in order; verify next match is created with single team and correct team slot; verify opponent populated when other preceding match completes
+5. Verify database state and match linking
+6. Move to next bug
