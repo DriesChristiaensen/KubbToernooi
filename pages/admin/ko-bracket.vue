@@ -100,6 +100,31 @@ const rounds = computed(() => {
   return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
 });
 
+const matchesByRound = computed(() => {
+  const map = new Map<number, KoMatch[]>();
+  for (const [r, ms] of rounds.value) map.set(r, ms);
+  return map;
+});
+
+const round1Count = computed(() => matchesByRound.value.get(1)?.length ?? 0);
+
+const totalRounds = computed(() => {
+  const c = round1Count.value;
+  return c > 0 ? Math.ceil(Math.log2(c)) + 1 : 0;
+});
+
+function getMatch(r: number, idx: number): KoMatch | undefined {
+  return (matchesByRound.value.get(r) ?? [])[idx - 1];
+}
+
+function matchCount(r: number): number {
+  return Math.ceil(round1Count.value / Math.pow(2, r - 1));
+}
+
+function spanCount(r: number): number {
+  return Math.pow(2, r - 1);
+}
+
 const allTeams = computed(() => {
   const seen = new Set<number>();
   const result: Team[] = [];
@@ -209,53 +234,52 @@ onMounted(fetchMatches);
         </div>
       </div>
 
-      <div v-if="rounds.length === 0" class="text-center text-text-light">
+      <div v-if="round1Count === 0" class="text-center text-text-light">
         {{ nl.common.noResults }}
       </div>
 
-      <div v-for="[round, roundMatches] in rounds" :key="round" class="mb-6">
-        <h2 class="mb-3 font-semibold text-text">
-          {{ nl.admin.koBracket.round }} {{ round }}
-        </h2>
-        <div class="overflow-x-auto">
-          <table class="w-full border-collapse rounded-lg border border-gray-200 bg-surface shadow-sm">
-            <thead class="bg-primary text-white">
-              <tr>
-                <th class="px-4 py-2 text-left text-sm">{{ nl.ref.matches.scoreA }}</th>
-                <th class="px-4 py-2 text-center text-sm">vs</th>
-                <th class="px-4 py-2 text-left text-sm">{{ nl.ref.matches.scoreB }}</th>
-                <th class="px-4 py-2 text-left text-sm">{{ nl.admin.schedule.fieldLabel }}</th>
-                <th class="px-4 py-2 text-sm" />
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="match in roundMatches"
-                :key="match.id"
-                class="border-t border-gray-100 hover:bg-gray-50"
+      <div v-else class="overflow-x-auto rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+        <div
+          :style="{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${round1Count}, minmax(140px, 1fr))`,
+            gap: '8px',
+          }"
+        >
+          <template v-for="r in totalRounds" :key="`row-${r}`">
+            <template v-for="idx in matchCount(r)" :key="`r${r}-m${idx}`">
+              <div
+                :style="{ gridRow: r, gridColumn: `span ${spanCount(r)}` }"
+                class="flex flex-col rounded border border-gray-200 bg-background p-3"
               >
-                <td class="px-4 py-2 text-text">
-                  {{ match.teamA.name }}
-                </td>
-                <td class="px-4 py-2 text-center text-text-light">vs</td>
-                <td class="px-4 py-2 text-text">
-                  {{ match.teamB.name }}
-                </td>
-                <td class="px-4 py-2 text-sm text-text-light">
-                  {{ match.field.name }}
-                </td>
-                <td class="px-4 py-2 text-right">
-                  <button
-                    v-if="match.status !== 'PLAYED'"
-                    class="text-sm text-primary hover:underline"
-                    @click="startSwap(match)"
-                  >
-                    {{ nl.admin.koBracket.swapTeams }}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                <div class="mb-2 text-xs font-semibold text-text-light">
+                  {{ nl.admin.koBracket.round }} {{ r }}
+                </div>
+                <template v-if="getMatch(r, idx)">
+                  <span class="text-sm font-medium text-text">{{ getMatch(r, idx)!.teamA.name }}</span>
+                  <span class="my-1 text-center text-xs text-text-light">vs</span>
+                  <span class="text-sm font-medium text-text">{{ getMatch(r, idx)!.teamB.name }}</span>
+                  <div class="mt-2 text-xs text-text-light">
+                    {{ getMatch(r, idx)!.field.name }}
+                  </div>
+                  <div class="mt-1 text-right">
+                    <button
+                      v-if="getMatch(r, idx)!.status !== 'PLAYED'"
+                      class="text-xs text-primary hover:underline"
+                      @click="startSwap(getMatch(r, idx)!)"
+                    >
+                      {{ nl.admin.koBracket.swapTeams }}
+                    </button>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="flex grow items-center justify-center text-sm text-text-light">
+                    {{ nl.admin.koBracket.tbd }}
+                  </div>
+                </template>
+              </div>
+            </template>
+          </template>
         </div>
       </div>
     </main>

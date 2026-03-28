@@ -123,6 +123,7 @@ export const nl = {
       noFields: "Geen velden beschikbaar voor KO-wedstrijden",
       round: "Ronde",
       swapTeams: "Teams wisselen",
+      tbd: "Nog te bepalen",
     },
     export: {
       title: "Exporteren",
