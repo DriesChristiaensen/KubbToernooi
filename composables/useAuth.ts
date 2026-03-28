@@ -16,13 +16,12 @@ export function useAuth() {
       })
 
       const result = data as { user: { role: string } }
+      loading.value = false
       await navigateTo(result.user.role === 'ADMIN' ? '/admin' : '/ref')
     }
     catch (err: unknown) {
       const fetchErr = err as { data?: { data?: { error?: string }, error?: string } }
       error.value = fetchErr?.data?.data?.error || fetchErr?.data?.error || 'Inloggen mislukt'
-    }
-    finally {
       loading.value = false
     }
   }
