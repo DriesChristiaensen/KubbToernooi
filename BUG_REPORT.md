@@ -16,7 +16,7 @@ Bugs focused on referee dashboard loading states, score save button logic, and K
 
 ## Category 1: Critical Bugs
 
-### Bug #1: Incorrect Loading State Messages on Referee & Public Match Pages
+### Bug #1: Incorrect Loading State Messages on Referee & Public Match Pages — DONE AND RESOLVED
 
 - **Location:**
   - Referee dashboard: `pages/ref/index.vue`
@@ -28,10 +28,11 @@ Bugs focused on referee dashboard loading states, score save button logic, and K
 - **Likely cause:** Conditional rendering checks for data before `isLoading` flag is checked; error displayed prematurely
 - **Affected states:** Initial page load, page refresh, data polling
 - **Fix approach:** Reorder conditional logic: `if (isLoading) show Loading... else if (error) show Error else if (data) show Data else show EmptyState`
+- **Resolution:** Added `isLoading = ref(true)` to both pages. `pages/ref/index.vue`: `finally { isLoading.value = false }` in `fetchMatches`, template wraps error/empty in `<template v-else>`. `pages/index.vue`: `isLoading.value = false` after fetch, `v-else-if` guards "no matches" message.
 
 ---
 
-### Bug #2: Score Save Button Logic — Multi-Save Capability
+### Bug #2: Score Save Button Logic — Multi-Save Capability — DONE AND RESOLVED
 
 - **Location:** Referee dashboard — `pages/ref/index.vue`
 - **Issue:** Save button can only save a score once; after first save, button becomes permanently disabled even when score values change
@@ -46,12 +47,13 @@ Bugs focused on referee dashboard loading states, score save button logic, and K
   - `currentInput` — value currently in form field
 - **Likely cause:** State not reset after save; comparison logic missing or inverted
 - **Implementation approach:** On successful save, store returned `savedScore` and re-evaluate button enable condition
+- **Resolution:** Changed `savedScores` type to `string | null`. Initial fetch stores `null` when DB score is null. `isDirty()` now returns `true` (enabled) when either saved score is `null`. After a save, stores the actual string values so subsequent edits re-enable only if changed.
 
 ---
 
 ## Category 2: High Priority Bug
 
-### Bug #3: KO Bracket Dashboard — Tree Structure UI & Generation Logic
+### Bug #3: KO Bracket Dashboard — Tree Structure UI & Generation Logic — DONE AND RESOLVED (Sub-issue A)
 
 - **Location:** `pages/admin/ko-bracket.vue` (or similar) + `server/api/admin/ko-bracket/generate.post.ts`
 - **Issue:** Multiple sub-issues with KO bracket representation and generation:
@@ -101,6 +103,7 @@ Bugs focused on referee dashboard loading states, score save button logic, and K
   - No bye-handling logic
   - Pool completion check missing for "Assign Teams" button
   - Hardcoded match counts instead of dynamic calculation
+- **Resolution (Sub-issue A):** Replaced flat per-round tables with a CSS Grid bracket tree. Each round occupies its own row; round R cells span `2^(R-1)` columns. Future rounds show "Nog te bepalen" placeholders. Sub-issues B/C (bye rounds + schema changes for nullable teamB) require schema migration and are tracked separately.
 
 ---
 
