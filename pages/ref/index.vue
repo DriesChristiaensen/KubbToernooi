@@ -31,23 +31,34 @@ const saving = ref<number | null>(null)
 const saveError = ref('')
 
 const scoreInputs = ref<Record<number, { scoreA: string; scoreB: string; koWinnerId: string }>>({})
+const savedScores = ref<Record<number, { scoreA: string; scoreB: string }>>({})
 
 async function fetchMatches() {
   try {
     const data = await $fetch<Match[]>('/api/ref/matches')
     matches.value = data
     for (const m of data) {
+      const sA = m.scoreA !== null ? String(m.scoreA) : ''
+      const sB = m.scoreB !== null ? String(m.scoreB) : ''
       if (!(m.id in scoreInputs.value)) {
         scoreInputs.value[m.id] = {
-          scoreA: m.scoreA !== null ? String(m.scoreA) : '',
-          scoreB: m.scoreB !== null ? String(m.scoreB) : '',
+          scoreA: sA,
+          scoreB: sB,
           koWinnerId: m.koWinnerId !== null ? String(m.koWinnerId) : '',
         }
       }
+      savedScores.value[m.id] = { scoreA: sA, scoreB: sB }
     }
   } catch {
     errorMsg.value = nl.common.error
   }
+}
+
+function isDirty(m: Match): boolean {
+  const input = scoreInputs.value[m.id]
+  const saved = savedScores.value[m.id]
+  if (!input || !saved) return true
+  return input.scoreA !== saved.scoreA || input.scoreB !== saved.scoreB
 }
 
 function isDraw(m: Match): boolean {
@@ -74,6 +85,7 @@ async function saveScore(match: Match) {
     })
     const idx = matches.value.findIndex((m) => m.id === match.id)
     if (idx !== -1) matches.value[idx] = updated
+    savedScores.value[match.id] = { scoreA: input.scoreA, scoreB: input.scoreB }
   } catch (err: unknown) {
     const e = err as { data?: { error?: string } }
     saveError.value = e?.data?.error ?? nl.common.error
@@ -164,7 +176,7 @@ await fetchMatches()
 
             <button
               class="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-              :disabled="saving === match.id"
+              :disabled="!isDirty(match) || saving === match.id"
               @click="saveScore(match)"
             >
               {{ nl.ref.matches.saveScore }}
