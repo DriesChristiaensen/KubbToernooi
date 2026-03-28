@@ -15,6 +15,7 @@ const editingId = ref<number | null>(null);
 const editingName = ref("");
 const error = ref("");
 const loading = ref(false);
+const isLoading = ref(true);
 
 const generateCount = ref<number | null>(null);
 const generateError = ref("");
@@ -26,7 +27,9 @@ async function fetchFields() {
   try {
     fields.value = await $fetch<Field[]>("/api/admin/fields");
   } catch {
-    error.value = nl.admin.tournament.notFound;
+    fields.value = [];
+  } finally {
+    isLoading.value = false;
   }
 }
 
@@ -221,7 +224,10 @@ onMounted(fetchFields);
         </div>
       </section>
 
-      <ul class="space-y-2">
+      <p v-if="isLoading" class="text-text">
+        {{ nl.common.loading }}
+      </p>
+      <ul v-else class="space-y-2">
         <li
           v-for="field in fields"
           :key="field.id"

@@ -15,6 +15,7 @@ const editingId = ref<number | null>(null);
 const editingName = ref("");
 const error = ref("");
 const loading = ref(false);
+const isLoading = ref(true);
 
 const bulkText = ref("");
 const bulkError = ref("");
@@ -30,7 +31,9 @@ async function fetchTeams() {
   try {
     teams.value = await $fetch<Team[]>("/api/admin/teams");
   } catch {
-    error.value = nl.admin.tournament.notFound;
+    teams.value = [];
+  } finally {
+    isLoading.value = false;
   }
 }
 
@@ -247,7 +250,10 @@ onMounted(fetchTeams);
         </button>
       </section>
 
-      <ul class="space-y-2">
+      <p v-if="isLoading" class="text-text">
+        {{ nl.common.loading }}
+      </p>
+      <ul v-else class="space-y-2">
         <li
           v-for="team in teams"
           :key="team.id"
