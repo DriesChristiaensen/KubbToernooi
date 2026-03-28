@@ -19,6 +19,7 @@ interface Match {
 
 const STORAGE_KEY = "kubb-team-filter";
 const matches = ref<Match[]>([]);
+const isLoading = ref(true);
 const searchQuery = ref("");
 const now = ref(Date.now());
 
@@ -27,6 +28,7 @@ const MATCH_DURATION_MS = 15 * 60 * 1000;
 async function fetchSchedule() {
   matches.value = await $fetch<Match[]>("/api/public/schedule").catch(() => []);
   now.value = Date.now();
+  isLoading.value = false;
 }
 
 usePolling(fetchSchedule, { interval: 60_000 });
@@ -92,7 +94,8 @@ onMounted(() => {
         >
       </div>
 
-      <p v-if="filteredMatches.length === 0" class="text-text-light">
+      <p v-if="isLoading" class="text-text-light">{{ nl.common.loading }}</p>
+      <p v-else-if="filteredMatches.length === 0" class="text-text-light">
         {{ nl.public.schedule.noMatches }}
       </p>
 

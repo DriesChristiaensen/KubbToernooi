@@ -26,6 +26,7 @@ interface Match {
 }
 
 const matches = ref<Match[]>([])
+const isLoading = ref(true)
 const errorMsg = ref('')
 const saving = ref<number | null>(null)
 const saveError = ref('')
@@ -51,6 +52,8 @@ async function fetchMatches() {
     }
   } catch {
     errorMsg.value = nl.common.error
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -120,12 +123,15 @@ await fetchMatches()
         {{ nl.ref.matches.title }}
       </h2>
 
-      <p v-if="errorMsg" class="mb-4 text-error">{{ errorMsg }}</p>
-      <p v-if="saveError" class="mb-4 text-error">{{ saveError }}</p>
+      <p v-if="isLoading" class="mb-4 text-text-light">{{ nl.common.loading }}</p>
+      <template v-else>
+        <p v-if="errorMsg" class="mb-4 text-error">{{ errorMsg }}</p>
+        <p v-if="saveError" class="mb-4 text-error">{{ saveError }}</p>
 
-      <p v-if="matches.length === 0 && !errorMsg" class="text-text-light">
-        {{ nl.common.noResults }}
-      </p>
+        <p v-if="matches.length === 0 && !errorMsg" class="text-text-light">
+          {{ nl.common.noResults }}
+        </p>
+      </template>
 
       <div class="space-y-4">
         <div
