@@ -82,7 +82,9 @@ async function generateSchedule(overwrite = false) {
 function startEditMatch(match: Match) {
   editingMatch.value = match;
   editFieldId.value = match.field.id;
-  editStartTime.value = new Date(match.startTime).toISOString().slice(0, 16);
+  const d = new Date(match.startTime);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  editStartTime.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   editError.value = "";
   editSuccess.value = "";
   conflictResult.value = null;
