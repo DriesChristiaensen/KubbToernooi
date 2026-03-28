@@ -1,137 +1,149 @@
 # Bug Report — Kubb Tournament WebApp
 
 **Generated:** 2026-03-28
-**Total Bugs:** 7
+**Total Bugs:** 4
 **Critical:** 2
-**High:** 3
-**Medium:** 2
+**High:** 1
+**Medium:** 1
 
 ---
 
 ## Summary
 
-Mixed set of bugs across schema generation, UI loading states, form validation, authentication, and datetime handling. Issues range from missing error handling to timezone mismatches and race conditions.
+Bugs focused on referee dashboard loading states, score save button logic, and KO bracket UI/generation logic. Core issues involve state management, conditional rendering, and tournament schema generation complexity.
 
 ---
 
 ## Category 1: Critical Bugs
 
-### Bug #1: Schema Generation Error When No Tournament Exists — DONE AND RESOLVED
+### Bug #1: Incorrect Loading State Messages on Referee & Public Match Pages
 
-- **Location:** Schema generation endpoint (likely `pages/admin/tournament.vue` or `server/api/admin/...`)
-- **Issue:** Shows generic error message "Er is een fout opgetreden" (An error has occurred) when attempting to generate a schema without first creating a tournament
-- **Expected behavior:** Should display a user-friendly message instructing user to create a tournament first; OR prevent access to generation UI until tournament exists
-- **Component inspection needed:** Schema generation function/component
-- **Likely cause:** Missing validation before attempting database operations; error not caught or displayed properly
-
-### Bug #2: Missing Data Error During DB Load (All Admin Pages Except Tournament) — DONE AND RESOLVED
-
-- **Location:** All admin pages EXCEPT the tournament page: referees, teams, fields, schedule, etc.
-- **Issue:** Brief message "[Entity] not found" appears while database call is still loading
-- **Expected behavior:** Loading state (skeleton/spinner) should display; error message only after fetch completes and fails
-- **Affected pages:** Likely `pages/admin/referees.vue`, `pages/admin/teams.vue`, `pages/admin/fields.vue`, `pages/admin/schedule.vue`, etc.
-- **Likely cause:** Conditional rendering checks for data before loading state; missing `isLoading` check
+- **Location:**
+  - Referee dashboard: `pages/ref/index.vue`
+  - Public page: `pages/index.vue` (or public match viewing page)
+- **Issue:**
+  - Referee page shows error message "Er is een fout opgetreden" (An error has occurred) instead of loading state
+  - Public page shows "Geen wedstrijden gevonden" (No matches found) instead of loading state
+- **Expected behavior:** Both pages should display "Laden..." (Loading...) spinner while fetching tournament/matches data
+- **Likely cause:** Conditional rendering checks for data before `isLoading` flag is checked; error displayed prematurely
+- **Affected states:** Initial page load, page refresh, data polling
+- **Fix approach:** Reorder conditional logic: `if (isLoading) show Loading... else if (error) show Error else if (data) show Data else show EmptyState`
 
 ---
 
-## Category 2: High Priority Bugs
-
-### Bug #3: Save Score Button Remains Disabled After First Save — DONE AND RESOLVED
+### Bug #2: Score Save Button Logic — Multi-Save Capability
 
 - **Location:** Referee dashboard — `pages/ref/index.vue`
-- **Issue:** After successfully saving a score for the first time, the "Save" button stays disabled even when the user changes the score value
-- **Expected behavior:** Button should enable when user input differs from stored database value
-- **Likely cause:** After first save, form validation or dirty state check not resetting; need to compare new input against last saved value
-- **Condition for enabling:** Button should enable when `currentScore !== savedScore`
-
-### Bug #4: Login Rate Limit Not Reset on Successful Authentication — DONE AND RESOLVED
-
-- **Location:** Authentication handler — likely `server/api/auth/...` or `server/utils/...`
-- **Issue:** User's rate limit counter not cleared after successful login
-- **Expected behavior:** After successful authentication, reset the user's login attempt counter (to allow new attempts on next session)
-- **Impact:** Can prevent legitimate repeated logins or lockout false positives
-- **Implementation note:** Clear rate limit cache/store entry for user after verified login
-
-### Bug #5: Console Error Blocks Redirect After Login — DONE AND RESOLVED
-
-- **Location:** Authentication flow, likely `composables/useAuth.ts` or form component
-- **Issue:** After correct login, console error: `TypeError: Cannot read properties of null (reading 'autocomplete')` appears; redirect to correct screen blocked
-- **Stack trace location:** Error occurs in form validation/initialization code (autocomplete field handling)
-- **Expected behavior:** Login completes; user redirected to dashboard without console errors
-- **Likely cause:** Code tries to access `autocomplete` property on null element (form field not mounted or already unmounted during redirect)
-- **Fix approach:** Add null check before accessing DOM properties; or defer redirect until component fully unmounted
+- **Issue:** Save button can only save a score once; after first save, button becomes permanently disabled even when score values change
+- **Current behavior:** After first save, disabled state never re-enables
+- **Expected behavior:** Button state should toggle based on:
+  1. **Enabled** — if no score has been saved yet (initial state)
+  2. **Enabled** — if user-entered score differs from last saved database value
+  3. **Disabled** — if user-entered score equals last saved database value
+- **Formula for button state:** `isDisabled = (savedScore !== null) && (currentInput === savedScore)`
+- **Data to track:**
+  - `savedScore` — value stored in database
+  - `currentInput` — value currently in form field
+- **Likely cause:** State not reset after save; comparison logic missing or inverted
+- **Implementation approach:** On successful save, store returned `savedScore` and re-evaluate button enable condition
 
 ---
 
-## Category 3: Medium Priority Bugs
+## Category 2: High Priority Bug
 
-### Bug #6: Match DateTime Field Defaults 2 Hours Too Early — DONE AND RESOLVED
+### Bug #3: KO Bracket Dashboard — Tree Structure UI & Generation Logic
 
-- **Location:** Match editing page — `pages/admin/schedule.vue` or match edit dialog
-- **Issue:** DateTime input field defaults to time 2 hours earlier than intended (e.g., if set for 14:00, shows 12:00)
-- **Root cause:** UTC vs local time conversion mismatch; likely timezone offset not applied correctly
-- **Expected behavior:** DateTime picker shows correct local time, matching user's browser timezone
-- **Implementation note:** Verify timezone handling when converting between server (likely UTC) and client (local); check if `new Date()` instantiation or formatting function applies offset
-- **Files to check:** Match editing component, datetime utility functions
+- **Location:** `pages/admin/ko-bracket.vue` (or similar) + `server/api/admin/ko-bracket/generate.post.ts`
+- **Issue:** Multiple sub-issues with KO bracket representation and generation:
 
-### Bug #7: KO Bracket Generation (Combination Mode) — Team Advancement Calculation — DONE AND RESOLVED
+#### Sub-issue A: Visual Tree Structure
+- **Problem:** Current UI does not clearly display bracket tree structure
+- **Expected format:** Table-based bracket view where:
+  - First row: One cell per match (1st round matches)
+  - Each subsequent row: Cells double the width of previous row (containing winners matches)
+  - Structure converges toward the final (champion row)
+- **First round match count:** Must always be a power of 2 (1, 2, 4, 8, 16, 32, 64, etc.)
+- **Empty matches:** If fewer teams than match slots, matches remain empty or contain only 1 team
+- **Bye rounds:** Teams without opponents advance automatically (they "win" the empty match) to next round
+- **Key constraint:** A match can NEVER have 0 teams; every match has ≥1 team
 
-- **Location:** `server/api/admin/ko-bracket/generate.post.ts` or tournament logic
-- **Issue:** When generating KO bracket in combination (pool + knockout) mode:
-  - Does not display total teams advancing from pools
-  - Does not correctly calculate number of KO matches
-- **Expected calculation:**
-  - **Teams advancing:** Sum of all "teams through" (teamsThrough) values from each pool
-  - **KO matches needed:** `ceil(total_advancing_teams / 2)` = ⌈n/2⌉
-- **Expected behavior:** Display calculated advancement numbers; generate correct match count
-- **Data needed:** Pull `teamsThrough` from each pool in tournament
-- **Likely cause:** Missing logic to aggregate pool standings; potential hardcoded match calculation
+#### Sub-issue B: KO Tournament Generation (Pure KO)
+- **Trigger:** User clicks generate/refresh button on KO tournament
+- **Logic:**
+  - Calculate: `firstRoundMatches = 2^ceil(log2(teamCount))`
+  - Maximum total matches: `(teamCount * 2) - 1`
+  - Example: 10 teams → 4 matches in round 1 (power of 2), total 7 matches max
+- **Match assignment algorithm:**
+  1. First, fill all matches with ≥1 team each (distribute `teamCount` teams across `firstRoundMatches` slots)
+  2. Then assign remaining teams as opponents (pair up available teams)
+  3. Unpaired teams advance with a bye (auto-win)
+  4. Winners bracket toward final
+- **Expected result:** Balanced bracket where every team gets a match position
+
+#### Sub-issue C: Combination Tournament Generation (Pools + KO)
+- **Trigger:** Two-step process
+  - **Step 1 (Generate button):** Create empty KO bracket structure
+  - **Step 2 (Assign Teams button):** Populate bracket with qualified teams
+- **Step 1 constraints:**
+  - Calculate advancing teams: `totalAdvancing = sum(pool.teamsThrough for all pools)`
+  - First round matches: `2^ceil(log2(totalAdvancing))`
+  - Does NOT require pool phase to be complete
+- **Step 2 constraints:**
+  - **Disabled state** with warning message: "Poulefase is nog niet afgerond" (Pool phase not yet completed) until ALL pool matches are played
+  - Once enabled, populate bracket with qualified teams
+- **Team seeding/sorting** (if too few teams for first round slots):
+  - Sort by: Pool finish position → Points → Goal difference → Goals scored → Head-to-head → Random tiebreak
+  - Assign best teams to fill slots, allowing excess teams to fill remaining first-round slots
+  - Format second row (and beyond): cells are double width of round 1, one match per cell
+- **Likely causes:**
+  - Missing tree structure CSS/layout
+  - Incorrect first-round match calculation (not enforcing power of 2)
+  - No bye-handling logic
+  - Pool completion check missing for "Assign Teams" button
+  - Hardcoded match counts instead of dynamic calculation
+
+---
+
+## Category 3: Medium Priority Bug
+
+*(To be added when new bugs are identified)*
 
 ---
 
 ## Recommended Fix Order
 
-1. **Bug #1** (Schema generation error) — Quick win, improves UX immediately
-2. **Bug #2** (Loading states on all admin pages) — Affects multiple pages; systematic fix
-3. **Bug #5** (Login redirect blocking) — Blocks user authentication flow; critical UX
-4. **Bug #4** (Rate limit reset) — Security-related; should be tied to Bug #5 fix
-5. **Bug #3** (Save button disabled) — Affects data entry; medium priority
-6. **Bug #6** (DateTime timezone) — Cosmetic but important for data accuracy
-7. **Bug #7** (KO bracket calculation) — Tournament generation logic; needs careful testing
+1. **Bug #1** (Loading state messages) — Quick UX win; affects user perception of app
+2. **Bug #2** (Score save button) — Blocking referee workflow; must fix for tournament scoring
+3. **Bug #3-A** (KO bracket UI structure) — Prerequisite for understanding bracket generation
+4. **Bug #3-B** (Pure KO generation) — Core logic; establish power-of-2 first-round rule
+5. **Bug #3-C** (Combination KO generation) — Extends pure KO; pool integration + seeding logic
 
 ---
 
 ## Files to Inspect
 
 ### Frontend (Vue components)
-
-- `pages/admin/tournament.vue` — schema generation & loading states
-- `pages/admin/referees.vue`, `teams.vue`, `fields.vue`, `schedule.vue` — loading state issues
-- `pages/ref/index.vue` — score save button disable state
-- Login form component — datetime input, autocomplete error
-- Match editing component — datetime field (Bug #6)
+- `pages/ref/index.vue` — Bug #1 (loading state), Bug #2 (button logic)
+- `pages/admin/ko-bracket.vue` (or similar) — Bug #3-A (UI structure)
+- KO bracket component (if separate) — bracket rendering, match layout
 
 ### Backend (Nitro API)
+- `server/api/admin/ko-bracket/generate.post.ts` — Bug #3-B & #3-C (generation logic)
+- `server/api/admin/ko-bracket/assign-teams.post.ts` (if exists) — Bug #3-C (team assignment, pool completion check)
+- Pool-related endpoints — validate `teamsThrough` values
 
-- `server/api/auth/...` — login handler, rate limit reset
-- `server/api/admin/ko-bracket/generate.post.ts` — KO generation logic, team advancement calculation
-- `server/utils/...` — timezone/datetime utilities
-- Rate limit middleware/utility
-
-### Utilities
-
-- Auth composables (`composables/useAuth.ts`)
-- Form/validation utilities
-- Datetime conversion functions
+### Data/Logic
+- KO match model — verify supports empty/bye matches
+- Pool standings calculation — ensure seeding sort logic available
+- Tournament type detection — distinguish KNOCKOUT vs COMBINATION vs POOLS
 
 ---
 
 ## Testing Strategy
 
 After each fix:
-
 1. Run `npx vitest run` to ensure no test regressions
 2. Test in browser: reproduce original issue, verify fix works
-3. Check console for errors
-4. Verify database state if applicable
+3. For Bug #3: Test with edge cases (1 team, 3 teams, 5 teams, 10 teams, 16 teams, etc.)
+4. Verify database state and bracket structure
 5. Move to next bug
