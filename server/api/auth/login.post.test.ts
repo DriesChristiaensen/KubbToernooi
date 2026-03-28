@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt'
 const mockPrismaUserFindFirst = vi.hoisted(() => vi.fn())
 const mockReplaceUserSession = vi.hoisted(() => vi.fn())
 const mockCheckRateLimit = vi.hoisted(() => vi.fn())
+const mockResetRateLimitForIp = vi.hoisted(() => vi.fn())
 
 vi.stubGlobal('defineEventHandler', (handler: any) => handler)
 vi.stubGlobal('readBody', vi.fn())
@@ -30,6 +31,7 @@ vi.mock('~/server/utils/logger', () => ({
 
 vi.mock('~/server/utils/rate-limit', () => ({
   checkRateLimit: mockCheckRateLimit,
+  resetRateLimitForIp: mockResetRateLimitForIp,
 }))
 
 const { default: loginHandler } = await import('./login.post')
@@ -140,5 +142,17 @@ describe('POST /api/auth/login', () => {
     await expect(loginHandler(event)).rejects.toMatchObject({
       statusCode: 429,
     })
+  })
+
+  it('resets rate limit for ip on successful login', async () => {
+    const hashedPassword = await bcrypt.hash('admin123', 10)
+    mockPrismaUserFindFirst.mockResolvedValue({
+      id: 1, name: 'Admin', role: 'ADMIN', password: hashedPassword,
+    })
+    const event = createMockEvent({ password: 'admin123' })
+
+    await loginHandler(event)
+
+    expect(mockResetRateLimitForIp).toHaveBeenCalledWith('127.0.0.1')
   })
 })

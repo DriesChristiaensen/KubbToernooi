@@ -25,6 +25,10 @@ export function checkRateLimit(ip: string): boolean {
   return true;
 }
 
+export function resetRateLimitForIp(ip: string): void {
+  store.delete(ip);
+}
+
 export function resetRateLimitStore(): void {
   store = new Map();
 }

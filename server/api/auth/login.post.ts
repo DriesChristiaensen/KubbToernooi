@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
 import { logRequest } from '~/server/utils/logger'
-import { checkRateLimit } from '~/server/utils/rate-limit'
+import { checkRateLimit, resetRateLimitForIp } from '~/server/utils/rate-limit'
 
 export default defineEventHandler(async (event) => {
   const ip = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown'
@@ -50,6 +50,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const sessionUser = { id: user.id, name: user.name, role: user.role }
+
+  resetRateLimitForIp(ip)
 
   await replaceUserSession(event, {
     user: sessionUser,
