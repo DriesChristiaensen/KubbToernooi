@@ -32,7 +32,7 @@ const saving = ref<number | null>(null)
 const saveError = ref('')
 
 const scoreInputs = ref<Record<number, { scoreA: string; scoreB: string; koWinnerId: string }>>({})
-const savedScores = ref<Record<number, { scoreA: string; scoreB: string }>>({})
+const savedScores = ref<Record<number, { scoreA: string | null; scoreB: string | null }>>({})
 
 async function fetchMatches() {
   try {
@@ -48,7 +48,10 @@ async function fetchMatches() {
           koWinnerId: m.koWinnerId !== null ? String(m.koWinnerId) : '',
         }
       }
-      savedScores.value[m.id] = { scoreA: sA, scoreB: sB }
+      savedScores.value[m.id] = {
+        scoreA: m.scoreA !== null ? sA : null,
+        scoreB: m.scoreB !== null ? sB : null,
+      }
     }
   } catch {
     errorMsg.value = nl.common.error
@@ -61,6 +64,7 @@ function isDirty(m: Match): boolean {
   const input = scoreInputs.value[m.id]
   const saved = savedScores.value[m.id]
   if (!input || !saved) return true
+  if (saved.scoreA === null || saved.scoreB === null) return true
   return input.scoreA !== saved.scoreA || input.scoreB !== saved.scoreB
 }
 
