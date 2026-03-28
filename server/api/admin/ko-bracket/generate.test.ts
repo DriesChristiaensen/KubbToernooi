@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockTournamentFindFirst = vi.hoisted(() => vi.fn());
 const mockStandingFindMany = vi.hoisted(() => vi.fn());
+const mockTeamFindMany = vi.hoisted(() => vi.fn());
 const mockMatchCount = vi.hoisted(() => vi.fn());
 const mockMatchDeleteMany = vi.hoisted(() => vi.fn());
 const mockMatchCreateMany = vi.hoisted(() => vi.fn());
@@ -20,6 +21,7 @@ vi.mock("~/server/utils/prisma", () => ({
   prisma: {
     tournament: { findFirst: mockTournamentFindFirst },
     standing: { findMany: mockStandingFindMany },
+    team: { findMany: mockTeamFindMany },
     match: {
       count: mockMatchCount,
       deleteMany: mockMatchDeleteMany,
@@ -35,10 +37,13 @@ const { default: handler } = await import("./generate.post");
 
 const baseTournament = {
   id: 1,
+  type: "COMBINATION",
   startTime: new Date("2025-06-01T14:00:00Z"),
   matchDuration: 15,
   breakTime: 5,
 };
+
+const knockoutTournament = { ...baseTournament, type: "KNOCKOUT" };
 
 function makeStandings(teams: { teamId: number; points: number }[], poolId = 10) {
   return teams.map((t) => ({ poolId, teamId: t.teamId, points: t.points, goalDifference: 0, goalsFor: 0 }));
@@ -143,5 +148,34 @@ describe("POST /api/admin/ko-bracket/generate", () => {
 
     expect(mockMatchDeleteMany).toHaveBeenCalled();
     expect(mockMatchCreateMany).toHaveBeenCalled();
+  });
+
+  it("generates KO matches from teams for KNOCKOUT tournament (no standings needed)", async () => {
+    mockTournamentFindFirst.mockResolvedValue(knockoutTournament);
+    vi.mocked(readBody).mockResolvedValue({});
+    mockMatchCount.mockResolvedValue(0);
+    mockTeamFindMany.mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]);
+    mockFieldFindMany.mockResolvedValue([{ id: 100 }]);
+    mockMatchCreateMany.mockResolvedValue({ count: 2 });
+
+    const result = await handler(createMockEvent());
+
+    expect(mockStandingFindMany).not.toHaveBeenCalled();
+    expect(mockMatchCreateMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({ phase: "KO", round: 1 }),
+      ]),
+    });
+    expect(result).toMatchObject({ generated: 2 });
+  });
+
+  it("returns 400 for KNOCKOUT tournament with fewer than 2 teams", async () => {
+    mockTournamentFindFirst.mockResolvedValue(knockoutTournament);
+    vi.mocked(readBody).mockResolvedValue({});
+    mockMatchCount.mockResolvedValue(0);
+    mockTeamFindMany.mockResolvedValue([{ id: 1 }]);
+    mockFieldFindMany.mockResolvedValue([{ id: 100 }]);
+
+    await expect(handler(createMockEvent())).rejects.toThrow("Not enough teams");
   });
 });

@@ -30,6 +30,7 @@ interface Pool {
 
 const tournament = ref<Tournament | null>(null);
 const pools = ref<Pool[]>([]);
+const isLoading = ref(true);
 const settingsError = ref("");
 const settingsSuccess = ref("");
 const settingsLoading = ref(false);
@@ -54,6 +55,8 @@ async function fetchTournament() {
     tournament.value = await $fetch<Tournament>("/api/admin/tournament");
   } catch {
     settingsError.value = nl.admin.tournament.notFound;
+  } finally {
+    isLoading.value = false;
   }
 }
 
@@ -198,7 +201,10 @@ onMounted(async () => {
     </header>
 
     <main class="mx-auto max-w-content p-4">
-      <p v-if="!tournament" class="text-error">
+      <p v-if="isLoading" class="text-text">
+        {{ nl.common.loading }}
+      </p>
+      <p v-else-if="!tournament" class="text-error">
         {{ nl.admin.tournament.notFound }}
       </p>
 

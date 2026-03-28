@@ -17,61 +17,49 @@ Most bugs are 404 errors on admin and ref API endpoints, suggesting missing or i
 
 All endpoints return `404 Page not found`. The issue is likely that route handlers do not exist or are named incorrectly in the Nitro API.
 
-### Bug #1: Delete Referees
+### Bug #1: Delete Referees — DONE AND RESOLVED
 - **Endpoint:** `DELETE /api/admin/referees/{id}`
-- **Error:** `404 Page not found: /api/admin/referees/2`
-- **Location:** `referees.vue:46` → `deleteReferee()`
-- **Stack trace:** Uncaught (in promise) FetchError
+- **Fix:** Added `server/api/admin/referees/[id].delete.ts` (Nitro requires directory-based dynamic routes)
 - **Expected behavior:** Referee should be deleted and removed from UI
 
-### Bug #2: Update Teams
+### Bug #2: Update Teams — DONE AND RESOLVED
 - **Endpoint:** `PUT /api/admin/teams/{id}`
-- **Error:** `404 Page not found: /api/admin/teams/9`
-- **Location:** `teams.vue:71` → `saveEdit()`
+- **Fix:** Added `server/api/admin/teams/[id].put.ts`
 - **Expected behavior:** Team details updated in database
 
-### Bug #3: Delete Teams
+### Bug #3: Delete Teams — DONE AND RESOLVED
 - **Endpoint:** `DELETE /api/admin/teams/{id}`
-- **Error:** `404 Page not found: /api/admin/teams/9`
-- **Location:** `teams.vue:90` → `deleteTeam()` called from `teams.vue:294`
+- **Fix:** Added `server/api/admin/teams/[id].delete.ts`
 - **Expected behavior:** Team deleted and removed from UI
 
-### Bug #4: Update Fields
+### Bug #4: Update Fields — DONE AND RESOLVED
 - **Endpoint:** `PUT /api/admin/fields/{id}`
-- **Error:** `404 Page not found: /api/admin/fields/4`
-- **Location:** `fields.vue:67` → `saveEdit()`
+- **Fix:** Added `server/api/admin/fields/[id].put.ts`
 - **Expected behavior:** Field configuration updated in database
 
-### Bug #5: Delete Fields
+### Bug #5: Delete Fields — DONE AND RESOLVED
 - **Endpoint:** `DELETE /api/admin/fields/{id}`
-- **Error:** `404 Page not found: /api/admin/fields/4`
-- **Location:** `fields.vue:86` → `deleteField()` called from `fields.vue:268`
+- **Fix:** Added `server/api/admin/fields/[id].delete.ts`
 - **Expected behavior:** Field deleted and removed from UI
 
-### Bug #6: Update Pools
+### Bug #6: Update Pools — DONE AND RESOLVED
 - **Endpoint:** `PUT /api/admin/pools/{id}`
-- **Error:** `404 Page not found: /api/admin/pools/3` and `/api/admin/pools/4`
-- **Location:** `tournament.vue:156` → `savePool()`
-- **Affected fields:** "teams door" (teams through) and "Naam" (Name)
+- **Fix:** Added `server/api/admin/pools/[id].put.ts`
 - **Expected behavior:** Pool properties updated in database
 
-### Bug #7: Delete Pools
+### Bug #7: Delete Pools — DONE AND RESOLVED
 - **Endpoint:** `DELETE /api/admin/pools/{id}`
-- **Error:** `404 Page not found: /api/admin/pools/4`
-- **Location:** `tournament.vue:175` → `deletePool()` called from `tournament.vue:438`
+- **Fix:** Added `server/api/admin/pools/[id].delete.ts`
 - **Expected behavior:** Pool deleted and removed from UI
 
-### Bug #8: Update Schedule Matches
+### Bug #8: Update Schedule Matches — DONE AND RESOLVED
 - **Endpoint:** `PATCH /api/admin/schedule/matches/{id}`
-- **Error:** `404 Page not found: /api/admin/schedule/matches/5`
-- **Location:** `schedule.vue:116` → `saveMatch()`
+- **Fix:** Added `server/api/admin/schedule/matches/[id].patch.ts`
 - **Expected behavior:** Match details updated in database
 
-### Bug #9: Save Scores (Referee Dashboard)
+### Bug #9: Save Scores (Referee Dashboard) — DONE AND RESOLVED
 - **Endpoint:** `PATCH /api/ref/matches/{id}`
-- **Error:** `404 Page not found: /api/ref/matches/49`
-- **Location:** `index.vue:71` → `saveScore()` called from `index.vue:168`
-- **Additional issue:** Returns `true` as feedback instead of proper success message
+- **Fix:** Added `server/api/ref/matches/[id].patch.ts`; returns the updated match object (not `true`)
 - **Expected behavior:** Match score saved to database; proper UI feedback
 
 ---
