@@ -66,17 +66,15 @@ All endpoints return `404 Page not found`. The issue is likely that route handle
 
 ## Category 2: UI & Loading State Issues (Medium)
 
-### Bug #10: Tournament Screen Reload — Premature "Not Found" Message
-- **Location:** Tournament detail page (component unknown — likely a layout or tournament detail page)
-- **Issue:** Brief message "Geen toernooi gevonden" (No tournament found) appears while database call is still loading
-- **Expected behavior:** Loading skeleton/spinner should display until tournament data arrives; error message only if fetch fails
-- **Likely cause:** Missing loading state check; conditional rendering shows error before `isLoading` is false
+### Bug #10: Tournament Screen Reload — Premature "Not Found" Message — DONE AND RESOLVED
+- **Location:** `pages/admin/tournament.vue`
+- **Fix:** Added `isLoading` ref; shows `nl.common.loading` while fetching, only shows "not found" after fetch completes
+- **Expected behavior:** Loading spinner displays until tournament data arrives; error message only if fetch fails
 
-### Bug #11: KO Tournament Generation — Pool Requirement Logic
-- **Location:** Tournament creation/configuration flow (component unknown)
-- **Issue:** KO tournament schema generation incorrectly requires pools to exist first
-- **Expected behavior:** KO tournaments should NOT require pool setup; pools are only for group stage tournaments
-- **Likely cause:** Logic conflates tournament types or missing type check in schema generation function
+### Bug #11: KO Tournament Generation — Pool Requirement Logic — DONE AND RESOLVED
+- **Location:** `server/api/admin/ko-bracket/generate.post.ts`
+- **Fix:** Added tournament type check; KNOCKOUT type uses teams directly, COMBINATION/POOLS type uses standings
+- **Expected behavior:** KO tournaments use teams directly without requiring pool setup
 
 ---
 
