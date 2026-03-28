@@ -46,7 +46,7 @@ async function fetchMatches() {
   try {
     matches.value = await $fetch<Match[]>("/api/admin/schedule/matches");
   } catch {
-    generateError.value = nl.common.error;
+    matches.value = [];
   }
 }
 
