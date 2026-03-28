@@ -16,7 +16,7 @@ Mixed set of bugs across schema generation, UI loading states, form validation, 
 
 ## Category 1: Critical Bugs
 
-### Bug #1: Schema Generation Error When No Tournament Exists
+### Bug #1: Schema Generation Error When No Tournament Exists — DONE AND RESOLVED
 
 - **Location:** Schema generation endpoint (likely `pages/admin/tournament.vue` or `server/api/admin/...`)
 - **Issue:** Shows generic error message "Er is een fout opgetreden" (An error has occurred) when attempting to generate a schema without first creating a tournament
@@ -24,7 +24,7 @@ Mixed set of bugs across schema generation, UI loading states, form validation, 
 - **Component inspection needed:** Schema generation function/component
 - **Likely cause:** Missing validation before attempting database operations; error not caught or displayed properly
 
-### Bug #2: Missing Data Error During DB Load (All Admin Pages Except Tournament)
+### Bug #2: Missing Data Error During DB Load (All Admin Pages Except Tournament) — DONE AND RESOLVED
 
 - **Location:** All admin pages EXCEPT the tournament page: referees, teams, fields, schedule, etc.
 - **Issue:** Brief message "[Entity] not found" appears while database call is still loading
@@ -36,7 +36,7 @@ Mixed set of bugs across schema generation, UI loading states, form validation, 
 
 ## Category 2: High Priority Bugs
 
-### Bug #3: Save Score Button Remains Disabled After First Save
+### Bug #3: Save Score Button Remains Disabled After First Save — DONE AND RESOLVED
 
 - **Location:** Referee dashboard — `pages/ref/index.vue`
 - **Issue:** After successfully saving a score for the first time, the "Save" button stays disabled even when the user changes the score value
@@ -44,7 +44,7 @@ Mixed set of bugs across schema generation, UI loading states, form validation, 
 - **Likely cause:** After first save, form validation or dirty state check not resetting; need to compare new input against last saved value
 - **Condition for enabling:** Button should enable when `currentScore !== savedScore`
 
-### Bug #4: Login Rate Limit Not Reset on Successful Authentication
+### Bug #4: Login Rate Limit Not Reset on Successful Authentication — DONE AND RESOLVED
 
 - **Location:** Authentication handler — likely `server/api/auth/...` or `server/utils/...`
 - **Issue:** User's rate limit counter not cleared after successful login
@@ -52,7 +52,7 @@ Mixed set of bugs across schema generation, UI loading states, form validation, 
 - **Impact:** Can prevent legitimate repeated logins or lockout false positives
 - **Implementation note:** Clear rate limit cache/store entry for user after verified login
 
-### Bug #5: Console Error Blocks Redirect After Login
+### Bug #5: Console Error Blocks Redirect After Login — DONE AND RESOLVED
 
 - **Location:** Authentication flow, likely `composables/useAuth.ts` or form component
 - **Issue:** After correct login, console error: `TypeError: Cannot read properties of null (reading 'autocomplete')` appears; redirect to correct screen blocked
@@ -65,7 +65,7 @@ Mixed set of bugs across schema generation, UI loading states, form validation, 
 
 ## Category 3: Medium Priority Bugs
 
-### Bug #6: Match DateTime Field Defaults 2 Hours Too Early
+### Bug #6: Match DateTime Field Defaults 2 Hours Too Early — DONE AND RESOLVED
 
 - **Location:** Match editing page — `pages/admin/schedule.vue` or match edit dialog
 - **Issue:** DateTime input field defaults to time 2 hours earlier than intended (e.g., if set for 14:00, shows 12:00)
@@ -74,7 +74,7 @@ Mixed set of bugs across schema generation, UI loading states, form validation, 
 - **Implementation note:** Verify timezone handling when converting between server (likely UTC) and client (local); check if `new Date()` instantiation or formatting function applies offset
 - **Files to check:** Match editing component, datetime utility functions
 
-### Bug #7: KO Bracket Generation (Combination Mode) — Team Advancement Calculation
+### Bug #7: KO Bracket Generation (Combination Mode) — Team Advancement Calculation — DONE AND RESOLVED
 
 - **Location:** `server/api/admin/ko-bracket/generate.post.ts` or tournament logic
 - **Issue:** When generating KO bracket in combination (pool + knockout) mode:
