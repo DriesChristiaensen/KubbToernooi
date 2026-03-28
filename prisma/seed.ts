@@ -221,15 +221,22 @@ async function seedCombined() {
 
 const type = process.argv[2] ?? "combined";
 
+async function seedClear() {
+  console.log("\nClearing all tournament data...");
+  await clearData();
+  console.log("Done: all tournament data cleared.");
+}
+
 const runners: Record<string, () => Promise<void>> = {
   pool: seedPool,
   ko: seedKo,
   combined: seedCombined,
+  clear: seedClear,
 };
 
 const run = runners[type];
 if (!run) {
-  console.error(`Unknown seed type: "${type}". Use: pool | ko | combined`);
+  console.error(`Unknown seed type: "${type}". Use: pool | ko | combined | clear`);
   process.exit(1);
 }
 
