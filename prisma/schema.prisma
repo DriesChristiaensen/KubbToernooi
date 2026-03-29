@@ -121,26 +121,29 @@ model PoolTeam {
 }
 
 model Match {
-  id         Int         @id @default(autoincrement())
-  phase      MatchPhase
-  round      Int         @default(1)
-  startTime  DateTime
-  fieldId    Int
-  poolId     Int?
-  teamAId    Int
-  teamBId    Int
-  scoreA     Int?
-  scoreB     Int?
-  status     MatchStatus @default(SCHEDULED)
-  koWinnerId Int?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id          Int         @id @default(autoincrement())
+  phase       MatchPhase
+  round       Int         @default(1)
+  startTime   DateTime
+  fieldId     Int
+  poolId      Int?
+  teamAId     Int?
+  teamBId     Int?
+  scoreA      Int?
+  scoreB      Int?
+  status      MatchStatus @default(SCHEDULED)
+  koWinnerId  Int?
+  nextMatchId Int?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  field    Field @relation(fields: [fieldId], references: [id], onDelete: Cascade)
-  pool     Pool? @relation(fields: [poolId], references: [id], onDelete: SetNull)
-  teamA    Team  @relation("teamA", fields: [teamAId], references: [id], onDelete: Cascade)
-  teamB    Team  @relation("teamB", fields: [teamBId], references: [id], onDelete: Cascade)
-  koWinner Team? @relation("koWinner", fields: [koWinnerId], references: [id], onDelete: SetNull)
+  field       Field  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  pool        Pool?  @relation(fields: [poolId], references: [id], onDelete: SetNull)
+  teamA       Team?  @relation("teamA", fields: [teamAId], references: [id], onDelete: SetNull)
+  teamB       Team?  @relation("teamB", fields: [teamBId], references: [id], onDelete: SetNull)
+  koWinner    Team?  @relation("koWinner", fields: [koWinnerId], references: [id], onDelete: SetNull)
+  nextMatch   Match? @relation("MatchProgression", fields: [nextMatchId], references: [id])
+  prevMatches Match[] @relation("MatchProgression")
 }
 
 model Standing {

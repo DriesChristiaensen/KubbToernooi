@@ -13,10 +13,11 @@ interface KoMatch {
   id: number;
   round: number;
   status: string;
-  teamAId: number;
-  teamBId: number;
-  teamA: Team;
-  teamB: Team;
+  teamAId: number | null;
+  teamBId: number | null;
+  teamA: Team | null;
+  teamB: Team | null;
+  nextMatchId: number | null;
   field: { id: number; name: string };
 }
 
@@ -68,8 +69,8 @@ async function generate(overwrite = false) {
 
 function startSwap(match: KoMatch) {
   swapMatchId.value = match.id;
-  swapTeamAId.value = match.teamAId;
-  swapTeamBId.value = match.teamBId;
+  swapTeamAId.value = match.teamAId ?? 0;
+  swapTeamBId.value = match.teamBId ?? 0;
   swapError.value = "";
   swapSuccess.value = "";
 }
@@ -129,8 +130,8 @@ const allTeams = computed(() => {
   const seen = new Set<number>();
   const result: Team[] = [];
   for (const m of matches.value) {
-    if (!seen.has(m.teamA.id)) { seen.add(m.teamA.id); result.push(m.teamA); }
-    if (!seen.has(m.teamB.id)) { seen.add(m.teamB.id); result.push(m.teamB); }
+    if (m.teamA && !seen.has(m.teamA.id)) { seen.add(m.teamA.id); result.push(m.teamA); }
+    if (m.teamB && !seen.has(m.teamB.id)) { seen.add(m.teamB.id); result.push(m.teamB); }
   }
   return result;
 });
@@ -256,9 +257,13 @@ onMounted(fetchMatches);
                   {{ nl.admin.koBracket.round }} {{ r }}
                 </div>
                 <template v-if="getMatch(r, idx)">
-                  <span class="text-sm font-medium text-text">{{ getMatch(r, idx)!.teamA.name }}</span>
+                  <span class="text-sm font-medium text-text">
+                    {{ getMatch(r, idx)!.teamA?.name ?? nl.admin.koBracket.tbd }}
+                  </span>
                   <span class="my-1 text-center text-xs text-text-light">vs</span>
-                  <span class="text-sm font-medium text-text">{{ getMatch(r, idx)!.teamB.name }}</span>
+                  <span class="text-sm font-medium text-text">
+                    {{ getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd }}
+                  </span>
                   <div class="mt-2 text-xs text-text-light">
                     {{ getMatch(r, idx)!.field.name }}
                   </div>
