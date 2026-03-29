@@ -210,26 +210,59 @@ describe("PATCH /api/ref/matches/:id", () => {
     expect(result).toMatchObject({ koWinnerId: 1 });
   });
 
-  it("generates next KO round when all round-1 matches are played", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("2");
-    vi.mocked(readBody).mockResolvedValue({ scoreA: 2, scoreB: 0 });
-    const match1 = { ...mockMatch, id: 1, phase: "KO", round: 1, teamAId: 10, teamBId: 20, scoreA: 3, scoreB: 1, status: "PLAYED", fieldId: 100 };
-    const match2 = { ...mockMatch, id: 2, phase: "KO", round: 1, teamAId: 30, teamBId: 40, status: "SCHEDULED", fieldId: 101 };
-    mockMatchFindFirst.mockResolvedValue(match2);
-    const updatedMatch2 = { ...match2, scoreA: 2, scoreB: 0, status: "PLAYED" };
-    mockMatchUpdate.mockResolvedValue(updatedMatch2);
-    mockMatchFindMany.mockResolvedValue([match1, updatedMatch2]);
-    mockTournamentFindFirst.mockResolvedValue({ id: 1, startTime: new Date("2025-06-01T14:00:00Z"), matchDuration: 15, breakTime: 5 });
-    mockMatchCreateMany.mockResolvedValue({ count: 1 });
+  it("updates teamA of next match when current match is first sibling", async () => {
+    vi.mocked(getRouterParam).mockReturnValue("1");
+    vi.mocked(readBody).mockResolvedValue({ scoreA: 3, scoreB: 1 });
+    const match = { ...mockMatch, id: 1, phase: "KO", round: 1, teamAId: 10, teamBId: 20, nextMatchId: 5 };
+    mockMatchFindFirst.mockResolvedValue(match);
+    const updatedMatch = { ...match, scoreA: 3, scoreB: 1, status: "PLAYED" };
+    mockMatchUpdate.mockResolvedValue(updatedMatch);
+    // Sibling query: only current match links to nextMatchId 5
+    mockMatchFindMany.mockResolvedValue([match]);
 
     await patchMatchHandler(createMockEvent());
 
-    expect(mockMatchCreateMany).toHaveBeenCalledWith(
+    expect(mockMatchUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.arrayContaining([
-          expect.objectContaining({ phase: "KO", round: 2, teamAId: 10, teamBId: 30 }),
-        ]),
+        where: { id: 5 },
+        data: expect.objectContaining({ teamAId: 10 }),
       }),
     );
+  });
+
+  it("updates teamB of next match when current match is second sibling", async () => {
+    vi.mocked(getRouterParam).mockReturnValue("2");
+    vi.mocked(readBody).mockResolvedValue({ scoreA: 0, scoreB: 3 });
+    const match1 = { ...mockMatch, id: 1, phase: "KO", round: 1, teamAId: 10, teamBId: 20, nextMatchId: 5 };
+    const match2 = { ...mockMatch, id: 2, phase: "KO", round: 1, teamAId: 30, teamBId: 40, nextMatchId: 5 };
+    mockMatchFindFirst.mockResolvedValue(match2);
+    const updatedMatch2 = { ...match2, scoreA: 0, scoreB: 3, status: "PLAYED" };
+    mockMatchUpdate.mockResolvedValue(updatedMatch2);
+    // Both siblings present; match2 is second (higher id)
+    mockMatchFindMany.mockResolvedValue([match1, match2]);
+
+    await patchMatchHandler(createMockEvent());
+
+    expect(mockMatchUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 5 },
+        data: expect.objectContaining({ teamBId: 40 }),
+      }),
+    );
+  });
+
+  it("does not update next match when nextMatchId is null", async () => {
+    vi.mocked(getRouterParam).mockReturnValue("1");
+    vi.mocked(readBody).mockResolvedValue({ scoreA: 3, scoreB: 1 });
+    const match = { ...mockMatch, id: 1, phase: "KO", round: 1, teamAId: 10, teamBId: 20 };
+    mockMatchFindFirst.mockResolvedValue(match);
+    const updatedMatch = { ...match, scoreA: 3, scoreB: 1, status: "PLAYED" };
+    mockMatchUpdate.mockResolvedValue(updatedMatch);
+
+    await patchMatchHandler(createMockEvent());
+
+    // Only one update call (the score update); no nextMatch update
+    expect(mockMatchUpdate).toHaveBeenCalledTimes(1);
+    expect(mockMatchFindMany).not.toHaveBeenCalled();
   });
 });
