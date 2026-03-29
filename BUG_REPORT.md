@@ -15,7 +15,7 @@ Bugs focused on referee match page loading states, score save button state persi
 
 ## Category 1: Critical Bugs
 
-### Bug #1: Referee Page Loading State — Incorrect Error Display
+### Bug #1: Referee Page Loading State — Incorrect Error Display — DONE AND RESOLVED
 
 - **Location:** `pages/ref/index.vue` — match listing page
 - **Issue:** Page shows error message "Er is een fout opgetreden" (An error has occurred) instead of loading state when the matches database call is still in progress
@@ -26,7 +26,7 @@ Bugs focused on referee match page loading states, score save button state persi
 
 ---
 
-### Bug #2: Referee Score Button State Persistence — Separate State Per Match
+### Bug #2: Referee Score Button State Persistence — Separate State Per Match — DONE AND RESOLVED
 
 - **Location:** `pages/ref/index.vue` — score input fields and save buttons
 - **Issue:** After refreshing the page, refs can only modify an existing score once. The save button disable/enable logic does not properly track state per match after reload.
@@ -40,7 +40,7 @@ Bugs focused on referee match page loading states, score save button state persi
 
 ---
 
-### Bug #3: Schema Generation — Missing DateTime Start Time Parameter
+### Bug #3: Schema Generation — Missing DateTime Start Time Parameter — DONE AND RESOLVED
 
 - **Location:** Schema generation endpoint — `server/api/admin/[...]/generate.post.ts` (pool/KO/schedule generation)
 - **Issue:** Schema generation does not accept or use a datetime parameter for setting the tournament start time
