@@ -26,7 +26,7 @@ interface Match {
 }
 
 const matches = ref<Match[]>([])
-const isLoading = ref(true)
+const isLoading = ref(false)
 const errorMsg = ref('')
 const saving = ref<number | null>(null)
 const saveError = ref('')
@@ -35,6 +35,7 @@ const scoreInputs = ref<Record<number, { scoreA: string; scoreB: string; koWinne
 const savedScores = ref<Record<number, { scoreA: string | null; scoreB: string | null }>>({})
 
 async function fetchMatches() {
+  isLoading.value = true
   try {
     const data = await $fetch<Match[]>('/api/ref/matches')
     matches.value = data
@@ -105,7 +106,7 @@ function phaseLabel(phase: string): string {
   return phase === 'KO' ? nl.ref.matches.phaseKo : nl.ref.matches.phasePool
 }
 
-await fetchMatches()
+onMounted(() => { fetchMatches() })
 </script>
 
 <template>
