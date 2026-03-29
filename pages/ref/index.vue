@@ -92,7 +92,15 @@ async function saveScore(match: Match) {
       body,
     })
     const idx = matches.value.findIndex((m) => m.id === match.id)
-    if (idx !== -1) matches.value[idx] = updated
+    if (idx !== -1) {
+      matches.value[idx] = {
+        ...matches.value[idx],
+        scoreA: updated.scoreA,
+        scoreB: updated.scoreB,
+        status: updated.status,
+        koWinnerId: updated.koWinnerId,
+      }
+    }
     savedScores.value[match.id] = { scoreA: input.scoreA, scoreB: input.scoreB }
   } catch (err: unknown) {
     const e = err as { data?: { error?: string } }
