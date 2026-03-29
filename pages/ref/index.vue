@@ -154,7 +154,7 @@ onMounted(() => { fetchMatches() })
         >
           <div class="mb-2 flex items-center justify-between text-sm text-text-light">
             <span>{{ phaseLabel(match.phase) }} — R{{ match.round }} — {{ match.field.name }}</span>
-            <span>{{ new Date(match.startTime).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' }) }}</span>
+            <span>{{ formatDateTime(match.startTime) }}</span>
           </div>
 
           <div class="mb-3 text-base font-semibold text-text">

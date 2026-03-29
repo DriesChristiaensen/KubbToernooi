@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { VueDatePicker } from "@vuepic/vue-datepicker";
+import { nlBE } from "date-fns/locale";
 import { nl } from "~/i18n/nl";
 
 definePageMeta({ middleware: "auth" });
@@ -26,12 +28,12 @@ const fields = ref<Field[]>([]);
 const generateLoading = ref(false);
 const generateError = ref("");
 const generateSuccess = ref("");
-const generateStartDateTime = ref("");
+const generateStartDateTime = ref<Date | null>(null);
 const showOverwrite = ref(false);
 
 const editingMatch = ref<Match | null>(null);
 const editFieldId = ref<number>(0);
-const editStartTime = ref("");
+const editStartTime = ref<Date | null>(null);
 const editError = ref("");
 const editSuccess = ref("");
 const conflictResult = ref<{ ok: boolean; conflicts: string[] } | null>(null);
@@ -62,17 +64,23 @@ async function generateSchedule(overwrite = false) {
     generateError.value = nl.admin.schedule.startDateTimeRequired;
     return;
   }
+  const parsedStart = generateStartDateTime.value;
   showOverwrite.value = false;
   generateLoading.value = true;
   try {
-    const result = await $fetch<{ generated: number }>("/api/admin/schedule/generate", {
-      method: "POST",
-      body: { overwrite, startDateTime: new Date(generateStartDateTime.value).toISOString() },
-    });
+    const result = await $fetch<{ generated: number }>(
+      "/api/admin/schedule/generate",
+      {
+        method: "POST",
+        body: { overwrite, startDateTime: parsedStart.toISOString() },
+      },
+    );
     generateSuccess.value = `${result.generated} ${nl.admin.schedule.generate}`;
     await fetchMatches();
   } catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string; code?: number } } };
+    const fetchErr = err as {
+      data?: { data?: { error?: string; code?: number } };
+    };
     if (fetchErr?.data?.data?.code === 409) {
       showOverwrite.value = true;
       generateError.value = fetchErr?.data?.data?.error || nl.common.error;
@@ -87,9 +95,7 @@ async function generateSchedule(overwrite = false) {
 function startEditMatch(match: Match) {
   editingMatch.value = match;
   editFieldId.value = match.field.id;
-  const d = new Date(match.startTime);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  editStartTime.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  editStartTime.value = new Date(match.startTime);
   editError.value = "";
   editSuccess.value = "";
   conflictResult.value = null;
@@ -101,12 +107,12 @@ function cancelEditMatch() {
 }
 
 async function checkConflict() {
-  if (!editingMatch.value) return;
+  if (!editingMatch.value || !editStartTime.value) return;
   conflictLoading.value = true;
   conflictResult.value = null;
   try {
     conflictResult.value = await $fetch<{ ok: boolean; conflicts: string[] }>(
-      `/api/admin/schedule/conflict-check?matchId=${editingMatch.value.id}&fieldId=${editFieldId.value}&startTime=${new Date(editStartTime.value).toISOString()}`,
+      `/api/admin/schedule/conflict-check?matchId=${editingMatch.value.id}&fieldId=${editFieldId.value}&startTime=${editStartTime.value.toISOString()}`,
     );
   } catch {
     conflictResult.value = { ok: false, conflicts: [nl.common.error] };
@@ -116,17 +122,20 @@ async function checkConflict() {
 }
 
 async function saveMatch() {
-  if (!editingMatch.value) return;
+  if (!editingMatch.value || !editStartTime.value) return;
   editError.value = "";
   editSuccess.value = "";
   try {
-    await $fetch(`/api/admin/schedule/matches/${editingMatch.value.id}` as string, {
-      method: "PATCH",
-      body: {
-        fieldId: editFieldId.value,
-        startTime: new Date(editStartTime.value).toISOString(),
+    await $fetch(
+      `/api/admin/schedule/matches/${editingMatch.value.id}` as string,
+      {
+        method: "PATCH",
+        body: {
+          fieldId: editFieldId.value,
+          startTime: editStartTime.value.toISOString(),
+        },
       },
-    });
+    );
     editSuccess.value = nl.admin.schedule.matchSaved;
     editingMatch.value = null;
     await fetchMatches();
@@ -145,13 +154,16 @@ async function applyTimeShift() {
   }
   timeShiftLoading.value = true;
   try {
-    const result = await $fetch<{ shifted: number }>("/api/admin/schedule/time-shift", {
-      method: "POST",
-      body: {
-        fromTime: new Date(timeShiftFrom.value).toISOString(),
-        offsetMinutes: timeShiftMinutes.value,
+    const result = await $fetch<{ shifted: number }>(
+      "/api/admin/schedule/time-shift",
+      {
+        method: "POST",
+        body: {
+          fromTime: new Date(timeShiftFrom.value).toISOString(),
+          offsetMinutes: timeShiftMinutes.value,
+        },
       },
-    });
+    );
     timeShiftSuccess.value = `${result.shifted} wedstrijden verschoven`;
     await fetchMatches();
   } catch (err: unknown) {
@@ -160,10 +172,6 @@ async function applyTimeShift() {
   } finally {
     timeShiftLoading.value = false;
   }
-}
-
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" });
 }
 
 onMounted(async () => {
@@ -189,15 +197,22 @@ onMounted(async () => {
         </h2>
 
         <div class="mb-4">
-          <label class="mb-1 block text-sm font-medium text-text" for="sched-start">
+          <label
+            class="mb-1 block text-sm font-medium text-text"
+            for="sched-start"
+          >
             {{ nl.admin.schedule.startDateTime }}
           </label>
-          <input
-            id="sched-start"
-            v-model="generateStartDateTime"
-            type="datetime-local"
-            class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          >
+          <ClientOnly>
+            <VueDatePicker
+              v-model="generateStartDateTime"
+              :formats="{ input: 'dd/MM/yyyy HH:mm' }"
+              :enable-time-picker="true"
+              :is24="true"
+              auto-apply
+              :locale="nlBE"
+            />
+          </ClientOnly>
         </div>
 
         <p v-if="generateError" class="mb-2 text-sm text-error">
@@ -209,7 +224,7 @@ onMounted(async () => {
 
         <div class="flex flex-wrap gap-3">
           <button
-            :disabled="generateLoading || !generateStartDateTime"
+            :disabled="generateLoading"
             class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
             @click="generateSchedule(false)"
           >
@@ -225,7 +240,10 @@ onMounted(async () => {
             </button>
             <button
               class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
-              @click="showOverwrite = false; generateError = ''"
+              @click="
+                showOverwrite = false;
+                generateError = '';
+              "
             >
               {{ nl.common.cancel }}
             </button>
@@ -246,15 +264,15 @@ onMounted(async () => {
               v-model="timeShiftFrom"
               class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
             >
-              <option value="" disabled>
-                —
-              </option>
+              <option value="" disabled>—</option>
               <option
-                v-for="time in [...new Set(matches.map(m => m.startTime))].sort()"
+                v-for="time in [
+                  ...new Set(matches.map((m) => m.startTime)),
+                ].sort()"
                 :key="time"
                 :value="time"
               >
-                {{ formatTime(time) }}
+                {{ formatDateTime(time) }}
               </option>
             </select>
           </div>
@@ -266,7 +284,7 @@ onMounted(async () => {
               v-model.number="timeShiftMinutes"
               type="number"
               class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-            >
+            />
           </div>
           <div class="flex items-end">
             <button
@@ -296,13 +314,11 @@ onMounted(async () => {
         </p>
 
         <ul v-else class="divide-y divide-gray-200">
-          <li
-            v-for="match in matches"
-            :key="match.id"
-            class="py-3"
-          >
+          <li v-for="match in matches" :key="match.id" class="py-3">
             <template v-if="editingMatch?.id === match.id">
-              <div class="flex flex-col gap-3 rounded-lg border border-primary p-3">
+              <div
+                class="flex flex-col gap-3 rounded-lg border border-primary p-3"
+              >
                 <div class="grid gap-3 md:grid-cols-2">
                   <div>
                     <label class="mb-1 block text-sm font-medium text-text">
@@ -321,11 +337,16 @@ onMounted(async () => {
                     <label class="mb-1 block text-sm font-medium text-text">
                       {{ nl.admin.schedule.timeLabel }}
                     </label>
-                    <input
-                      v-model="editStartTime"
-                      type="datetime-local"
-                      class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-                    >
+                    <ClientOnly>
+                      <VueDatePicker
+                        v-model="editStartTime"
+                        :formats="{ input: 'dd/MM/yyyy HH:mm' }"
+                        :enable-time-picker="true"
+                        :is24="true"
+                        auto-apply
+                        :locale="nlBE"
+                      />
+                    </ClientOnly>
                   </div>
                 </div>
 
@@ -334,9 +355,13 @@ onMounted(async () => {
                   :class="conflictResult.ok ? 'text-success' : 'text-error'"
                   class="text-sm"
                 >
-                  <span v-if="conflictResult.ok">{{ nl.admin.schedule.noConflict }}</span>
+                  <span v-if="conflictResult.ok">{{
+                    nl.admin.schedule.noConflict
+                  }}</span>
                   <ul v-else>
-                    <li v-for="c in conflictResult.conflicts" :key="c">{{ c }}</li>
+                    <li v-for="c in conflictResult.conflicts" :key="c">
+                      {{ c }}
+                    </li>
                   </ul>
                 </div>
 
@@ -369,9 +394,11 @@ onMounted(async () => {
             </template>
             <template v-else>
               <div class="flex items-center justify-between gap-2">
-                <div class="flex flex-col gap-1 md:flex-row md:items-center md:gap-4">
+                <div
+                  class="flex flex-col gap-1 md:flex-row md:items-center md:gap-4"
+                >
                   <span class="text-sm font-medium text-text-light">
-                    {{ formatTime(match.startTime) }}
+                    {{ formatDateTime(match.startTime) }}
                   </span>
                   <span class="font-semibold text-text">
                     {{ match.teamA.name }} vs {{ match.teamB.name }}

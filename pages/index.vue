@@ -60,10 +60,6 @@ function saveSearch() {
   }
 }
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" });
-}
-
 onMounted(() => {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) searchQuery.value = saved;
@@ -107,7 +103,7 @@ onMounted(() => {
         >
           <div class="mb-1 flex items-center justify-between text-sm text-text-light">
             <span>{{ match.field.name }}</span>
-            <span>{{ formatTime(match.startTime) }}</span>
+            <span>{{ formatDateTime(match.startTime) }}</span>
           </div>
 
           <div class="flex items-center justify-between">
