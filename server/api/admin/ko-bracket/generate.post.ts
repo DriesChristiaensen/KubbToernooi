@@ -1,9 +1,16 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 
+const bodySchema = z.object({
+  overwrite: z.boolean().optional(),
+  startDateTime: z.string().optional(),
+});
+
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event);
-  const overwrite = body?.overwrite === true;
+  const raw = await readBody(event);
+  const body = bodySchema.parse(raw ?? {});
+  const overwrite = body.overwrite === true;
 
   const tournament = await prisma.tournament.findFirst();
   if (!tournament) {
@@ -92,7 +99,7 @@ export default defineEventHandler(async (event) => {
   const topHalf = participants.slice(0, half);
   const bottomHalf = participants.slice(participants.length - half).reverse();
 
-  const matchStartTime = new Date(tournament.startTime);
+  const matchStartTime = body.startDateTime ? new Date(body.startDateTime) : new Date(tournament.startTime);
   const slotMs = (tournament.matchDuration + tournament.breakTime) * 60 * 1000;
 
   const matchData = topHalf.map((top, i) => {

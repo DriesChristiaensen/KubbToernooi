@@ -1,6 +1,12 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
+
+const bodySchema = z.object({
+  overwrite: z.boolean().optional(),
+  startDateTime: z.string().optional(),
+});
 
 function generateRoundRobin(teamIds: number[]): Array<Array<[number, number]>> {
   const n = teamIds.length;
@@ -30,8 +36,10 @@ function generateRoundRobin(teamIds: number[]): Array<Array<[number, number]>> {
 
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
-  const body = await readBody(event);
-  const overwrite = body?.overwrite === true;
+  const raw = await readBody(event);
+  const body = bodySchema.parse(raw ?? {});
+  const overwrite = body.overwrite === true;
+  const baseTime = body.startDateTime ? new Date(body.startDateTime) : tournament.startTime;
 
   const existingCount = await prisma.match.count({
     where: { pool: { tournamentId: tournament.id }, phase: "POOL" },
@@ -114,7 +122,7 @@ export default defineEventHandler(async (event) => {
 
     for (let batch = 0; batch < roundMatches.length; batch += fieldCount) {
       const batchMatches = roundMatches.slice(batch, batch + fieldCount);
-      const slotStart = new Date(tournament.startTime.getTime() + slotIndex * slotDurationMs);
+      const slotStart = new Date(baseTime.getTime() + slotIndex * slotDurationMs);
 
       for (let i = 0; i < batchMatches.length; i++) {
         const m = batchMatches[i];

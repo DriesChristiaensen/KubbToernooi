@@ -162,4 +162,33 @@ describe("POST /api/admin/schedule/generate", () => {
     const times = [...new Set(data.map((m) => m.startTime.toISOString()))];
     expect(times.length).toBeGreaterThanOrEqual(3);
   });
+
+  it("uses startDateTime body param as base time when provided", async () => {
+    const customStart = "2025-07-15T08:30:00.000Z";
+    mockTournamentFindFirst.mockResolvedValue(baseTournament);
+    vi.mocked(readBody).mockResolvedValue({ startDateTime: customStart });
+    mockMatchCount.mockResolvedValue(0);
+    mockPoolFindMany.mockResolvedValue([twoTeamPool]);
+    mockFieldFindMany.mockResolvedValue(oneField);
+    mockMatchCreateMany.mockResolvedValue({ count: 1 });
+
+    await handler(createMockEvent());
+
+    const data: any[] = mockMatchCreateMany.mock.calls[0][0].data;
+    expect(data[0].startTime).toEqual(new Date(customStart));
+  });
+
+  it("falls back to tournament startTime when startDateTime not provided", async () => {
+    mockTournamentFindFirst.mockResolvedValue(baseTournament);
+    vi.mocked(readBody).mockResolvedValue({});
+    mockMatchCount.mockResolvedValue(0);
+    mockPoolFindMany.mockResolvedValue([twoTeamPool]);
+    mockFieldFindMany.mockResolvedValue(oneField);
+    mockMatchCreateMany.mockResolvedValue({ count: 1 });
+
+    await handler(createMockEvent());
+
+    const data: any[] = mockMatchCreateMany.mock.calls[0][0].data;
+    expect(data[0].startTime).toEqual(baseTournament.startTime);
+  });
 });

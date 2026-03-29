@@ -192,4 +192,33 @@ describe("POST /api/admin/ko-bracket/generate", () => {
 
     await expect(handler(createMockEvent())).rejects.toThrow("Not enough teams");
   });
+
+  it("uses startDateTime body param as base time when provided", async () => {
+    const customStart = "2025-07-15T10:00:00.000Z";
+    mockTournamentFindFirst.mockResolvedValue(knockoutTournament);
+    vi.mocked(readBody).mockResolvedValue({ startDateTime: customStart });
+    mockMatchCount.mockResolvedValue(0);
+    mockTeamFindMany.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+    mockFieldFindMany.mockResolvedValue([{ id: 100 }]);
+    mockMatchCreateMany.mockResolvedValue({ count: 1 });
+
+    await handler(createMockEvent());
+
+    const data = mockMatchCreateMany.mock.calls[0][0].data;
+    expect(data[0].startTime).toEqual(new Date(customStart));
+  });
+
+  it("falls back to tournament startTime when startDateTime not provided", async () => {
+    mockTournamentFindFirst.mockResolvedValue(knockoutTournament);
+    vi.mocked(readBody).mockResolvedValue({});
+    mockMatchCount.mockResolvedValue(0);
+    mockTeamFindMany.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+    mockFieldFindMany.mockResolvedValue([{ id: 100 }]);
+    mockMatchCreateMany.mockResolvedValue({ count: 1 });
+
+    await handler(createMockEvent());
+
+    const data = mockMatchCreateMany.mock.calls[0][0].data;
+    expect(data[0].startTime).toEqual(knockoutTournament.startTime);
+  });
 });
