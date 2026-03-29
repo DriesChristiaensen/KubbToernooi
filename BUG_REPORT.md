@@ -55,7 +55,7 @@ Bugs focused on referee match page loading states, score save button state persi
 
 ## Category 2: High Priority Bugs
 
-### Bug #4: KO Bracket Pre-Generation — Complete Match Tree with Nullable TeamB
+### Bug #4: KO Bracket Pre-Generation — Complete Match Tree with Nullable TeamB — DONE AND RESOLVED
 
 - **Location:** `server/api/admin/ko-bracket/generate.post.ts` + KO match schema
 - **Issue:** Currently, KO matches are generated only up to the current round. Must pre-generate ALL matches up to and including the final at once, with linking between rounds and nullable team slots.
@@ -84,7 +84,7 @@ Bugs focused on referee match page loading states, score save button state persi
 
 ---
 
-### Bug #5: KO Bracket Score Entry — Automatic Next Match Creation with Null Opponent
+### Bug #5: KO Bracket Score Entry — Automatic Next Match Creation with Null Opponent — DONE AND RESOLVED
 
 - **Location:** `server/api/ref/matches/[id].patch.ts` (score save for KO matches)
 - **Issue:** When entering a score in a KO bracket match, a new match is created in the next round if it doesn't exist (this is correct behavior), but the opponent (the team from the other preceding match) is not yet filled in.
