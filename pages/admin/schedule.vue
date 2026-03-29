@@ -26,6 +26,7 @@ const fields = ref<Field[]>([]);
 const generateLoading = ref(false);
 const generateError = ref("");
 const generateSuccess = ref("");
+const generateStartDateTime = ref("");
 const showOverwrite = ref(false);
 
 const editingMatch = ref<Match | null>(null);
@@ -57,12 +58,16 @@ async function fetchFields() {
 async function generateSchedule(overwrite = false) {
   generateError.value = "";
   generateSuccess.value = "";
+  if (!generateStartDateTime.value) {
+    generateError.value = nl.admin.schedule.startDateTimeRequired;
+    return;
+  }
   showOverwrite.value = false;
   generateLoading.value = true;
   try {
     const result = await $fetch<{ generated: number }>("/api/admin/schedule/generate", {
       method: "POST",
-      body: { overwrite },
+      body: { overwrite, startDateTime: new Date(generateStartDateTime.value).toISOString() },
     });
     generateSuccess.value = `${result.generated} ${nl.admin.schedule.generate}`;
     await fetchMatches();
@@ -183,6 +188,18 @@ onMounted(async () => {
           {{ nl.admin.schedule.generate }}
         </h2>
 
+        <div class="mb-4">
+          <label class="mb-1 block text-sm font-medium text-text" for="sched-start">
+            {{ nl.admin.schedule.startDateTime }}
+          </label>
+          <input
+            id="sched-start"
+            v-model="generateStartDateTime"
+            type="datetime-local"
+            class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+          >
+        </div>
+
         <p v-if="generateError" class="mb-2 text-sm text-error">
           {{ generateError }}
         </p>
@@ -192,7 +209,7 @@ onMounted(async () => {
 
         <div class="flex flex-wrap gap-3">
           <button
-            :disabled="generateLoading"
+            :disabled="generateLoading || !generateStartDateTime"
             class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
             @click="generateSchedule(false)"
           >

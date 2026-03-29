@@ -25,7 +25,10 @@ const matches = ref<KoMatch[]>([]);
 const generateLoading = ref(false);
 const generateError = ref("");
 const generateSuccess = ref("");
+const generateStartDateTime = ref("");
 const showOverwrite = ref(false);
+const tournamentType = ref("");
+const lastPoolMatchTime = ref<string | null>(null);
 
 const swapMatchId = ref<number | null>(null);
 const swapTeamAId = ref<number>(0);
@@ -45,11 +48,23 @@ async function fetchMatches() {
 async function generate(overwrite = false) {
   generateError.value = "";
   generateSuccess.value = "";
+  if (!generateStartDateTime.value) {
+    generateError.value = nl.admin.koBracket.startDateTimeRequired;
+    return;
+  }
+  if (
+    tournamentType.value === "COMBINATION" &&
+    lastPoolMatchTime.value &&
+    new Date(generateStartDateTime.value) <= new Date(lastPoolMatchTime.value)
+  ) {
+    generateError.value = nl.admin.koBracket.koStartAfterPool;
+    return;
+  }
   generateLoading.value = true;
   try {
     const result = await $fetch<{ generated: number }>("/api/admin/ko-bracket/generate", {
       method: "POST",
-      body: overwrite ? { overwrite: true } : {},
+      body: { overwrite, startDateTime: new Date(generateStartDateTime.value).toISOString() },
     });
     generateSuccess.value = `${result.generated} ${nl.admin.koBracket.generated}`;
     showOverwrite.value = false;
@@ -136,7 +151,22 @@ const allTeams = computed(() => {
   return result;
 });
 
-onMounted(fetchMatches);
+onMounted(async () => {
+  await fetchMatches();
+  try {
+    const t = await $fetch<{ type: string }>("/api/admin/tournament");
+    tournamentType.value = t.type;
+    if (t.type === "COMBINATION") {
+      const poolMatches = await $fetch<{ startTime: string; phase: string }[]>("/api/admin/schedule/matches");
+      const poolTimes = poolMatches.filter(m => m.phase === "POOL").map(m => m.startTime);
+      if (poolTimes.length > 0) {
+        lastPoolMatchTime.value = poolTimes.sort().at(-1)!;
+      }
+    }
+  } catch {
+    // tournament fetch failing is non-critical
+  }
+});
 </script>
 
 <template>
@@ -155,6 +185,19 @@ onMounted(fetchMatches);
 
     <main class="mx-auto max-w-content p-4">
       <div class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+        <div class="mb-4">
+          <label class="mb-1 block text-sm font-medium text-text" for="ko-start">
+            {{ nl.admin.koBracket.startDateTime }}
+          </label>
+          <input
+            id="ko-start"
+            v-model="generateStartDateTime"
+            type="datetime-local"
+            :min="lastPoolMatchTime ? new Date(new Date(lastPoolMatchTime).getTime() + 60000).toISOString().slice(0, 16) : undefined"
+            class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+          >
+        </div>
+
         <p v-if="generateError" class="mb-2 text-sm text-error">
           {{ generateError }}
         </p>
@@ -180,7 +223,7 @@ onMounted(fetchMatches);
 
         <button
           v-else
-          :disabled="generateLoading"
+          :disabled="generateLoading || !generateStartDateTime"
           class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
           @click="generate()"
         >

@@ -100,6 +100,8 @@ export const nl = {
     schedule: {
       title: "Speelschema",
       generate: "Schema genereren",
+      startDateTime: "Starttijdstip schema",
+      startDateTimeRequired: "Voer een starttijdstip in voor het schema",
       timeShift: "Tijdsverschuiving",
       shiftFrom: "Verschuif vanaf",
       shiftMinutes: "Aantal minuten",
@@ -118,6 +120,9 @@ export const nl = {
       title: "Knock-out Schema",
       generate: "KO-schema genereren",
       generated: "KO-wedstrijden gegenereerd",
+      startDateTime: "Starttijdstip KO-fase",
+      startDateTimeRequired: "Voer een starttijdstip in voor de KO-fase",
+      koStartAfterPool: "Starttijdstip KO-fase moet na de laatste poulewedstrijd liggen",
       existingWarning: "Er is al een KO-schema. Overschrijven?",
       notEnoughStandings: "Niet genoeg poule-standen om KO-schema te genereren",
       noFields: "Geen velden beschikbaar voor KO-wedstrijden",
