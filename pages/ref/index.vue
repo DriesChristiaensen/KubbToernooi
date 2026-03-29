@@ -26,7 +26,7 @@ interface Match {
 }
 
 const matches = ref<Match[]>([])
-const isLoading = ref(false)
+const isLoading = ref(true)
 const errorMsg = ref('')
 const saving = ref<number | null>(null)
 const saveError = ref('')
