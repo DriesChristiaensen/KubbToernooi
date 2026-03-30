@@ -37,6 +37,7 @@ const swapTeamAId = ref<number>(0);
 const swapTeamBId = ref<number>(0);
 const swapError = ref("");
 const swapSuccess = ref("");
+const rankedTournamentTeams = ref<Team[]>([]);
 
 async function fetchMatches() {
   try {
@@ -154,36 +155,13 @@ function spanCount(r: number): number {
   return Math.pow(2, r - 1);
 }
 
-const allTeams = computed(() => {
-  const seen = new Set<number>();
-  const result: Team[] = [];
-  for (const m of matches.value) {
-    if (m.teamA && !seen.has(m.teamA.id)) {
-      seen.add(m.teamA.id);
-      result.push(m.teamA);
-    }
-    if (m.teamB && !seen.has(m.teamB.id)) {
-      seen.add(m.teamB.id);
-      result.push(m.teamB);
-    }
-  }
-  return result;
-});
+const allTeams = ref<Team[]>([]);
 
-const swapSuggestedTeams = computed(() => {
-  if (!swapMatchId.value) return [];
-  const seen = new Set<number>();
-  const result: Team[] = [];
-  for (const m of matches.value.filter((m) => m.nextMatchId === swapMatchId.value)) {
-    if (m.teamA && !seen.has(m.teamA.id)) { seen.add(m.teamA.id); result.push(m.teamA); }
-    if (m.teamB && !seen.has(m.teamB.id)) { seen.add(m.teamB.id); result.push(m.teamB); }
-  }
-  return result;
-});
+const swapWinningTeams = computed(() => rankedTournamentTeams.value);
 
-const swapOtherTeams = computed(() => {
-  const suggested = new Set(swapSuggestedTeams.value.map((t) => t.id));
-  return allTeams.value.filter((t) => !suggested.has(t.id));
+const swapNonKoTeams = computed(() => {
+  const rankedIds = new Set(rankedTournamentTeams.value.map((t) => t.id));
+  return allTeams.value.filter((t) => !rankedIds.has(t.id));
 });
 
 onMounted(async () => {
@@ -204,6 +182,32 @@ onMounted(async () => {
     }
   } catch {
     // tournament fetch failing is non-critical
+  }
+  try {
+    const pools = await $fetch<
+      { teamsAdvancing: number; standings: { team: Team }[] }[]
+    >("/api/public/standings");
+    if (pools.length > 0) {
+      const seen = new Set<number>();
+      const ranked: Team[] = [];
+      for (const pool of pools) {
+        for (const s of pool.standings.slice(0, pool.teamsAdvancing)) {
+          if (!seen.has(s.team.id)) {
+            seen.add(s.team.id);
+            ranked.push(s.team);
+          }
+        }
+      }
+      rankedTournamentTeams.value = ranked;
+    }
+  } catch {
+    // standings fetch failing is non-critical
+  }
+  try {
+    const teams = await $fetch<Team[]>("/api/admin/teams");
+    allTeams.value = [...teams].sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    // allTeams fetch failing is non-critical
   }
 });
 </script>
@@ -300,16 +304,41 @@ onMounted(async () => {
               v-model="swapTeamAId"
               class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
             >
-              <optgroup v-if="swapSuggestedTeams.length" :label="nl.admin.koBracket.suggestedTeams">
-                <option v-for="team in swapSuggestedTeams" :key="team.id" :value="team.id">
+              <template v-if="tournamentType === 'KO'">
+                <option
+                  v-for="team in allTeams"
+                  :key="team.id"
+                  :value="team.id"
+                >
                   {{ team.name }}
                 </option>
-              </optgroup>
-              <optgroup v-if="swapOtherTeams.length" :label="nl.admin.koBracket.otherTeams">
-                <option v-for="team in swapOtherTeams" :key="team.id" :value="team.id">
-                  {{ team.name }}
-                </option>
-              </optgroup>
+              </template>
+              <template v-else>
+                <optgroup
+                  v-if="swapWinningTeams.length"
+                  :label="nl.admin.koBracket.winningTeams"
+                >
+                  <option
+                    v-for="team in swapWinningTeams"
+                    :key="team.id"
+                    :value="team.id"
+                  >
+                    {{ team.name }}
+                  </option>
+                </optgroup>
+                <optgroup
+                  v-if="swapNonKoTeams.length"
+                  :label="nl.admin.koBracket.otherTeams"
+                >
+                  <option
+                    v-for="team in swapNonKoTeams"
+                    :key="team.id"
+                    :value="team.id"
+                  >
+                    {{ team.name }}
+                  </option>
+                </optgroup>
+              </template>
             </select>
           </div>
           <div>
@@ -320,16 +349,41 @@ onMounted(async () => {
               v-model="swapTeamBId"
               class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
             >
-              <optgroup v-if="swapSuggestedTeams.length" :label="nl.admin.koBracket.suggestedTeams">
-                <option v-for="team in swapSuggestedTeams" :key="team.id" :value="team.id">
+              <template v-if="tournamentType === 'KO'">
+                <option
+                  v-for="team in allTeams"
+                  :key="team.id"
+                  :value="team.id"
+                >
                   {{ team.name }}
                 </option>
-              </optgroup>
-              <optgroup v-if="swapOtherTeams.length" :label="nl.admin.koBracket.otherTeams">
-                <option v-for="team in swapOtherTeams" :key="team.id" :value="team.id">
-                  {{ team.name }}
-                </option>
-              </optgroup>
+              </template>
+              <template v-else>
+                <optgroup
+                  v-if="swapWinningTeams.length"
+                  :label="nl.admin.koBracket.winningTeams"
+                >
+                  <option
+                    v-for="team in swapWinningTeams"
+                    :key="team.id"
+                    :value="team.id"
+                  >
+                    {{ team.name }}
+                  </option>
+                </optgroup>
+                <optgroup
+                  v-if="swapNonKoTeams.length"
+                  :label="nl.admin.koBracket.otherTeams"
+                >
+                  <option
+                    v-for="team in swapNonKoTeams"
+                    :key="team.id"
+                    :value="team.id"
+                  >
+                    {{ team.name }}
+                  </option>
+                </optgroup>
+              </template>
             </select>
           </div>
           <div class="flex gap-2">

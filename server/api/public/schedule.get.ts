@@ -6,7 +6,11 @@ export default defineEventHandler(async (_event) => {
   if (!tournament || tournament.status === "DRAFT") return [];
 
   return await prisma.match.findMany({
-    where: { field: { tournamentId: tournament.id } },
+    where: {
+      field: { tournamentId: tournament.id },
+      teamAId: { not: null },
+      teamBId: { not: null },
+    },
     include: {
       field: true,
       teamA: true,

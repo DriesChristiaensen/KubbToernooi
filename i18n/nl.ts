@@ -128,7 +128,7 @@ export const nl = {
       noFields: "Geen velden beschikbaar voor KO-wedstrijden",
       round: "Ronde",
       swapTeams: "Teams wisselen",
-      suggestedTeams: "Gesuggereerde teams",
+      winningTeams: "Winning teams",
       otherTeams: "Overige teams",
       tbd: "Nog te bepalen",
     },

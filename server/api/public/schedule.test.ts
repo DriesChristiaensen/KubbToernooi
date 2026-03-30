@@ -65,7 +65,11 @@ describe("GET /api/public/schedule", () => {
 
     expect(mockMatchFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { field: { tournamentId: 1 } },
+        where: {
+          field: { tournamentId: 1 },
+          teamAId: { not: null },
+          teamBId: { not: null },
+        },
       }),
     );
     expect(result).toHaveLength(1);

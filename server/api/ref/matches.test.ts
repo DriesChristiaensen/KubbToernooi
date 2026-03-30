@@ -85,7 +85,13 @@ describe("GET /api/ref/matches", () => {
     const result = await getMatchesHandler(createMockEvent());
 
     expect(mockMatchFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { field: { tournamentId: 1 } } }),
+      expect.objectContaining({
+        where: {
+          field: { tournamentId: 1 },
+          teamAId: { not: null },
+          teamBId: { not: null },
+        },
+      }),
     );
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ id: 1, phase: "POOL" });
