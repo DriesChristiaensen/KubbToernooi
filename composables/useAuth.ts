@@ -16,6 +16,7 @@ export function useAuth() {
       })
 
       const result = data as { user: { role: string } }
+      await useUserSession().fetch()
       loading.value = false
       await navigateTo(result.user.role === 'ADMIN' ? '/admin' : '/ref')
     }
