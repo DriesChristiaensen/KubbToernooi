@@ -170,6 +170,22 @@ const allTeams = computed(() => {
   return result;
 });
 
+const swapSuggestedTeams = computed(() => {
+  if (!swapMatchId.value) return [];
+  const seen = new Set<number>();
+  const result: Team[] = [];
+  for (const m of matches.value.filter((m) => m.nextMatchId === swapMatchId.value)) {
+    if (m.teamA && !seen.has(m.teamA.id)) { seen.add(m.teamA.id); result.push(m.teamA); }
+    if (m.teamB && !seen.has(m.teamB.id)) { seen.add(m.teamB.id); result.push(m.teamB); }
+  }
+  return result;
+});
+
+const swapOtherTeams = computed(() => {
+  const suggested = new Set(swapSuggestedTeams.value.map((t) => t.id));
+  return allTeams.value.filter((t) => !suggested.has(t.id));
+});
+
 onMounted(async () => {
   await fetchMatches();
   try {
@@ -284,9 +300,16 @@ onMounted(async () => {
               v-model="swapTeamAId"
               class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
             >
-              <option v-for="team in allTeams" :key="team.id" :value="team.id">
-                {{ team.name }}
-              </option>
+              <optgroup v-if="swapSuggestedTeams.length" :label="nl.admin.koBracket.suggestedTeams">
+                <option v-for="team in swapSuggestedTeams" :key="team.id" :value="team.id">
+                  {{ team.name }}
+                </option>
+              </optgroup>
+              <optgroup v-if="swapOtherTeams.length" :label="nl.admin.koBracket.otherTeams">
+                <option v-for="team in swapOtherTeams" :key="team.id" :value="team.id">
+                  {{ team.name }}
+                </option>
+              </optgroup>
             </select>
           </div>
           <div>
@@ -297,9 +320,16 @@ onMounted(async () => {
               v-model="swapTeamBId"
               class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
             >
-              <option v-for="team in allTeams" :key="team.id" :value="team.id">
-                {{ team.name }}
-              </option>
+              <optgroup v-if="swapSuggestedTeams.length" :label="nl.admin.koBracket.suggestedTeams">
+                <option v-for="team in swapSuggestedTeams" :key="team.id" :value="team.id">
+                  {{ team.name }}
+                </option>
+              </optgroup>
+              <optgroup v-if="swapOtherTeams.length" :label="nl.admin.koBracket.otherTeams">
+                <option v-for="team in swapOtherTeams" :key="team.id" :value="team.id">
+                  {{ team.name }}
+                </option>
+              </optgroup>
             </select>
           </div>
           <div class="flex gap-2">
