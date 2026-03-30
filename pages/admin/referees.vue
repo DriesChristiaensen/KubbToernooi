@@ -15,9 +15,16 @@ const newName = ref('')
 const newPassword = ref('')
 const error = ref('')
 const loading = ref(false)
+const isLoading = ref(true)
 
 async function fetchReferees() {
-  referees.value = await $fetch<Referee[]>('/api/admin/referees')
+  try {
+    referees.value = await $fetch<Referee[]>('/api/admin/referees')
+  } catch {
+    referees.value = []
+  } finally {
+    isLoading.value = false
+  }
 }
 
 async function addReferee() {
@@ -96,7 +103,10 @@ onMounted(fetchReferees)
         {{ error }}
       </p>
 
-      <ul class="space-y-2">
+      <p v-if="isLoading" class="text-text">
+        {{ nl.common.loading }}
+      </p>
+      <ul v-else class="space-y-2">
         <li
           v-for="referee in referees"
           :key="referee.id"

@@ -122,6 +122,7 @@ Every API error response must follow this exact structure:
 - Feature branches per story: `feature/1.1-team-management`, `feature/2.4-time-shift`, etc.
 - Merge feature branches into `main` when complete and tested.
 - Single developer — no pull requests, no reviews. Direct merge after local verification.
+- **Local only** — never push to a remote repository. All development and git operations happen locally.
 
 ### Commit Messages
 Follow **Conventional Commits**:
