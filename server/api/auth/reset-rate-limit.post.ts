@@ -13,7 +13,17 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } })
+  let admin
+  try {
+    admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } })
+  }
+  catch {
+    throw createApiError({
+      error: 'Database niet bereikbaar',
+      code: 503,
+      reason: 'Database unavailable',
+    })
+  }
   if (!admin) {
     throw createApiError({
       error: 'Admin-account niet gevonden',

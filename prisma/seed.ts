@@ -217,6 +217,31 @@ async function seedCombined() {
   console.log("Done: COMBINED tournament seeded.");
 }
 
+// ─── SEED: EMPTY ───────────────────────────────────────────────────────────────
+
+async function seedEmpty() {
+  console.log("\nSeeding EMPTY tournament...");
+  await clearData();
+  await ensureAdmin();
+
+  await prisma.tournament.create({
+    data: {
+      name: "Kubb Toernooi",
+      type: "COMBINATION",
+      status: "DRAFT",
+      startTime: TOURNAMENT_START,
+      matchDuration: MATCH_DURATION,
+      breakTime: BREAK_TIME,
+      pointsWin: 3,
+      pointsDraw: 1,
+      pointsLoss: 0,
+    },
+  });
+
+  console.log("  Created: 1 tournament (geen teams, geen velden)");
+  console.log("Done: EMPTY tournament seeded.");
+}
+
 // ─── ENTRY POINT ───────────────────────────────────────────────────────────────
 
 const type = process.argv[2] ?? "combined";
@@ -231,6 +256,7 @@ const runners: Record<string, () => Promise<void>> = {
   pool: seedPool,
   ko: seedKo,
   combined: seedCombined,
+  empty: seedEmpty,
   clear: seedClear,
 };
 
