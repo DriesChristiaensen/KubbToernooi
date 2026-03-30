@@ -284,7 +284,7 @@ onMounted(async () => {
               v-model.number="timeShiftMinutes"
               type="number"
               class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-            />
+            >
           </div>
           <div class="flex items-end">
             <button

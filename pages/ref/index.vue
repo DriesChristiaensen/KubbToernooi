@@ -1,97 +1,101 @@
 <script setup lang="ts">
-import { nl } from '~/i18n/nl'
-import { useAuth } from '~/composables/useAuth'
+import { nl } from "~/i18n/nl";
+import { useAuth } from "~/composables/useAuth";
 
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: "auth" });
 
-const { logout } = useAuth()
+const { logout } = useAuth();
 
 interface MatchTeam {
-  id: number
-  name: string
+  id: number;
+  name: string;
 }
 
 interface Match {
-  id: number
-  phase: 'POOL' | 'KO'
-  round: number
-  startTime: string
-  status: string
-  field: { id: number; name: string }
-  teamA: MatchTeam
-  teamB: MatchTeam
-  scoreA: number | null
-  scoreB: number | null
-  koWinnerId: number | null
+  id: number;
+  phase: "POOL" | "KO";
+  round: number;
+  startTime: string;
+  status: string;
+  field: { id: number; name: string };
+  teamA: MatchTeam;
+  teamB: MatchTeam;
+  scoreA: number | null;
+  scoreB: number | null;
+  koWinnerId: number | null;
 }
 
-const matches = ref<Match[]>([])
-const isLoading = ref(true)
-const errorMsg = ref('')
-const saving = ref<number | null>(null)
-const saveError = ref('')
+const matches = ref<Match[]>([]);
+const isLoading = ref(true);
+const errorMsg = ref("");
+const saving = ref<number | null>(null);
+const saveError = ref("");
 
-const scoreInputs = ref<Record<number, { scoreA: string; scoreB: string; koWinnerId: string }>>({})
-const savedScores = ref<Record<number, { scoreA: string | null; scoreB: string | null }>>({})
+const scoreInputs = ref<
+  Record<number, { scoreA: string; scoreB: string; koWinnerId: string }>
+>({});
+const savedScores = ref<
+  Record<number, { scoreA: string | null; scoreB: string | null }>
+>({});
 
 async function fetchMatches() {
-  isLoading.value = true
+  isLoading.value = true;
   try {
-    const data = await $fetch<Match[]>('/api/ref/matches')
-    matches.value = data
+    const data = await $fetch<Match[]>("/api/ref/matches");
+    matches.value = data;
     for (const m of data) {
-      const sA = m.scoreA !== null ? String(m.scoreA) : ''
-      const sB = m.scoreB !== null ? String(m.scoreB) : ''
+      const sA = m.scoreA !== null ? String(m.scoreA) : "";
+      const sB = m.scoreB !== null ? String(m.scoreB) : "";
       if (!(m.id in scoreInputs.value)) {
         scoreInputs.value[m.id] = {
           scoreA: sA,
           scoreB: sB,
-          koWinnerId: m.koWinnerId !== null ? String(m.koWinnerId) : '',
-        }
+          koWinnerId: m.koWinnerId !== null ? String(m.koWinnerId) : "",
+        };
       }
       savedScores.value[m.id] = {
         scoreA: m.scoreA !== null ? sA : null,
         scoreB: m.scoreB !== null ? sB : null,
-      }
+      };
     }
   } catch {
-    errorMsg.value = nl.common.error
+    errorMsg.value = nl.common.error;
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
 }
 
 function isDirty(m: Match): boolean {
-  const input = scoreInputs.value[m.id]
-  const saved = savedScores.value[m.id]
-  if (!input || !saved) return true
-  if (saved.scoreA === null || saved.scoreB === null) return true
-  return input.scoreA !== saved.scoreA || input.scoreB !== saved.scoreB
+  const input = scoreInputs.value[m.id];
+  const saved = savedScores.value[m.id];
+  if (!input || !saved) return true;
+  if (saved.scoreA === null || saved.scoreB === null) return true;
+  return input.scoreA !== saved.scoreA || input.scoreB !== saved.scoreB;
 }
 
 function isDraw(m: Match): boolean {
-  const a = scoreInputs.value[m.id]
-  if (!a) return false
-  return a.scoreA !== '' && a.scoreB !== '' && a.scoreA === a.scoreB
+  const a = scoreInputs.value[m.id];
+  if (!a) return false;
+  return a.scoreA !== "" && a.scoreB !== "" && a.scoreA === a.scoreB;
 }
 
 async function saveScore(match: Match) {
-  saving.value = match.id
-  saveError.value = ''
-  const input = scoreInputs.value[match.id]
+  saving.value = match.id;
+  saveError.value = "";
+  const input = scoreInputs.value[match.id];
   const body: Record<string, unknown> = {
     scoreA: Number(input.scoreA),
     scoreB: Number(input.scoreB),
-  }
-  if (match.phase === 'KO' && isDraw(match) && input.koWinnerId) {
-    body.koWinnerId = Number(input.koWinnerId)
+  };
+  if (match.phase === "KO" && isDraw(match) && input.koWinnerId) {
+    body.koWinnerId = Number(input.koWinnerId);
   }
   try {
     const updated = await $fetch<Match>(`/api/ref/matches/${match.id}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body,
-    })
-    const idx = matches.value.findIndex((m) => m.id === match.id)
+    });
+    const idx = matches.value.findIndex((m) => m.id === match.id);
     if (idx !== -1) {
       matches.value[idx] = {
         ...matches.value[idx],
@@ -99,22 +103,27 @@ async function saveScore(match: Match) {
         scoreB: updated.scoreB,
         status: updated.status,
         koWinnerId: updated.koWinnerId,
-      }
+      };
     }
-    savedScores.value[match.id] = { scoreA: input.scoreA, scoreB: input.scoreB }
+    savedScores.value[match.id] = {
+      scoreA: input.scoreA,
+      scoreB: input.scoreB,
+    };
   } catch (err: unknown) {
-    const e = err as { data?: { error?: string } }
-    saveError.value = e?.data?.error ?? nl.common.error
+    const e = err as { data?: { error?: string } };
+    saveError.value = e?.data?.error ?? nl.common.error;
   } finally {
-    saving.value = null
+    saving.value = null;
   }
 }
 
 function phaseLabel(phase: string): string {
-  return phase === 'KO' ? nl.ref.matches.phaseKo : nl.ref.matches.phasePool
+  return phase === "KO" ? nl.ref.matches.phaseKo : nl.ref.matches.phasePool;
 }
 
-onMounted(() => { fetchMatches() })
+onMounted(() => {
+  fetchMatches();
+});
 </script>
 
 <template>
@@ -136,7 +145,9 @@ onMounted(() => { fetchMatches() })
         {{ nl.ref.matches.title }}
       </h2>
 
-      <p v-if="isLoading" class="mb-4 text-text-light">{{ nl.common.loading }}</p>
+      <p v-if="isLoading" class="mb-4 text-text-light">
+        {{ nl.common.loading }}
+      </p>
       <template v-else>
         <p v-if="errorMsg" class="mb-4 text-error">{{ errorMsg }}</p>
         <p v-if="saveError" class="mb-4 text-error">{{ saveError }}</p>
@@ -152,8 +163,13 @@ onMounted(() => { fetchMatches() })
           :key="match.id"
           class="rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
         >
-          <div class="mb-2 flex items-center justify-between text-sm text-text-light">
-            <span>{{ phaseLabel(match.phase) }} — R{{ match.round }} — {{ match.field.name }}</span>
+          <div
+            class="mb-2 flex items-center justify-between text-sm text-text-light"
+          >
+            <span
+              >{{ phaseLabel(match.phase) }} — R{{ match.round }} —
+              {{ match.field.name }}</span
+            >
             <span>{{ formatDateTime(match.startTime) }}</span>
           </div>
 
@@ -163,33 +179,43 @@ onMounted(() => { fetchMatches() })
 
           <div class="flex flex-wrap items-end gap-3">
             <div>
-              <label class="mb-1 block text-sm text-text-light">{{ nl.ref.matches.scoreA }}</label>
+              <label class="mb-1 block text-sm text-text-light">{{
+                nl.ref.matches.scoreA
+              }}</label>
               <input
                 v-model="scoreInputs[match.id].scoreA"
                 type="number"
                 min="0"
                 class="w-20 rounded border border-gray-300 bg-white p-2 text-center text-text"
-              >
+              />
             </div>
             <div>
-              <label class="mb-1 block text-sm text-text-light">{{ nl.ref.matches.scoreB }}</label>
+              <label class="mb-1 block text-sm text-text-light">{{
+                nl.ref.matches.scoreB
+              }}</label>
               <input
                 v-model="scoreInputs[match.id].scoreB"
                 type="number"
                 min="0"
                 class="w-20 rounded border border-gray-300 bg-white p-2 text-center text-text"
-              >
+              />
             </div>
 
             <div v-if="match.phase === 'KO' && isDraw(match)">
-              <label class="mb-1 block text-sm text-text-light">{{ nl.ref.matches.koWinner }}</label>
+              <label class="mb-1 block text-sm text-text-light">{{
+                nl.ref.matches.koWinner
+              }}</label>
               <select
                 v-model="scoreInputs[match.id].koWinnerId"
                 class="rounded border border-gray-300 bg-white p-2 text-text"
               >
                 <option value="">—</option>
-                <option :value="String(match.teamA.id)">{{ match.teamA.name }}</option>
-                <option :value="String(match.teamB.id)">{{ match.teamB.name }}</option>
+                <option :value="String(match.teamA.id)">
+                  {{ match.teamA.name }}
+                </option>
+                <option :value="String(match.teamB.id)">
+                  {{ match.teamB.name }}
+                </option>
               </select>
             </div>
 
