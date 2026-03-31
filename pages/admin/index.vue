@@ -97,6 +97,14 @@ function handleImportFile(event: Event) {
           </h2>
         </NuxtLink>
         <NuxtLink
+          to="/admin/pools"
+          class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
+        >
+          <h2 class="text-subheading text-text">
+            {{ nl.admin.pools.title }}
+          </h2>
+        </NuxtLink>
+        <NuxtLink
           to="/admin/referees"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >

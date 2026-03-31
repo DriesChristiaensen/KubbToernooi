@@ -93,9 +93,18 @@
   - 158 tests total, all passing
   - Remaining Phase 9 work: manual (see Blockers)
 
+- **Priority 4 (T4.1-T4.4, T10.1, T10.2):** Done
+  - POST /api/admin/tournament: creates tournament + fields, soft-deletes existing
+  - PATCH /api/admin/tournament: status-only
+  - GET/POST/DELETE /api/admin/tournaments inactive + restore + delete
+  - admin-tournament-guard middleware (T10.1): redirects to /admin/tournament if no active tournament
+  - Tournament page: wizard (T4.1), replace confirmation (T4.2), restore screen (T4.3)
+  - Teams page: CSV upload removed (T4.4)
+  - 187 tests total
+
 ## Current Task
 
-Phase 9 — Integration, Testing & Go-Live (manual infrastructure tasks remaining)
+Priority 5 (T5.1, T5.2) — Pool management separate page + team assignment UI
 
 ## Blockers
 

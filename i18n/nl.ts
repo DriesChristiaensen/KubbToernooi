@@ -127,6 +127,11 @@ export const nl = {
       notEnoughTeams: "Niet genoeg teams om poules te genereren",
       overwrite: "Bestaande poules overschrijven",
       teamsMoved: "Teams opnieuw verdeeld",
+      assignTeams: "Teams indelen",
+      unassignedWarning: "Let op: {n} team(s) zijn nog niet ingedeeld in een poule.",
+      saveAssignment: "Indeling opslaan",
+      assignSuccess: "Indeling opgeslagen",
+      notAvailableForType: "Poule-beheer is niet beschikbaar voor dit toernooitype.",
     },
     schedule: {
       title: "Speelschema",
