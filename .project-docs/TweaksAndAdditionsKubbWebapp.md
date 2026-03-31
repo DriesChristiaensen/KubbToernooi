@@ -11,7 +11,7 @@ The following order respects dependencies:
 | Priority | IDs                                  | Description                                                                       |
 | -------- | ------------------------------------ | --------------------------------------------------------------------------------- |
 | 1        | T1.1 ✅ DONE, T1.2 ✅ DONE, T1.3 ✅ DONE | Database schema changes (GUID, soft-delete, tournament name) — impacts everything |
-| 2        | T3.1, T3.2, T3.3, T3.4               | UI shell (header, footer, mobile nav, banner) — used by all pages                 |
+| 2        | T3.1 ✅ DONE, T3.2 ✅ DONE, T3.3 ✅ DONE, T3.4 ✅ DONE | UI shell (header, footer, mobile nav, banner) — used by all pages     |
 | 3        | T2.1, T2.2, T2.3, T2.4, T2.5         | Auth flow changes (separate logins, ref password flow, navigation)                |
 | 4        | T4.1, T4.2, T4.3, T4.4, T10.1, T10.2 | Tournament config (wizard, restore, redirect, ref management)                     |
 | 5        | T5.1, T5.2                           | Pool management (separate page, team assignment UI)                               |
@@ -81,23 +81,23 @@ The following order respects dependencies:
 
 ## 3. UI Shell & Layout
 
-### T3.1 — Reusable Header Bar Component
+### T3.1 ✅ DONE — Reusable Header Bar Component
 
 - The header/navigation bar must be a single reusable component shared across all pages (public, referee, admin).
 - Content adapts based on authentication state and role.
 
-### T3.2 — Mobile Navigation
+### T3.2 ✅ DONE — Mobile Navigation
 
 - On mobile: the navbar collapses into a hamburger menu.
 - The hamburger button is positioned in the **bottom-right corner** of the screen (floating).
 - Every page on mobile must have whitespace/padding at the bottom slightly larger than the hamburger button to prevent content overlap.
 
-### T3.3 — Footer
+### T3.3 ✅ DONE — Footer
 
 - Minimal footer on all pages.
 - Content: "Chiro Sint-Antonius" with a link to `https://www.chirosint-antonius.be`.
 
-### T3.4 — Admin Tournament Status Banner
+### T3.4 ✅ DONE — Admin Tournament Status Banner
 
 - On every admin page: a persistent banner below the header.
 - **Orange:** "Toernooi concept nog niet gepubliceerd" — when the tournament is in draft mode.
