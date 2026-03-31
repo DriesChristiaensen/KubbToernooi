@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { nl } from "~/i18n/nl";
-import { useAuth } from "~/composables/useAuth";
 
-definePageMeta({ middleware: "auth" });
-
-const { logout } = useAuth();
+definePageMeta({ middleware: "auth", layout: "admin" });
 const exportLoading = ref(false);
 const exportError = ref("");
 
@@ -78,20 +75,10 @@ function handleImportFile(event: Event) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
-    <header class="flex items-center justify-between bg-primary-dark p-4">
-      <h1 class="text-lg font-bold text-white">
-        {{ nl.admin.dashboard }}
-      </h1>
-      <button
-        class="rounded bg-white/20 px-3 py-1 text-sm text-white hover:bg-white/30"
-        @click="logout"
-      >
-        {{ nl.auth.logout }}
-      </button>
-    </header>
-
-    <main class="mx-auto max-w-content p-4">
+  <main class="mx-auto max-w-content p-4">
+    <h1 class="mb-4 text-heading text-text">
+      {{ nl.admin.dashboard }}
+    </h1>
       <nav class="grid gap-4 md:grid-cols-2">
         <NuxtLink
           to="/admin/teams"
@@ -204,6 +191,5 @@ function handleImportFile(event: Event) {
           </label>
         </template>
       </div>
-    </main>
-  </div>
+  </main>
 </template>

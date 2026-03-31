@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { nl } from '~/i18n/nl'
 import { useAuth } from '~/composables/useAuth'
 
+definePageMeta({ layout: false })
+
 const loginMode = ref<'admin' | 'ref'>('admin')
 const name = ref('')
 const password = ref('')
