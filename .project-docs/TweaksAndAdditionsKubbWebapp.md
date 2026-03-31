@@ -10,7 +10,7 @@ The following order respects dependencies:
 
 | Priority | IDs                                  | Description                                                                       |
 | -------- | ------------------------------------ | --------------------------------------------------------------------------------- |
-| 1        | T1.1, T1.2, T1.3                     | Database schema changes (GUID, soft-delete, tournament name) — impacts everything |
+| 1        | T1.1 ✅ DONE, T1.2 ✅ DONE, T1.3 ✅ DONE | Database schema changes (GUID, soft-delete, tournament name) — impacts everything |
 | 2        | T3.1, T3.2, T3.3, T3.4               | UI shell (header, footer, mobile nav, banner) — used by all pages                 |
 | 3        | T2.1, T2.2, T2.3, T2.4, T2.5         | Auth flow changes (separate logins, ref password flow, navigation)                |
 | 4        | T4.1, T4.2, T4.3, T4.4, T10.1, T10.2 | Tournament config (wizard, restore, redirect, ref management)                     |
@@ -24,20 +24,20 @@ The following order respects dependencies:
 
 ## 1. Database & Architecture
 
-### T1.1 — Replace Sequential IDs with GUIDs
+### T1.1 ✅ DONE — Replace Sequential IDs with GUIDs
 
 - Replace all auto-increment integer primary keys with UUIDs (`@default(uuid())` in Prisma) across every model.
 - Update all foreign key references accordingly.
 - Update all API route parameters and frontend references to use string-based IDs.
 
-### T1.2 — Soft-Delete for Tournaments
+### T1.2 ✅ DONE — Soft-Delete for Tournaments
 
 - Add an `isActive` boolean field (default `true`) to the `Tournament` model.
 - When a new tournament is created while one already exists: set the current tournament's `isActive` to `false`. Do **not** delete any related data (teams, matches, standings, pools, etc.).
 - Soft-delete only applies when an entire tournament is replaced. Individual entity deletions (e.g. removing a single team) remain hard deletes.
 - Related data (matches, pools, standings, teams linked to the tournament) must be preserved when a tournament is soft-deleted.
 
-### T1.3 — Tournament Naming
+### T1.3 ✅ DONE — Tournament Naming
 
 - Add a `name` field (string, required, unique) to the `Tournament` model.
 - The tournament name is for admin purposes only — it does not appear on public pages.

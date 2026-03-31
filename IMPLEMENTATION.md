@@ -87,6 +87,30 @@
 - Recalculates from scratch using all PLAYED matches in the pool
 - Uses tournament's pointsWin/pointsDraw/pointsLoss values
 
+## Tweaks T1.1 / T1.2 / T1.3 — UUID migration, Soft-delete, Tournament uniqueness ✅ DONE
+
+### UUID migration (T1.1)
+- All model IDs changed from `Int @id @default(autoincrement())` → `String @id @default(uuid())`
+- All FK fields changed from `Int` → `String`
+- ID validation in handlers changed from `Number(id); if (isNaN(id))` → `const id = getRouterParam(...); if (!id)` (any non-empty string is valid)
+- Invalid ID tests use `mockReturnValue("")` (empty string) rather than `"abc"`
+- `BYE` sentinel in round-robin seed changed from `-1` to `""` (empty string constant)
+- `auth.d.ts` must have `id: string` in the nuxt-auth-utils `User` interface
+- Watch for **directory-based** handlers (`fields/[id].delete.ts`) vs **flat-file** handlers (`fields.[id].delete.ts`) — both must be updated
+- `prisma/seed.ts` `ensureAdmin` uses `findFirst({ where: { role: "ADMIN" } }) + create` (no `upsert` with hardcoded id)
+- `prisma generate --no-engine` regenerates TypeScript types without DLL (use when DLL is locked by another process)
+- `prisma db push --accept-data-loss` applies destructive schema changes when migrate dev cannot run interactively
+
+### Soft-delete (T1.2)
+- `isActive Boolean @default(true)` on Tournament model
+- `getActiveTournament()` filters `{ isActive: true }` — no other change needed in callers
+- Import handler uses `tournament.updateMany({ data: { isActive: false } })` instead of `deleteMany()` before creating new tournament
+- Import tests: `mockTournamentUpdateMany` (NOT `mockTournamentDeleteMany`)
+
+### Tournament uniqueness (T1.3)
+- `name String @unique` on Tournament model
+- Uniqueness enforced at DB level (no additional API handler validation needed for MVP)
+
 ## Phase 7 — KO Bracket Generation (NEXT)
 
 ### Plan
