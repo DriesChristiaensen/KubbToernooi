@@ -1,0 +1,47 @@
+<script setup lang="ts">
+import { nl } from '~/i18n/nl'
+import { useAuth } from '~/composables/useAuth'
+
+const { loggedIn, user } = useUserSession()
+const { logout } = useAuth()
+</script>
+
+<template>
+  <header class="bg-primary">
+    <div class="mx-auto flex max-w-content items-center justify-between px-4 py-3">
+      <NuxtLink to="/" class="text-lg font-bold text-white">
+        {{ nl.common.appName }}
+      </NuxtLink>
+
+      <nav class="hidden items-center gap-6 md:flex">
+        <NuxtLink
+          v-if="loggedIn && user?.role === 'ADMIN'"
+          to="/admin"
+          class="text-sm text-white/90 hover:text-white"
+        >
+          {{ nl.nav.admin }}
+        </NuxtLink>
+        <NuxtLink
+          v-if="loggedIn"
+          to="/ref"
+          class="text-sm text-white/90 hover:text-white"
+        >
+          {{ nl.nav.ref }}
+        </NuxtLink>
+        <NuxtLink to="/" class="text-sm text-white/90 hover:text-white">
+          {{ nl.nav.schedule }}
+        </NuxtLink>
+
+        <template v-if="loggedIn">
+          <span class="text-sm text-white/70">{{ user?.name }}</span>
+          <button
+            class="rounded bg-white/20 px-3 py-1.5 text-sm text-white hover:bg-white/30"
+            @click="logout"
+          >
+            {{ nl.auth.logout }}
+          </button>
+        </template>
+      </nav>
+    </div>
+  </header>
+</template>

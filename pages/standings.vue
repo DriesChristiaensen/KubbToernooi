@@ -32,19 +32,10 @@ usePolling(fetchStandings, { interval: 60_000 });
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
-    <header class="bg-primary p-4">
-      <h1 class="text-center text-xl font-bold text-white">
-        {{ nl.public.standings.title }}
-      </h1>
-    </header>
-
-    <main class="mx-auto max-w-content p-4">
-      <div class="mb-4">
-        <NuxtLink to="/" class="text-sm text-primary underline">
-          &larr; {{ nl.public.schedule.title }}
-        </NuxtLink>
-      </div>
+  <main class="mx-auto max-w-content p-4">
+    <h1 class="mb-4 text-heading text-text">
+      {{ nl.public.standings.title }}
+    </h1>
 
       <p v-if="pools.length === 0" class="text-text-light">
         {{ nl.common.noResults }}
@@ -91,6 +82,5 @@ usePolling(fetchStandings, { interval: 60_000 });
           </table>
         </div>
       </div>
-    </main>
-  </div>
+  </main>
 </template>

@@ -68,14 +68,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
-    <header class="bg-primary p-4">
-      <h1 class="text-center text-xl font-bold text-white">
-        {{ nl.common.appName }}
-      </h1>
-    </header>
-
-    <main class="mx-auto max-w-content p-4">
+  <main class="mx-auto max-w-content p-4">
       <h2 class="mb-4 text-lg font-semibold text-text">
         {{ nl.public.schedule.title }}
       </h2>
@@ -139,6 +132,5 @@ onMounted(() => {
           {{ nl.public.standings.title }}
         </NuxtLink>
       </div>
-    </main>
-  </div>
+  </main>
 </template>

@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { nl } from "~/i18n/nl";
 
-definePageMeta({ middleware: "auth" });
+definePageMeta({ middleware: "auth", layout: "admin" });
 
 interface Tournament {
   id: string;
@@ -190,17 +190,15 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
-    <header class="flex items-center gap-4 bg-primary-dark p-4">
-      <NuxtLink to="/admin" class="text-white hover:underline">
+  <main class="mx-auto max-w-content p-4">
+    <div class="mb-4 flex items-center gap-3">
+      <NuxtLink to="/admin" class="text-sm text-text-light hover:text-primary">
         &larr; {{ nl.common.back }}
       </NuxtLink>
-      <h1 class="text-lg font-bold text-white">
+      <h1 class="text-lg font-bold text-text">
         {{ nl.admin.tournament.title }}
       </h1>
-    </header>
-
-    <main class="mx-auto max-w-content p-4">
+    </div>
       <p v-if="isLoading" class="text-text">
         {{ nl.common.loading }}
       </p>
@@ -455,6 +453,5 @@ onMounted(async () => {
           </ul>
         </section>
       </template>
-    </main>
-  </div>
+  </main>
 </template>

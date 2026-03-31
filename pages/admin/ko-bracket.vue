@@ -4,7 +4,7 @@ import { VueDatePicker } from "@vuepic/vue-datepicker";
 import { nlBE } from "date-fns/locale";
 import { nl } from "~/i18n/nl";
 
-definePageMeta({ middleware: "auth" });
+definePageMeta({ middleware: "auth", layout: "admin" });
 
 interface Team {
   id: string;
@@ -213,20 +213,15 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
-    <header class="flex items-center justify-between bg-primary-dark p-4">
-      <h1 class="text-lg font-bold text-white">
+  <main class="mx-auto max-w-content p-4">
+    <div class="mb-4 flex items-center gap-3">
+      <NuxtLink to="/admin" class="text-sm text-text-light hover:text-primary">
+        &larr; {{ nl.common.back }}
+      </NuxtLink>
+      <h1 class="text-lg font-bold text-text">
         {{ nl.admin.koBracket.title }}
       </h1>
-      <NuxtLink
-        to="/admin"
-        class="rounded bg-white/20 px-3 py-1 text-sm text-white hover:bg-white/30"
-      >
-        {{ nl.common.back }}
-      </NuxtLink>
-    </header>
-
-    <main class="mx-auto max-w-content p-4">
+    </div>
       <div
         class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
       >
@@ -466,6 +461,5 @@ onMounted(async () => {
           </template>
         </div>
       </div>
-    </main>
-  </div>
+  </main>
 </template>

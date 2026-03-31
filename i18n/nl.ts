@@ -1,4 +1,15 @@
 export const nl = {
+  nav: {
+    schedule: "Speelschema",
+    standings: "Standen",
+    admin: "Beheer",
+    ref: "Scheidsrechter",
+  },
+
+  footer: {
+    by: "Chiro Sint-Antonius",
+  },
+
   common: {
     appName: "Kubb Toernooi",
     loading: "Laden...",
@@ -132,6 +143,11 @@ export const nl = {
       otherTeams: "Overige teams",
       tbd: "Nog te bepalen",
     },
+    banner: {
+      draft: "Toernooi concept nog niet gepubliceerd",
+      live: "Toernooi is live",
+    },
+
     export: {
       title: "Exporteren",
       button: "Exporteer toernooi",

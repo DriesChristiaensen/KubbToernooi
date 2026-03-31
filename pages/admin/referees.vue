@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { nl } from '~/i18n/nl'
 
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: 'auth', layout: 'admin' })
 
 interface Referee {
   id: string
@@ -58,17 +58,15 @@ onMounted(fetchReferees)
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
-    <header class="flex items-center gap-4 bg-primary-dark p-4">
-      <NuxtLink to="/admin" class="text-white hover:underline">
+  <main class="mx-auto max-w-content p-4">
+    <div class="mb-4 flex items-center gap-3">
+      <NuxtLink to="/admin" class="text-sm text-text-light hover:text-primary">
         &larr; {{ nl.common.back }}
       </NuxtLink>
-      <h1 class="text-lg font-bold text-white">
+      <h1 class="text-lg font-bold text-text">
         Scheidsrechters
       </h1>
-    </header>
-
-    <main class="mx-auto max-w-content p-4">
+    </div>
       <form class="mb-6 flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-sm md:flex-row md:items-end" @submit.prevent="addReferee">
         <div class="flex-1">
           <label class="mb-1 block text-sm font-medium text-text" for="ref-name">{{ nl.auth.name }}</label>
@@ -124,6 +122,5 @@ onMounted(fetchReferees)
           {{ nl.common.noResults }}
         </li>
       </ul>
-    </main>
-  </div>
+  </main>
 </template>
