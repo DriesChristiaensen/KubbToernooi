@@ -4,6 +4,7 @@ const mockPrismaUserFindMany = vi.hoisted(() => vi.fn())
 const mockPrismaUserCreate = vi.hoisted(() => vi.fn())
 const mockPrismaUserDelete = vi.hoisted(() => vi.fn())
 const mockPrismaUserFindFirst = vi.hoisted(() => vi.fn())
+const mockPrismaUserUpdate = vi.hoisted(() => vi.fn())
 
 vi.stubGlobal('defineEventHandler', (handler: any) => handler)
 vi.stubGlobal('readBody', vi.fn())
@@ -22,6 +23,7 @@ vi.mock('~/server/utils/prisma', () => ({
       findFirst: mockPrismaUserFindFirst,
       create: mockPrismaUserCreate,
       delete: mockPrismaUserDelete,
+      update: mockPrismaUserUpdate,
     },
   },
 }))
@@ -33,6 +35,7 @@ vi.mock('~/server/utils/logger', () => ({
 const { default: getRefereesHandler } = await import('./referees.get')
 const { default: createRefereeHandler } = await import('./referees.post')
 const { default: deleteRefereeHandler } = await import('./referees.[id].delete')
+const { default: resetPasswordHandler } = await import('./referees/[id].reset-password.post')
 
 function createMockEvent(overrides: any = {}) {
   return { _url: 'http://localhost/api/admin/referees', context: {}, ...overrides } as any
@@ -61,8 +64,8 @@ describe('GET /api/admin/referees', () => {
 describe('POST /api/admin/referees', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('creates a new referee with hashed password', async () => {
-    vi.mocked(readBody).mockResolvedValue({ name: 'Jan', password: 'ref123' })
+  it('creates a new referee without password', async () => {
+    vi.mocked(readBody).mockResolvedValue({ name: 'Jan' })
     mockPrismaUserFindFirst.mockResolvedValue(null)
     mockPrismaUserCreate.mockResolvedValue({ id: 'u2', name: 'Jan', role: 'REFEREE' })
     const event = createMockEvent()
@@ -72,7 +75,7 @@ describe('POST /api/admin/referees', () => {
     expect(mockPrismaUserCreate).toHaveBeenCalledWith({
       data: {
         name: 'Jan',
-        password: expect.any(String),
+        password: null,
         role: 'REFEREE',
       },
       select: { id: true, name: true, createdAt: true },
@@ -81,7 +84,7 @@ describe('POST /api/admin/referees', () => {
   })
 
   it('rejects duplicate referee name', async () => {
-    vi.mocked(readBody).mockResolvedValue({ name: 'Jan', password: 'ref123' })
+    vi.mocked(readBody).mockResolvedValue({ name: 'Jan' })
     mockPrismaUserFindFirst.mockResolvedValue({ id: 'u2', name: 'Jan' })
     const event = createMockEvent()
 
@@ -91,19 +94,37 @@ describe('POST /api/admin/referees', () => {
   })
 
   it('rejects missing name', async () => {
-    vi.mocked(readBody).mockResolvedValue({ password: 'ref123' })
+    vi.mocked(readBody).mockResolvedValue({})
     const event = createMockEvent()
 
     await expect(createRefereeHandler(event)).rejects.toMatchObject({
       statusCode: 400,
     })
   })
+})
 
-  it('rejects missing password', async () => {
-    vi.mocked(readBody).mockResolvedValue({ name: 'Jan' })
+describe('POST /api/admin/referees/:id/reset-password', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('resets referee password to null', async () => {
+    vi.mocked(getRouterParam).mockReturnValue('u2')
+    mockPrismaUserUpdate.mockResolvedValue({ id: 'u2', name: 'Jan' })
     const event = createMockEvent()
 
-    await expect(createRefereeHandler(event)).rejects.toMatchObject({
+    const result = await resetPasswordHandler(event)
+
+    expect(mockPrismaUserUpdate).toHaveBeenCalledWith({
+      where: { id: 'u2', role: 'REFEREE' },
+      data: { password: null },
+    })
+    expect(result).toEqual({ success: true })
+  })
+
+  it('rejects empty id', async () => {
+    vi.mocked(getRouterParam).mockReturnValue('')
+    const event = createMockEvent()
+
+    await expect(resetPasswordHandler(event)).rejects.toMatchObject({
       statusCode: 400,
     })
   })

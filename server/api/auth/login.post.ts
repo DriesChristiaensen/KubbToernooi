@@ -39,14 +39,30 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const passwordValid = await bcrypt.compare(body.password, user.password)
-  if (!passwordValid) {
-    logRequest(event, 'error', 'Invalid password')
-    throw createApiError({
-      error: 'Inloggen mislukt. Controleer je gegevens.',
-      code: 401,
-      reason: 'Invalid credentials',
-    })
+  if (isRefLogin && user.password === null) {
+    if (body.setPassword) {
+      const hashed = await bcrypt.hash(body.password, 12)
+      await prisma.user.update({ where: { id: user.id }, data: { password: hashed } })
+    } else {
+      return { needsPasswordSetup: true }
+    }
+  } else {
+    if (body.setPassword) {
+      throw createApiError({
+        error: 'Wachtwoord is al ingesteld.',
+        code: 409,
+        reason: 'Password already set',
+      })
+    }
+    const passwordValid = await bcrypt.compare(body.password, user.password as string)
+    if (!passwordValid) {
+      logRequest(event, 'error', 'Invalid password')
+      throw createApiError({
+        error: 'Inloggen mislukt. Controleer je gegevens.',
+        code: 401,
+        reason: 'Invalid credentials',
+      })
+    }
   }
 
   const sessionUser = { id: user.id, name: user.name, role: user.role }

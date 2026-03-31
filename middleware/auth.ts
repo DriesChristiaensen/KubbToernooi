@@ -1,11 +1,16 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   const { loggedIn, user } = useUserSession()
 
-  if (!loggedIn.value) {
-    return navigateTo('/login')
-  }
+  const isAdminPage = to.path.startsWith('/admin') && to.path !== '/admin/admin-login'
+  const isRefPage = to.path.startsWith('/ref') && to.path !== '/ref/login'
 
-  if (to.path.startsWith('/admin') && user.value?.role !== 'ADMIN') {
-    return navigateTo('/login')
+  if (isAdminPage) {
+    if (!loggedIn.value || user.value?.role !== 'ADMIN') {
+      return abortNavigation({ statusCode: 401, message: 'Unauthorized' })
+    }
+  } else if (isRefPage) {
+    if (!loggedIn.value || !['ADMIN', 'REFEREE'].includes(user.value?.role ?? '')) {
+      return navigateTo('/ref/login')
+    }
   }
 })

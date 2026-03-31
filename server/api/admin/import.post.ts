@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
         reason: "Admin user not found",
       });
     }
-    const valid = await bcrypt.compare(password, admin.password);
+    const valid = await bcrypt.compare(password, admin.password!);
     if (!valid) {
       throw createApiError({
         error: "Onjuist wachtwoord",

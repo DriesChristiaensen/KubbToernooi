@@ -1,4 +1,3 @@
-import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
 import { logRequest } from '~/server/utils/logger'
 
@@ -10,14 +9,6 @@ export default defineEventHandler(async (event) => {
       error: 'Naam is verplicht',
       code: 400,
       reason: 'Missing name field',
-    })
-  }
-
-  if (!body?.password) {
-    throw createApiError({
-      error: 'Wachtwoord is verplicht',
-      code: 400,
-      reason: 'Missing password field',
     })
   }
 
@@ -33,12 +24,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const hashedPassword = await bcrypt.hash(body.password, 12)
-
   const referee = await prisma.user.create({
     data: {
       name: body.name.trim(),
-      password: hashedPassword,
+      password: null,
       role: 'REFEREE',
     },
     select: { id: true, name: true, createdAt: true },
