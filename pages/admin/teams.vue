@@ -2,7 +2,7 @@
 import { ref, onMounted } from "vue";
 import { nl } from "~/i18n/nl";
 
-definePageMeta({ middleware: "auth", layout: "admin" });
+definePageMeta({ middleware: ["auth", "admin-tournament-guard"], layout: "admin" });
 
 interface Team {
   id: string;
@@ -22,10 +22,6 @@ const bulkError = ref("");
 const bulkSuccess = ref("");
 const bulkLoading = ref(false);
 
-const csvFile = ref<File | null>(null);
-const csvError = ref("");
-const csvSuccess = ref("");
-const csvLoading = ref(false);
 
 async function fetchTeams() {
   try {
@@ -126,33 +122,6 @@ async function bulkImport() {
   }
 }
 
-function onCsvChange(event: Event) {
-  const input = event.target as HTMLInputElement;
-  csvFile.value = input.files?.[0] ?? null;
-}
-
-async function importCsv() {
-  csvError.value = "";
-  csvSuccess.value = "";
-  if (!csvFile.value) return;
-  const text = await csvFile.value.text();
-  csvLoading.value = true;
-  try {
-    const result = await $fetch<{ imported: number }>(
-      "/api/admin/teams/bulk-import",
-      { method: "POST", body: { csv: text } },
-    );
-    csvFile.value = null;
-    csvSuccess.value = `${result.imported} ${nl.admin.teams.imported}`;
-    await fetchTeams();
-  } catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string } } };
-    csvError.value = fetchErr?.data?.data?.error || nl.common.error;
-  } finally {
-    csvLoading.value = false;
-  }
-}
-
 onMounted(fetchTeams);
 </script>
 
@@ -220,31 +189,6 @@ onMounted(fetchTeams);
           @click="bulkImport"
         >
           {{ nl.admin.teams.bulkImport }}
-        </button>
-      </section>
-
-      <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
-        <h2 class="mb-3 font-semibold text-text">
-          {{ nl.admin.teams.csvUpload }}
-        </h2>
-        <input
-          type="file"
-          accept=".csv,text/csv"
-          class="mb-3 block text-sm text-text"
-          @change="onCsvChange"
-        >
-        <p v-if="csvError" class="mb-2 text-sm text-error">
-          {{ csvError }}
-        </p>
-        <p v-if="csvSuccess" class="mb-2 text-sm text-success">
-          {{ csvSuccess }}
-        </p>
-        <button
-          :disabled="csvLoading || !csvFile"
-          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-          @click="importCsv"
-        >
-          {{ nl.admin.teams.csvUpload }}
         </button>
       </section>
 
