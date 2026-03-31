@@ -64,7 +64,7 @@ export default defineEventHandler(async (event) => {
         reason: "Invalid password",
       });
     }
-    await prisma.tournament.deleteMany();
+    await prisma.tournament.updateMany({ data: { isActive: false } });
   }
 
   const newTournament = await prisma.tournament.create({
@@ -81,23 +81,23 @@ export default defineEventHandler(async (event) => {
     },
   });
 
-  const teamMap = new Map<number, number>();
+  const teamMap = new Map<string, string>();
   for (const team of teams as Array<Record<string, unknown>>) {
     const created = await prisma.team.create({
       data: { name: String(team.name), tournamentId: newTournament.id },
     });
-    teamMap.set(Number(team.id), created.id);
+    teamMap.set(String(team.id), created.id);
   }
 
-  const fieldMap = new Map<number, number>();
+  const fieldMap = new Map<string, string>();
   for (const field of fields as Array<Record<string, unknown>>) {
     const created = await prisma.field.create({
       data: { name: String(field.name), tournamentId: newTournament.id },
     });
-    fieldMap.set(Number(field.id), created.id);
+    fieldMap.set(String(field.id), created.id);
   }
 
-  const poolMap = new Map<number, number>();
+  const poolMap = new Map<string, string>();
   for (const pool of pools as Array<Record<string, unknown>>) {
     const created = await prisma.pool.create({
       data: {
@@ -106,9 +106,9 @@ export default defineEventHandler(async (event) => {
         teamsAdvancing: Number(pool.teamsAdvancing) || 2,
       },
     });
-    poolMap.set(Number(pool.id), created.id);
+    poolMap.set(String(pool.id), created.id);
     for (const pt of (pool.poolTeams as Array<Record<string, unknown>>) || []) {
-      const mappedTeamId = teamMap.get(Number(pt.teamId));
+      const mappedTeamId = teamMap.get(String(pt.teamId));
       if (mappedTeamId) {
         await prisma.poolTeam.create({
           data: { poolId: created.id, teamId: mappedTeamId },
@@ -118,10 +118,10 @@ export default defineEventHandler(async (event) => {
   }
 
   for (const match of matches as Array<Record<string, unknown>>) {
-    const mappedFieldId = fieldMap.get(Number(match.fieldId));
-    const mappedTeamAId = teamMap.get(Number(match.teamAId));
-    const mappedTeamBId = teamMap.get(Number(match.teamBId));
-    const mappedPoolId = match.poolId ? poolMap.get(Number(match.poolId)) : null;
+    const mappedFieldId = fieldMap.get(String(match.fieldId));
+    const mappedTeamAId = teamMap.get(String(match.teamAId));
+    const mappedTeamBId = teamMap.get(String(match.teamBId));
+    const mappedPoolId = match.poolId ? poolMap.get(String(match.poolId)) : null;
     if (mappedFieldId && mappedTeamAId && mappedTeamBId) {
       await prisma.match.create({
         data: {
@@ -135,15 +135,15 @@ export default defineEventHandler(async (event) => {
           scoreA: match.scoreA !== null ? Number(match.scoreA) : null,
           scoreB: match.scoreB !== null ? Number(match.scoreB) : null,
           status: ((match.status as string) || "SCHEDULED") as MatchStatus,
-          koWinnerId: match.koWinnerId ? teamMap.get(Number(match.koWinnerId)) ?? null : null,
+          koWinnerId: match.koWinnerId ? teamMap.get(String(match.koWinnerId)) ?? null : null,
         },
       });
     }
   }
 
   for (const standing of standings as Array<Record<string, unknown>>) {
-    const mappedPoolId = poolMap.get(Number(standing.poolId));
-    const mappedTeamId = teamMap.get(Number(standing.teamId));
+    const mappedPoolId = poolMap.get(String(standing.poolId));
+    const mappedTeamId = teamMap.get(String(standing.teamId));
     if (mappedPoolId && mappedTeamId) {
       await prisma.standing.create({
         data: {

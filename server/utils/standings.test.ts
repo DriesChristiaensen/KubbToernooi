@@ -16,8 +16,8 @@ vi.mock("~/server/utils/prisma", () => ({
 
 const { recalculatePoolStandings } = await import("./standings");
 
-const poolId = 10;
-const tournament = { id: 1, pointsWin: 3, pointsDraw: 1, pointsLoss: 0 };
+const poolId = "p10";
+const tournament = { id: "t1", pointsWin: 3, pointsDraw: 1, pointsLoss: 0 };
 
 describe("recalculatePoolStandings", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -33,7 +33,7 @@ describe("recalculatePoolStandings", () => {
   });
 
   it("calculates 0 stats when no played matches", async () => {
-    mockPoolTeamFindMany.mockResolvedValue([{ teamId: 1 }, { teamId: 2 }]);
+    mockPoolTeamFindMany.mockResolvedValue([{ teamId: "t1" }, { teamId: "t2" }]);
     mockMatchFindMany.mockResolvedValue([]);
     mockTournamentFindFirst.mockResolvedValue(tournament);
     mockStandingUpsert.mockResolvedValue({});
@@ -48,9 +48,9 @@ describe("recalculatePoolStandings", () => {
   });
 
   it("awards 3 points for a win and 0 for a loss", async () => {
-    mockPoolTeamFindMany.mockResolvedValue([{ teamId: 1 }, { teamId: 2 }]);
+    mockPoolTeamFindMany.mockResolvedValue([{ teamId: "t1" }, { teamId: "t2" }]);
     mockMatchFindMany.mockResolvedValue([
-      { id: 1, teamAId: 1, teamBId: 2, scoreA: 3, scoreB: 1 },
+      { id: "m1", teamAId: "t1", teamBId: "t2", scoreA: 3, scoreB: 1 },
     ]);
     mockTournamentFindFirst.mockResolvedValue(tournament);
     mockStandingUpsert.mockResolvedValue({});
@@ -58,10 +58,10 @@ describe("recalculatePoolStandings", () => {
     await recalculatePoolStandings(poolId);
 
     const team1Call = mockStandingUpsert.mock.calls.find(
-      (c) => c[0].where.poolId_teamId.teamId === 1,
+      (c) => c[0].where.poolId_teamId.teamId === "t1",
     )!;
     const team2Call = mockStandingUpsert.mock.calls.find(
-      (c) => c[0].where.poolId_teamId.teamId === 2,
+      (c) => c[0].where.poolId_teamId.teamId === "t2",
     )!;
 
     expect(team1Call[0].update).toMatchObject({ won: 1, lost: 0, points: 3 });
@@ -69,9 +69,9 @@ describe("recalculatePoolStandings", () => {
   });
 
   it("awards 1 point each for a draw", async () => {
-    mockPoolTeamFindMany.mockResolvedValue([{ teamId: 1 }, { teamId: 2 }]);
+    mockPoolTeamFindMany.mockResolvedValue([{ teamId: "t1" }, { teamId: "t2" }]);
     mockMatchFindMany.mockResolvedValue([
-      { id: 1, teamAId: 1, teamBId: 2, scoreA: 2, scoreB: 2 },
+      { id: "m1", teamAId: "t1", teamBId: "t2", scoreA: 2, scoreB: 2 },
     ]);
     mockTournamentFindFirst.mockResolvedValue(tournament);
     mockStandingUpsert.mockResolvedValue({});
@@ -79,16 +79,16 @@ describe("recalculatePoolStandings", () => {
     await recalculatePoolStandings(poolId);
 
     const team1Call = mockStandingUpsert.mock.calls.find(
-      (c) => c[0].where.poolId_teamId.teamId === 1,
+      (c) => c[0].where.poolId_teamId.teamId === "t1",
     )!;
     expect(team1Call[0].update).toMatchObject({ drawn: 1, points: 1 });
   });
 
   it("calculates goal difference correctly", async () => {
-    mockPoolTeamFindMany.mockResolvedValue([{ teamId: 1 }]);
+    mockPoolTeamFindMany.mockResolvedValue([{ teamId: "t1" }]);
     mockMatchFindMany.mockResolvedValue([
-      { id: 1, teamAId: 1, teamBId: 2, scoreA: 5, scoreB: 2 },
-      { id: 2, teamAId: 3, teamBId: 1, scoreA: 1, scoreB: 3 },
+      { id: "m1", teamAId: "t1", teamBId: "t2", scoreA: 5, scoreB: 2 },
+      { id: "m2", teamAId: "t3", teamBId: "t1", scoreA: 1, scoreB: 3 },
     ]);
     mockTournamentFindFirst.mockResolvedValue(tournament);
     mockStandingUpsert.mockResolvedValue({});

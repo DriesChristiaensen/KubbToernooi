@@ -2,6 +2,7 @@ import { prisma } from "~/server/utils/prisma";
 
 export async function getActiveTournament() {
   const tournament = await prisma.tournament.findFirst({
+    where: { isActive: true },
     orderBy: { createdAt: "desc" },
   });
 

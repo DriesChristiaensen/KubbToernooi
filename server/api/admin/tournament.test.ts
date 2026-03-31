@@ -49,7 +49,7 @@ describe("GET /api/admin/tournament", () => {
 
   it("returns tournament settings", async () => {
     const tournament = {
-      id: 1,
+      id: "t1",
       name: "Kubb 2025",
       status: "DRAFT",
       type: "COMBINATION",
@@ -78,7 +78,7 @@ describe("PATCH /api/admin/tournament", () => {
   });
 
   it("returns 400 when type is invalid", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ type: "INVALID_TYPE" });
 
     await expect(patchTournamentHandler(createMockEvent())).rejects.toThrow(
@@ -87,28 +87,28 @@ describe("PATCH /api/admin/tournament", () => {
   });
 
   it("updates tournament type successfully", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ type: "POOLS" });
-    mockTournamentUpdate.mockResolvedValue({ id: 1, type: "POOLS" });
+    mockTournamentUpdate.mockResolvedValue({ id: "t1", type: "POOLS" });
 
     const result = await patchTournamentHandler(createMockEvent());
 
     expect(mockTournamentUpdate).toHaveBeenCalledWith({
-      where: { id: 1 },
+      where: { id: "t1" },
       data: expect.objectContaining({ type: "POOLS" }),
     });
     expect(result).toMatchObject({ type: "POOLS" });
   });
 
   it("updates point values successfully", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({
       pointsWin: 2,
       pointsDraw: 1,
       pointsLoss: 0,
     });
     mockTournamentUpdate.mockResolvedValue({
-      id: 1,
+      id: "t1",
       pointsWin: 2,
       pointsDraw: 1,
       pointsLoss: 0,
@@ -117,14 +117,14 @@ describe("PATCH /api/admin/tournament", () => {
     const result = await patchTournamentHandler(createMockEvent());
 
     expect(mockTournamentUpdate).toHaveBeenCalledWith({
-      where: { id: 1 },
+      where: { id: "t1" },
       data: expect.objectContaining({ pointsWin: 2 }),
     });
     expect(result).toMatchObject({ pointsWin: 2 });
   });
 
   it("returns 400 when status is invalid", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ status: "PUBLISHED" });
 
     await expect(patchTournamentHandler(createMockEvent())).rejects.toThrow(
@@ -133,28 +133,28 @@ describe("PATCH /api/admin/tournament", () => {
   });
 
   it("updates status to LIVE successfully", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ status: "LIVE" });
-    mockTournamentUpdate.mockResolvedValue({ id: 1, status: "LIVE" });
+    mockTournamentUpdate.mockResolvedValue({ id: "t1", status: "LIVE" });
 
     const result = await patchTournamentHandler(createMockEvent());
 
     expect(mockTournamentUpdate).toHaveBeenCalledWith({
-      where: { id: 1 },
+      where: { id: "t1" },
       data: expect.objectContaining({ status: "LIVE" }),
     });
     expect(result).toMatchObject({ status: "LIVE" });
   });
 
   it("updates status to DRAFT successfully", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ status: "DRAFT" });
-    mockTournamentUpdate.mockResolvedValue({ id: 1, status: "DRAFT" });
+    mockTournamentUpdate.mockResolvedValue({ id: "t1", status: "DRAFT" });
 
     const result = await patchTournamentHandler(createMockEvent());
 
     expect(mockTournamentUpdate).toHaveBeenCalledWith({
-      where: { id: 1 },
+      where: { id: "t1" },
       data: expect.objectContaining({ status: "DRAFT" }),
     });
     expect(result).toMatchObject({ status: "DRAFT" });

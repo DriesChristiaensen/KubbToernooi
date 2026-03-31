@@ -3,9 +3,8 @@ import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
 
 export default defineEventHandler(async (event) => {
-  const rawId = getRouterParam(event, "id");
-  const id = Number(rawId);
-  if (!Number.isInteger(id) || id <= 0) {
+  const id = getRouterParam(event, "id");
+  if (!id) {
     throw createApiError({
       error: "Ongeldig poule-ID",
       code: 400,
@@ -35,7 +34,7 @@ export default defineEventHandler(async (event) => {
     await prisma.poolTeam.deleteMany({ where: { poolId: id } });
     if (body.teamIds.length > 0) {
       await prisma.poolTeam.createMany({
-        data: (body.teamIds as number[]).map((teamId) => ({ poolId: id, teamId })),
+        data: (body.teamIds as string[]).map((teamId) => ({ poolId: id, teamId })),
       });
     }
   }

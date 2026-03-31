@@ -2,9 +2,8 @@ import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 
 export default defineEventHandler(async (event) => {
-  const idParam = getRouterParam(event, "id");
-  const id = Number(idParam);
-  if (!idParam || isNaN(id)) {
+  const id = getRouterParam(event, "id");
+  if (!id) {
     throw createApiError({ error: "Ongeldig wedstrijd-ID", code: 400, reason: "Invalid match ID" });
   }
 
@@ -32,8 +31,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const updateData: Record<string, unknown> = {};
-  if (body?.teamAId !== undefined) updateData.teamAId = Number(body.teamAId);
-  if (body?.teamBId !== undefined) updateData.teamBId = Number(body.teamBId);
+  if (body?.teamAId !== undefined) updateData.teamAId = body.teamAId;
+  if (body?.teamBId !== undefined) updateData.teamBId = body.teamBId;
 
   const updated = await prisma.match.update({ where: { id }, data: updateData });
 

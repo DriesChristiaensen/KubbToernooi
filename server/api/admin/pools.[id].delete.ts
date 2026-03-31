@@ -2,9 +2,8 @@ import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 
 export default defineEventHandler(async (event) => {
-  const rawId = getRouterParam(event, "id");
-  const id = Number(rawId);
-  if (!Number.isInteger(id) || id <= 0) {
+  const id = getRouterParam(event, "id");
+  if (!id) {
     throw createApiError({
       error: "Ongeldig poule-ID",
       code: 400,

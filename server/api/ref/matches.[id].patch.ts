@@ -3,9 +3,8 @@ import { logRequest } from "~/server/utils/logger";
 import { recalculatePoolStandings } from "~/server/utils/standings";
 
 export default defineEventHandler(async (event) => {
-  const idParam = getRouterParam(event, "id");
-  const id = Number(idParam);
-  if (!idParam || isNaN(id)) {
+  const id = getRouterParam(event, "id");
+  if (!id) {
     throw createApiError({ error: "Ongeldig wedstrijd-ID", code: 400, reason: "Invalid match ID" });
   }
 
@@ -30,7 +29,7 @@ export default defineEventHandler(async (event) => {
   const updateData: Record<string, unknown> = { scoreA, scoreB, status: "PLAYED" };
 
   if (match.phase === "KO" && isDraw) {
-    const koWinnerId = body?.koWinnerId ? Number(body.koWinnerId) : null;
+    const koWinnerId = body?.koWinnerId ? (body.koWinnerId as string) : null;
     if (!koWinnerId) {
       throw createApiError({
         error: "Winnaar is verplicht bij gelijkspel in een knock-out wedstrijd",
@@ -59,7 +58,7 @@ export default defineEventHandler(async (event) => {
       ? match.teamAId
       : scoreB > scoreA
       ? match.teamBId
-      : typeof updateData.koWinnerId === "number"
+      : typeof updateData.koWinnerId === "string"
       ? updateData.koWinnerId
       : match.teamAId;
 

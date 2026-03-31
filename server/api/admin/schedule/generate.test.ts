@@ -34,24 +34,24 @@ vi.mock("~/server/utils/logger", () => ({ logRequest: vi.fn() }));
 const { default: handler } = await import("./generate.post");
 
 const baseTournament = {
-  id: 1,
+  id: "t1",
   startTime: new Date("2025-06-01T09:00:00Z"),
   matchDuration: 15,
   breakTime: 5,
 };
 
 const twoTeamPool = {
-  id: 10,
-  poolTeams: [{ teamId: 1 }, { teamId: 2 }],
+  id: "p10",
+  poolTeams: [{ teamId: "t1" }, { teamId: "t2" }],
 };
 
 const fourTeamPool = {
-  id: 10,
-  poolTeams: [{ teamId: 1 }, { teamId: 2 }, { teamId: 3 }, { teamId: 4 }],
+  id: "p10",
+  poolTeams: [{ teamId: "t1" }, { teamId: "t2" }, { teamId: "t3" }, { teamId: "t4" }],
 };
 
-const oneField = [{ id: 100 }];
-const twoFields = [{ id: 100 }, { id: 101 }];
+const oneField = [{ id: "f100" }];
+const twoFields = [{ id: "f100" }, { id: "f101" }];
 
 function createMockEvent() {
   return { _url: "/api/admin/schedule/generate", context: {} } as any;
@@ -109,8 +109,8 @@ describe("POST /api/admin/schedule/generate", () => {
       data: expect.arrayContaining([
         expect.objectContaining({
           phase: "POOL",
-          fieldId: 100,
-          poolId: 10,
+          fieldId: "f100",
+          poolId: "p10",
           status: "SCHEDULED",
         }),
       ]),

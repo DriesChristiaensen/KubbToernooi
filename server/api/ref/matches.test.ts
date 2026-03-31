@@ -50,20 +50,20 @@ function createMockEvent(overrides: any = {}) {
 }
 
 const mockMatch = {
-  id: 1,
+  id: "m1",
   phase: "POOL",
   round: 1,
   startTime: new Date("2025-06-01T10:00:00Z"),
   status: "SCHEDULED",
-  fieldId: 1,
-  teamAId: 1,
-  teamBId: 2,
+  fieldId: "f1",
+  teamAId: "t1",
+  teamBId: "t2",
   scoreA: null,
   scoreB: null,
   koWinnerId: null,
-  field: { id: 1, name: "Veld 1" },
-  teamA: { id: 1, name: "Team A" },
-  teamB: { id: 2, name: "Team B" },
+  field: { id: "f1", name: "Veld 1" },
+  teamA: { id: "t1", name: "Team A" },
+  teamB: { id: "t2", name: "Team B" },
   koWinner: null,
 };
 
@@ -79,7 +79,7 @@ describe("GET /api/ref/matches", () => {
   });
 
   it("returns list of matches for active tournament", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     mockMatchFindMany.mockResolvedValue([mockMatch]);
 
     const result = await getMatchesHandler(createMockEvent());
@@ -87,14 +87,14 @@ describe("GET /api/ref/matches", () => {
     expect(mockMatchFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          field: { tournamentId: 1 },
+          field: { tournamentId: "t1" },
           teamAId: { not: null },
           teamBId: { not: null },
         },
       }),
     );
     expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({ id: 1, phase: "POOL" });
+    expect(result[0]).toMatchObject({ id: "m1", phase: "POOL" });
   });
 });
 
@@ -102,7 +102,7 @@ describe("PATCH /api/ref/matches/:id", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 400 for invalid ID", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("abc");
+    vi.mocked(getRouterParam).mockReturnValue("");
 
     await expect(patchMatchHandler(createMockEvent())).rejects.toThrow(
       "Invalid match ID",
@@ -110,7 +110,7 @@ describe("PATCH /api/ref/matches/:id", () => {
   });
 
   it("returns 404 when match not found", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
+    vi.mocked(getRouterParam).mockReturnValue("m1");
     vi.mocked(readBody).mockResolvedValue({ scoreA: 2, scoreB: 1 });
     mockMatchFindFirst.mockResolvedValue(null);
 
@@ -120,7 +120,7 @@ describe("PATCH /api/ref/matches/:id", () => {
   });
 
   it("returns 400 for negative scoreA", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
+    vi.mocked(getRouterParam).mockReturnValue("m1");
     vi.mocked(readBody).mockResolvedValue({ scoreA: -1, scoreB: 0 });
     mockMatchFindFirst.mockResolvedValue(mockMatch);
 
@@ -130,7 +130,7 @@ describe("PATCH /api/ref/matches/:id", () => {
   });
 
   it("returns 400 for negative scoreB", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
+    vi.mocked(getRouterParam).mockReturnValue("m1");
     vi.mocked(readBody).mockResolvedValue({ scoreA: 0, scoreB: -1 });
     mockMatchFindFirst.mockResolvedValue(mockMatch);
 
@@ -140,7 +140,7 @@ describe("PATCH /api/ref/matches/:id", () => {
   });
 
   it("saves score for pool match allowing draw", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
+    vi.mocked(getRouterParam).mockReturnValue("m1");
     vi.mocked(readBody).mockResolvedValue({ scoreA: 1, scoreB: 1 });
     mockMatchFindFirst.mockResolvedValue({ ...mockMatch, phase: "POOL" });
     mockMatchUpdate.mockResolvedValue({
@@ -161,7 +161,7 @@ describe("PATCH /api/ref/matches/:id", () => {
   });
 
   it("returns 400 for KO draw without koWinnerId", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
+    vi.mocked(getRouterParam).mockReturnValue("m1");
     vi.mocked(readBody).mockResolvedValue({ scoreA: 2, scoreB: 2 });
     mockMatchFindFirst.mockResolvedValue({ ...mockMatch, phase: "KO" });
 
@@ -171,9 +171,9 @@ describe("PATCH /api/ref/matches/:id", () => {
   });
 
   it("returns 400 for KO draw with invalid koWinnerId", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    vi.mocked(readBody).mockResolvedValue({ scoreA: 2, scoreB: 2, koWinnerId: 99 });
-    mockMatchFindFirst.mockResolvedValue({ ...mockMatch, phase: "KO", teamAId: 1, teamBId: 2 });
+    vi.mocked(getRouterParam).mockReturnValue("m1");
+    vi.mocked(readBody).mockResolvedValue({ scoreA: 2, scoreB: 2, koWinnerId: "t99" });
+    mockMatchFindFirst.mockResolvedValue({ ...mockMatch, phase: "KO", teamAId: "t1", teamBId: "t2" });
 
     await expect(patchMatchHandler(createMockEvent())).rejects.toThrow(
       "Invalid KO winner",
@@ -181,7 +181,7 @@ describe("PATCH /api/ref/matches/:id", () => {
   });
 
   it("saves score for KO match with clear winner", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
+    vi.mocked(getRouterParam).mockReturnValue("m1");
     vi.mocked(readBody).mockResolvedValue({ scoreA: 3, scoreB: 1 });
     mockMatchFindFirst.mockResolvedValue({ ...mockMatch, phase: "KO" });
     const updatedMatch = { ...mockMatch, phase: "KO", scoreA: 3, scoreB: 1, status: "PLAYED" };
@@ -199,10 +199,10 @@ describe("PATCH /api/ref/matches/:id", () => {
   });
 
   it("saves score for KO draw with valid koWinnerId", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    vi.mocked(readBody).mockResolvedValue({ scoreA: 2, scoreB: 2, koWinnerId: 1 });
-    mockMatchFindFirst.mockResolvedValue({ ...mockMatch, phase: "KO", teamAId: 1, teamBId: 2 });
-    const updatedMatch = { ...mockMatch, phase: "KO", scoreA: 2, scoreB: 2, koWinnerId: 1, status: "PLAYED" };
+    vi.mocked(getRouterParam).mockReturnValue("m1");
+    vi.mocked(readBody).mockResolvedValue({ scoreA: 2, scoreB: 2, koWinnerId: "t1" });
+    mockMatchFindFirst.mockResolvedValue({ ...mockMatch, phase: "KO", teamAId: "t1", teamBId: "t2" });
+    const updatedMatch = { ...mockMatch, phase: "KO", scoreA: 2, scoreB: 2, koWinnerId: "t1", status: "PLAYED" };
     mockMatchUpdate.mockResolvedValue(updatedMatch);
     mockMatchFindMany.mockResolvedValue([updatedMatch]);
 
@@ -210,37 +210,37 @@ describe("PATCH /api/ref/matches/:id", () => {
 
     expect(mockMatchUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ koWinnerId: 1, status: "PLAYED" }),
+        data: expect.objectContaining({ koWinnerId: "t1", status: "PLAYED" }),
       }),
     );
-    expect(result).toMatchObject({ koWinnerId: 1 });
+    expect(result).toMatchObject({ koWinnerId: "t1" });
   });
 
   it("updates teamA of next match when current match is first sibling", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
+    vi.mocked(getRouterParam).mockReturnValue("m1");
     vi.mocked(readBody).mockResolvedValue({ scoreA: 3, scoreB: 1 });
-    const match = { ...mockMatch, id: 1, phase: "KO", round: 1, teamAId: 10, teamBId: 20, nextMatchId: 5 };
+    const match = { ...mockMatch, id: "m1", phase: "KO", round: 1, teamAId: "t10", teamBId: "t20", nextMatchId: "m5" };
     mockMatchFindFirst.mockResolvedValue(match);
     const updatedMatch = { ...match, scoreA: 3, scoreB: 1, status: "PLAYED" };
     mockMatchUpdate.mockResolvedValue(updatedMatch);
-    // Sibling query: only current match links to nextMatchId 5
+    // Sibling query: only current match links to nextMatchId m5
     mockMatchFindMany.mockResolvedValue([match]);
 
     await patchMatchHandler(createMockEvent());
 
     expect(mockMatchUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 5 },
-        data: expect.objectContaining({ teamAId: 10 }),
+        where: { id: "m5" },
+        data: expect.objectContaining({ teamAId: "t10" }),
       }),
     );
   });
 
   it("updates teamB of next match when current match is second sibling", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("2");
+    vi.mocked(getRouterParam).mockReturnValue("m2");
     vi.mocked(readBody).mockResolvedValue({ scoreA: 0, scoreB: 3 });
-    const match1 = { ...mockMatch, id: 1, phase: "KO", round: 1, teamAId: 10, teamBId: 20, nextMatchId: 5 };
-    const match2 = { ...mockMatch, id: 2, phase: "KO", round: 1, teamAId: 30, teamBId: 40, nextMatchId: 5 };
+    const match1 = { ...mockMatch, id: "m1", phase: "KO", round: 1, teamAId: "t10", teamBId: "t20", nextMatchId: "m5" };
+    const match2 = { ...mockMatch, id: "m2", phase: "KO", round: 1, teamAId: "t30", teamBId: "t40", nextMatchId: "m5" };
     mockMatchFindFirst.mockResolvedValue(match2);
     const updatedMatch2 = { ...match2, scoreA: 0, scoreB: 3, status: "PLAYED" };
     mockMatchUpdate.mockResolvedValue(updatedMatch2);
@@ -251,16 +251,16 @@ describe("PATCH /api/ref/matches/:id", () => {
 
     expect(mockMatchUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 5 },
-        data: expect.objectContaining({ teamBId: 40 }),
+        where: { id: "m5" },
+        data: expect.objectContaining({ teamBId: "t40" }),
       }),
     );
   });
 
   it("does not update next match when nextMatchId is null", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
+    vi.mocked(getRouterParam).mockReturnValue("m1");
     vi.mocked(readBody).mockResolvedValue({ scoreA: 3, scoreB: 1 });
-    const match = { ...mockMatch, id: 1, phase: "KO", round: 1, teamAId: 10, teamBId: 20 };
+    const match = { ...mockMatch, id: "m1", phase: "KO", round: 1, teamAId: "t10", teamBId: "t20" };
     mockMatchFindFirst.mockResolvedValue(match);
     const updatedMatch = { ...match, scoreA: 3, scoreB: 1, status: "PLAYED" };
     mockMatchUpdate.mockResolvedValue(updatedMatch);

@@ -8,12 +8,12 @@ const bodySchema = z.object({
 });
 
 function buildRound1Slots(
-  participants: { teamId: number }[],
+  participants: { teamId: string }[],
   bracketSize: number,
-): Array<{ teamAId: number | null; teamBId: number | null }> {
+): Array<{ teamAId: string | null; teamBId: string | null }> {
   const n = participants.length;
   const byes = bracketSize - n;
-  const slots: Array<{ teamAId: number | null; teamBId: number | null }> = [];
+  const slots: Array<{ teamAId: string | null; teamBId: string | null }> = [];
 
   // Top seeds get byes (teamB = null, team advances automatically)
   for (let i = 0; i < byes; i++) {
@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  let participants: { teamId: number }[];
+  let participants: { teamId: string }[];
 
   if (tournament.type === "KNOCKOUT") {
     const teams = await prisma.team.findMany({
@@ -136,21 +136,21 @@ export default defineEventHandler(async (event) => {
 
   // Create matches from the final (last round) back to round 1
   // so that nextMatchId can be set when creating earlier rounds
-  const roundMatchIds = new Map<number, number[]>();
+  const roundMatchIds = new Map<number, string[]>();
   let totalCreated = 0;
 
   for (let r = totalRounds; r >= 1; r--) {
     const matchesInRound = Math.ceil(round1Count / Math.pow(2, r - 1));
     const nextRoundIds = roundMatchIds.get(r + 1) ?? [];
-    const createdIds: number[] = [];
+    const createdIds: string[] = [];
 
     for (let i = 0; i < matchesInRound; i++) {
       const nextMatchId = nextRoundIds.length > 0 ? nextRoundIds[Math.floor(i / 2)] : null;
       const field = fields[i % fields.length];
       const slotOffset = Math.floor(i / fields.length);
 
-      let teamAId: number | null = null;
-      let teamBId: number | null = null;
+      let teamAId: string | null = null;
+      let teamBId: string | null = null;
       if (r === 1 && i < round1Slots.length) {
         teamAId = round1Slots[i].teamAId;
         teamBId = round1Slots[i].teamBId;

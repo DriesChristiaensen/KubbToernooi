@@ -13,8 +13,8 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const matchId = Number(query.matchId);
-  const proposedFieldId = query.fieldId ? Number(query.fieldId) : undefined;
+  const matchId = query.matchId as string;
+  const proposedFieldId = query.fieldId ? (query.fieldId as string) : undefined;
   const proposedStartTime = query.startTime ? new Date(query.startTime as string) : undefined;
 
   const match = await prisma.match.findUnique({ where: { id: matchId } });
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
 
   const conflictingMatches = await prisma.match.findMany({
     where: {
-      id: { not: matchId },
+      id: { not: matchId as string },
       startTime: checkStartTime,
     },
   });

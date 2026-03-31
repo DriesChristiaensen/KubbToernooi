@@ -23,17 +23,19 @@ function slotTime(slot: number): Date {
   return new Date(TOURNAMENT_START.getTime() + slot * SLOT_MS);
 }
 
-function generateRoundRobin(teamIds: number[]): Array<Array<[number, number]>> {
+const BYE = "";
+
+function generateRoundRobin(teamIds: string[]): Array<Array<[string, string]>> {
   const ids = [...teamIds];
-  if (ids.length % 2 !== 0) ids.push(-1);
+  if (ids.length % 2 !== 0) ids.push(BYE);
   const n = ids.length;
-  const rounds: Array<Array<[number, number]>> = [];
+  const rounds: Array<Array<[string, string]>> = [];
   for (let r = 0; r < n - 1; r++) {
-    const pairs: Array<[number, number]> = [];
+    const pairs: Array<[string, string]> = [];
     for (let i = 0; i < n / 2; i++) {
       const a = ids[i]!;
       const b = ids[n - 1 - i]!;
-      if (a !== -1 && b !== -1) pairs.push([a, b]);
+      if (a !== BYE && b !== BYE) pairs.push([a, b]);
     }
     rounds.push(pairs);
     ids.splice(1, 0, ids.pop()!);
@@ -48,11 +50,10 @@ async function clearData() {
 
 async function ensureAdmin() {
   const adminPassword = await bcrypt.hash("admin!", 12);
-  await prisma.user.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { name: "Admin", password: adminPassword, role: "ADMIN" },
-  });
+  const existing = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+  if (!existing) {
+    await prisma.user.create({ data: { name: "Admin", password: adminPassword, role: "ADMIN" } });
+  }
   console.log("  Admin account ready (password: admin!)");
 }
 
@@ -85,9 +86,9 @@ async function createBase(type: "POOLS" | "KNOCKOUT" | "COMBINATION", name: stri
 }
 
 async function createPools(
-  tournamentId: number,
-  teams: { id: number }[],
-  fields: { id: number }[],
+  tournamentId: string,
+  teams: { id: string }[],
+  fields: { id: string }[],
   teamsAdvancing: number,
   slotOffset: number,
 ) {
@@ -168,7 +169,7 @@ async function seedKo() {
   );
 
   // Round 1: seed 1v8, 2v7, 3v6, 4v5
-  const r1Pairs: Array<[number, number]> = [
+  const r1Pairs: Array<[string, string]> = [
     [teams[0]!.id, teams[7]!.id],
     [teams[1]!.id, teams[6]!.id],
     [teams[2]!.id, teams[5]!.id],

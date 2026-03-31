@@ -5,7 +5,7 @@ import { nl } from '~/i18n/nl'
 definePageMeta({ middleware: 'auth' })
 
 interface Referee {
-  id: number
+  id: string
   name: string
   createdAt: string
 }
@@ -49,7 +49,7 @@ async function addReferee() {
   }
 }
 
-async function deleteReferee(id: number) {
+async function deleteReferee(id: string) {
   await $fetch(`/api/admin/referees/${id}` as string, { method: 'DELETE' })
   await fetchReferees()
 }

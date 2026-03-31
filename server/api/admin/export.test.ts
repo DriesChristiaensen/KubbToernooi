@@ -42,10 +42,10 @@ describe("GET /api/admin/export", () => {
   });
 
   it("returns export containing tournament data", async () => {
-    const tournament = { id: 1, name: "Kubb 2025", status: "LIVE", type: "COMBINATION" };
+    const tournament = { id: "t1", name: "Kubb 2025", status: "LIVE", type: "COMBINATION" };
     mockTournamentFindFirst.mockResolvedValue(tournament);
-    mockTeamFindMany.mockResolvedValue([{ id: 1, name: "Team A" }]);
-    mockFieldFindMany.mockResolvedValue([{ id: 1, name: "Veld 1" }]);
+    mockTeamFindMany.mockResolvedValue([{ id: "ta1", name: "Team A" }]);
+    mockFieldFindMany.mockResolvedValue([{ id: "f1", name: "Veld 1" }]);
     mockPoolFindMany.mockResolvedValue([]);
     mockMatchFindMany.mockResolvedValue([]);
     mockStandingFindMany.mockResolvedValue([]);
@@ -54,19 +54,19 @@ describe("GET /api/admin/export", () => {
 
     expect(result).toMatchObject({
       tournament,
-      teams: [{ id: 1, name: "Team A" }],
-      fields: [{ id: 1, name: "Veld 1" }],
+      teams: [{ id: "ta1", name: "Team A" }],
+      fields: [{ id: "f1", name: "Veld 1" }],
     });
   });
 
   it("includes pools, matches and standings in export", async () => {
-    const tournament = { id: 1, name: "Kubb 2025" };
+    const tournament = { id: "t1", name: "Kubb 2025" };
     mockTournamentFindFirst.mockResolvedValue(tournament);
     mockTeamFindMany.mockResolvedValue([]);
     mockFieldFindMany.mockResolvedValue([]);
-    mockPoolFindMany.mockResolvedValue([{ id: 10, name: "Poule A" }]);
-    mockMatchFindMany.mockResolvedValue([{ id: 5, phase: "POOL" }]);
-    mockStandingFindMany.mockResolvedValue([{ id: 1, points: 3 }]);
+    mockPoolFindMany.mockResolvedValue([{ id: "p10", name: "Poule A" }]);
+    mockMatchFindMany.mockResolvedValue([{ id: "m5", phase: "POOL" }]);
+    mockStandingFindMany.mockResolvedValue([{ id: "s1", points: 3 }]);
 
     const result = await handler(createMockEvent());
 

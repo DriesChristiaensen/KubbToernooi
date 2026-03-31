@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const shuffled = [...teams].sort(() => Math.random() - 0.5);
-  const poolData: { name: string; teamIds: number[] }[] = Array.from(
+  const poolData: { name: string; teamIds: string[] }[] = Array.from(
     { length: poolCount },
     (_, i) => ({ name: `Poule ${String.fromCharCode(65 + i)}`, teamIds: [] }),
   );
