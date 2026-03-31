@@ -167,6 +167,17 @@ export const nl = {
       winningTeams: "Winning teams",
       otherTeams: "Overige teams",
       tbd: "Nog te bepalen",
+      fillTeams: "Teams invullen",
+      fillTeamsSuccess: "Teams ingevuld",
+      fillTeamsStep: "Stap 2: Teams invullen",
+      generateStep: "Stap 1: Schema genereren",
+      roundLabels: {
+        final: "Finale",
+        semifinal: "Halve finale",
+        quarterfinal: "Kwartfinale",
+        r8: "1/8 finale",
+        r16: "1/16 finale",
+      },
     },
     banner: {
       draft: "Toernooi concept nog niet gepubliceerd",

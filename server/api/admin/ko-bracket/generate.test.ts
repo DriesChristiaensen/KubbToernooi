@@ -160,7 +160,7 @@ describe("POST /api/admin/ko-bracket/generate", () => {
     expect(round1Calls[0].nextMatchId).toBe(round1Calls[1].nextMatchId); // both link to same final
   });
 
-  it("assigns teams to round 1; later rounds have null teams", async () => {
+  it("all matches have null teams (structure only — teams filled separately)", async () => {
     mockTournamentFindFirst.mockResolvedValue(baseTournament);
     vi.mocked(readBody).mockResolvedValue({});
     mockMatchCount.mockResolvedValue(0);
@@ -173,32 +173,28 @@ describe("POST /api/admin/ko-bracket/generate", () => {
     await handler(createMockEvent());
 
     const calls = mockMatchCreate.mock.calls.map((c) => c[0].data);
-    const finalCall = calls.find((d) => d.round === 2);
-    const round1Calls = calls.filter((d) => d.round === 1);
-
-    expect(finalCall?.teamAId).toBeNull();
-    expect(finalCall?.teamBId).toBeNull();
-    round1Calls.forEach((m) => {
-      expect(m.teamAId).not.toBeNull();
+    calls.forEach((m) => {
+      expect(m.teamAId).toBeNull();
+      expect(m.teamBId).toBeNull();
     });
   });
 
-  it("generates bye slot (null teamB) for top seed when N has byes", async () => {
-    // 3 teams: bracketSize=4, round1Count=2, byes=1
-    // Top seed gets bye; remaining 2 paired
+  it("generates correct number of round-1 matches for KNOCKOUT with 3 teams", async () => {
+    // 3 teams: bracketSize=4, round1Count=2 → 2 round-1 matches + 1 final = 3 total
     mockTournamentFindFirst.mockResolvedValue(knockoutTournament);
     vi.mocked(readBody).mockResolvedValue({});
     mockMatchCount.mockResolvedValue(0);
     mockTeamFindMany.mockResolvedValue([{ id: "1" }, { id: "2" }, { id: "3" }]);
     mockFieldFindMany.mockResolvedValue([{ id: "f100" }]);
 
-    await handler(createMockEvent());
+    const result = await handler(createMockEvent());
 
+    expect(result).toMatchObject({ generated: 3 });
     const calls = mockMatchCreate.mock.calls.map((c) => c[0].data);
-    const round1Calls = calls.filter((d) => d.round === 1);
-    const byeMatch = round1Calls.find((m) => m.teamBId === null);
-    expect(byeMatch).toBeTruthy();
-    expect(byeMatch?.teamAId).toBe("1"); // top seed gets bye
+    calls.forEach((m) => {
+      expect(m.teamAId).toBeNull();
+      expect(m.teamBId).toBeNull();
+    });
   });
 
   it("deletes existing KO matches and regenerates when overwrite:true", async () => {
@@ -215,7 +211,7 @@ describe("POST /api/admin/ko-bracket/generate", () => {
     expect(mockMatchCreate).toHaveBeenCalled();
   });
 
-  it("generates KO matches from teams for KNOCKOUT tournament (no pools needed)", async () => {
+  it("generates KO bracket structure for KNOCKOUT tournament (no pools needed)", async () => {
     mockTournamentFindFirst.mockResolvedValue(knockoutTournament);
     vi.mocked(readBody).mockResolvedValue({});
     mockMatchCount.mockResolvedValue(0);
@@ -225,11 +221,13 @@ describe("POST /api/admin/ko-bracket/generate", () => {
     const result = await handler(createMockEvent());
 
     expect(mockPoolFindMany).not.toHaveBeenCalled();
-    expect(mockMatchCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({ phase: "KO", round: 1 }),
-    });
-    // 4 teams → 3 total matches (2 round-1 + 1 final)
+    // 4 teams → 3 total matches (2 round-1 + 1 final), all with null teams
     expect(result).toMatchObject({ generated: 3 });
+    const calls = mockMatchCreate.mock.calls.map((c) => c[0].data);
+    calls.forEach((m) => {
+      expect(m.teamAId).toBeNull();
+      expect(m.teamBId).toBeNull();
+    });
   });
 
   it("returns 400 for KNOCKOUT tournament with fewer than 2 teams", async () => {
@@ -269,7 +267,7 @@ describe("POST /api/admin/ko-bracket/generate", () => {
     expect(calls[0].startTime).toEqual(knockoutTournament.startTime);
   });
 
-  it("advances only teamsAdvancing teams per pool", async () => {
+  it("uses teamsAdvancing per pool to compute bracket size", async () => {
     mockTournamentFindFirst.mockResolvedValue(baseTournament);
     vi.mocked(readBody).mockResolvedValue({});
     mockMatchCount.mockResolvedValue(0);
@@ -281,15 +279,11 @@ describe("POST /api/admin/ko-bracket/generate", () => {
 
     const result = await handler(createMockEvent());
 
-    // 4 qualifiers (2 per pool) → bracketSize=4 → 3 total matches
+    // 4 qualifiers (2 per pool) → bracketSize=4 → 3 total matches, all with null teams
     const round1Calls = mockMatchCreate.mock.calls
       .map((c) => c[0].data)
       .filter((d) => d.round === 1);
     expect(round1Calls).toHaveLength(2);
-    // Only teams 1,2,4,5 qualify (not 3 or 6)
-    const teamIds = round1Calls.flatMap((m) => [m.teamAId, m.teamBId]).filter(Boolean);
-    expect(teamIds).not.toContain("3");
-    expect(teamIds).not.toContain("6");
     expect(result).toMatchObject({ generated: 3 });
   });
 });

@@ -32,18 +32,37 @@ const showOverwrite = ref(false);
 const tournamentType = ref("");
 const lastPoolMatchTime = ref<string | null>(null);
 
+const fillTeamsLoading = ref(false);
+const fillTeamsError = ref("");
+const fillTeamsSuccess = ref("");
+
 const swapMatchId = ref<string | null>(null);
 const swapTeamAId = ref<string>("");
 const swapTeamBId = ref<string>("");
 const swapError = ref("");
 const swapSuccess = ref("");
 const rankedTournamentTeams = ref<Team[]>([]);
+const allTeams = ref<Team[]>([]);
+
+const hasStructure = computed(() => matches.value.length > 0);
+const hasTeams = computed(() =>
+  matches.value.some((m) => m.teamAId !== null || m.teamBId !== null),
+);
+
+function getRoundLabel(round: number, totalRounds: number): string {
+  const fromEnd = totalRounds - round;
+  const labels = nl.admin.koBracket.roundLabels;
+  if (fromEnd === 0) return labels.final;
+  if (fromEnd === 1) return labels.semifinal;
+  if (fromEnd === 2) return labels.quarterfinal;
+  if (fromEnd === 3) return labels.r8;
+  return labels.r16;
+}
 
 async function fetchMatches() {
   try {
     matches.value = await $fetch<KoMatch[]>("/api/admin/ko-bracket/matches");
   } catch {
-    // no matches yet is fine
     matches.value = [];
   }
 }
@@ -56,9 +75,9 @@ async function generate(overwrite = false) {
     return;
   }
   if (
-    tournamentType.value === "COMBINATION" &&
-    lastPoolMatchTime.value &&
-    generateStartDateTime.value <= new Date(lastPoolMatchTime.value)
+    tournamentType.value === "COMBINATION"
+    && lastPoolMatchTime.value
+    && generateStartDateTime.value <= new Date(lastPoolMatchTime.value)
   ) {
     generateError.value = nl.admin.koBracket.koStartAfterPool;
     return;
@@ -90,6 +109,22 @@ async function generate(overwrite = false) {
     }
   } finally {
     generateLoading.value = false;
+  }
+}
+
+async function fillTeams() {
+  fillTeamsError.value = "";
+  fillTeamsSuccess.value = "";
+  fillTeamsLoading.value = true;
+  try {
+    await $fetch("/api/admin/ko-bracket/fill-teams", { method: "POST" });
+    fillTeamsSuccess.value = nl.admin.koBracket.fillTeamsSuccess;
+    await fetchMatches();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    fillTeamsError.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    fillTeamsLoading.value = false;
   }
 }
 
@@ -154,8 +189,6 @@ function matchCount(r: number): number {
 function spanCount(r: number): number {
   return Math.pow(2, r - 1);
 }
-
-const allTeams = ref<Team[]>([]);
 
 const swapWinningTeams = computed(() => rankedTournamentTeams.value);
 
@@ -222,244 +255,215 @@ onMounted(async () => {
         {{ nl.admin.koBracket.title }}
       </h1>
     </div>
-      <div
-        class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
+
+    <!-- Step 1: Generate structure -->
+    <div class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+      <h2 class="mb-3 font-semibold text-text">
+        {{ nl.admin.koBracket.generateStep }}
+      </h2>
+      <div class="mb-4">
+        <label class="mb-1 block text-sm font-medium text-text" for="ko-start">
+          {{ nl.admin.koBracket.startDateTime }}
+        </label>
+        <ClientOnly>
+          <VueDatePicker
+            v-model="generateStartDateTime"
+            :formats="{ input: 'dd/MM/yyyy HH:mm' }"
+            :enable-time-picker="true"
+            :is24="true"
+            auto-apply
+            :locale="nlBE"
+          />
+        </ClientOnly>
+      </div>
+
+      <p v-if="generateError" class="mb-2 text-sm text-error">
+        {{ generateError }}
+      </p>
+      <p v-if="generateSuccess" class="mb-2 text-sm text-success">
+        {{ generateSuccess }}
+      </p>
+
+      <div v-if="showOverwrite" class="mb-3 flex gap-2">
+        <button
+          :disabled="generateLoading"
+          class="rounded bg-error px-4 py-2 font-medium text-white hover:bg-red-700 disabled:opacity-50"
+          @click="generate(true)"
+        >
+          {{ nl.common.confirm }}
+        </button>
+        <button
+          class="rounded border border-gray-300 px-4 py-2 text-text hover:bg-gray-100"
+          @click="showOverwrite = false; generateError = ''"
+        >
+          {{ nl.common.cancel }}
+        </button>
+      </div>
+
+      <button
+        v-else
+        :disabled="generateLoading"
+        class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+        @click="generate()"
       >
-        <div class="mb-4">
-          <label
-            class="mb-1 block text-sm font-medium text-text"
-            for="ko-start"
+        {{ nl.admin.koBracket.generate }}
+      </button>
+    </div>
+
+    <!-- Step 2: Fill teams (only if structure exists) -->
+    <div v-if="hasStructure" class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+      <h2 class="mb-3 font-semibold text-text">
+        {{ nl.admin.koBracket.fillTeamsStep }}
+      </h2>
+      <p v-if="fillTeamsError" class="mb-2 text-sm text-error">
+        {{ fillTeamsError }}
+      </p>
+      <p v-if="fillTeamsSuccess" class="mb-2 text-sm text-success">
+        {{ fillTeamsSuccess }}
+      </p>
+      <button
+        :disabled="fillTeamsLoading"
+        :class="hasTeams ? 'bg-secondary' : 'bg-success'"
+        class="rounded px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50"
+        @click="fillTeams"
+      >
+        {{ nl.admin.koBracket.fillTeams }}
+      </button>
+    </div>
+
+    <!-- Swap teams panel -->
+    <div
+      v-if="swapMatchId"
+      class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
+    >
+      <h2 class="mb-3 font-semibold text-text">
+        {{ nl.admin.koBracket.swapTeams }}
+      </h2>
+      <p v-if="swapError" class="mb-2 text-sm text-error">
+        {{ swapError }}
+      </p>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div>
+          <label class="mb-1 block text-sm text-text-light">{{ nl.ref.matches.scoreA }}</label>
+          <select
+            v-model="swapTeamAId"
+            class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
           >
-            {{ nl.admin.koBracket.startDateTime }}
-          </label>
-          <ClientOnly>
-            <VueDatePicker
-              v-model="generateStartDateTime"
-              :formats="{ input: 'dd/MM/yyyy HH:mm' }"
-              :enable-time-picker="true"
-              :is24="true"
-              auto-apply
-              :locale="nlBE"
-            />
-          </ClientOnly>
+            <template v-if="tournamentType === 'KO'">
+              <option v-for="team in allTeams" :key="team.id" :value="team.id">
+                {{ team.name }}
+              </option>
+            </template>
+            <template v-else>
+              <optgroup v-if="swapWinningTeams.length" :label="nl.admin.koBracket.winningTeams">
+                <option v-for="team in swapWinningTeams" :key="team.id" :value="team.id">
+                  {{ team.name }}
+                </option>
+              </optgroup>
+              <optgroup v-if="swapNonKoTeams.length" :label="nl.admin.koBracket.otherTeams">
+                <option v-for="team in swapNonKoTeams" :key="team.id" :value="team.id">
+                  {{ team.name }}
+                </option>
+              </optgroup>
+            </template>
+          </select>
         </div>
-
-        <p v-if="generateError" class="mb-2 text-sm text-error">
-          {{ generateError }}
-        </p>
-        <p v-if="generateSuccess" class="mb-2 text-sm text-success">
-          {{ generateSuccess }}
-        </p>
-
-        <div v-if="showOverwrite" class="mb-3 flex gap-2">
-          <button
-            :disabled="generateLoading"
-            class="rounded bg-error px-4 py-2 font-medium text-white hover:bg-red-700 disabled:opacity-50"
-            @click="generate(true)"
+        <div>
+          <label class="mb-1 block text-sm text-text-light">{{ nl.ref.matches.scoreB }}</label>
+          <select
+            v-model="swapTeamBId"
+            class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
           >
-            {{ nl.common.confirm }}
+            <template v-if="tournamentType === 'KO'">
+              <option v-for="team in allTeams" :key="team.id" :value="team.id">
+                {{ team.name }}
+              </option>
+            </template>
+            <template v-else>
+              <optgroup v-if="swapWinningTeams.length" :label="nl.admin.koBracket.winningTeams">
+                <option v-for="team in swapWinningTeams" :key="team.id" :value="team.id">
+                  {{ team.name }}
+                </option>
+              </optgroup>
+              <optgroup v-if="swapNonKoTeams.length" :label="nl.admin.koBracket.otherTeams">
+                <option v-for="team in swapNonKoTeams" :key="team.id" :value="team.id">
+                  {{ team.name }}
+                </option>
+              </optgroup>
+            </template>
+          </select>
+        </div>
+        <div class="flex gap-2">
+          <button
+            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
+            @click="saveSwap"
+          >
+            {{ nl.admin.schedule.saveMatch }}
           </button>
           <button
             class="rounded border border-gray-300 px-4 py-2 text-text hover:bg-gray-100"
-            @click="
-              showOverwrite = false;
-              generateError = '';
-            "
+            @click="swapMatchId = null"
           >
             {{ nl.common.cancel }}
           </button>
         </div>
-
-        <button
-          v-else
-          :disabled="generateLoading"
-          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-          @click="generate()"
-        >
-          {{ nl.admin.koBracket.generate }}
-        </button>
       </div>
+    </div>
 
+    <div v-if="round1Count === 0" class="text-center text-text-light">
+      {{ nl.common.noResults }}
+    </div>
+
+    <div
+      v-else
+      class="overflow-x-auto rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
+    >
       <div
-        v-if="swapMatchId"
-        class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
+        :style="{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${round1Count}, minmax(140px, 1fr))`,
+          gap: '8px',
+        }"
       >
-        <h2 class="mb-3 font-semibold text-text">
-          {{ nl.admin.koBracket.swapTeams }}
-        </h2>
-        <p v-if="swapError" class="mb-2 text-sm text-error">
-          {{ swapError }}
-        </p>
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div>
-            <label class="mb-1 block text-sm text-text-light">{{
-              nl.ref.matches.scoreA
-            }}</label>
-            <select
-              v-model="swapTeamAId"
-              class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+        <template v-for="r in totalRounds" :key="`row-${r}`">
+          <template v-for="idx in matchCount(r)" :key="`r${r}-m${idx}`">
+            <div
+              :style="{ gridRow: r, gridColumn: `span ${spanCount(r)}` }"
+              class="flex flex-col rounded border border-gray-200 bg-background p-3"
             >
-              <template v-if="tournamentType === 'KO'">
-                <option
-                  v-for="team in allTeams"
-                  :key="team.id"
-                  :value="team.id"
-                >
-                  {{ team.name }}
-                </option>
-              </template>
-              <template v-else>
-                <optgroup
-                  v-if="swapWinningTeams.length"
-                  :label="nl.admin.koBracket.winningTeams"
-                >
-                  <option
-                    v-for="team in swapWinningTeams"
-                    :key="team.id"
-                    :value="team.id"
-                  >
-                    {{ team.name }}
-                  </option>
-                </optgroup>
-                <optgroup
-                  v-if="swapNonKoTeams.length"
-                  :label="nl.admin.koBracket.otherTeams"
-                >
-                  <option
-                    v-for="team in swapNonKoTeams"
-                    :key="team.id"
-                    :value="team.id"
-                  >
-                    {{ team.name }}
-                  </option>
-                </optgroup>
-              </template>
-            </select>
-          </div>
-          <div>
-            <label class="mb-1 block text-sm text-text-light">{{
-              nl.ref.matches.scoreB
-            }}</label>
-            <select
-              v-model="swapTeamBId"
-              class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-            >
-              <template v-if="tournamentType === 'KO'">
-                <option
-                  v-for="team in allTeams"
-                  :key="team.id"
-                  :value="team.id"
-                >
-                  {{ team.name }}
-                </option>
-              </template>
-              <template v-else>
-                <optgroup
-                  v-if="swapWinningTeams.length"
-                  :label="nl.admin.koBracket.winningTeams"
-                >
-                  <option
-                    v-for="team in swapWinningTeams"
-                    :key="team.id"
-                    :value="team.id"
-                  >
-                    {{ team.name }}
-                  </option>
-                </optgroup>
-                <optgroup
-                  v-if="swapNonKoTeams.length"
-                  :label="nl.admin.koBracket.otherTeams"
-                >
-                  <option
-                    v-for="team in swapNonKoTeams"
-                    :key="team.id"
-                    :value="team.id"
-                  >
-                    {{ team.name }}
-                  </option>
-                </optgroup>
-              </template>
-            </select>
-          </div>
-          <div class="flex gap-2">
-            <button
-              class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
-              @click="saveSwap"
-            >
-              {{ nl.admin.schedule.saveMatch }}
-            </button>
-            <button
-              class="rounded border border-gray-300 px-4 py-2 text-text hover:bg-gray-100"
-              @click="swapMatchId = null"
-            >
-              {{ nl.common.cancel }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="round1Count === 0" class="text-center text-text-light">
-        {{ nl.common.noResults }}
-      </div>
-
-      <div
-        v-else
-        class="overflow-x-auto rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
-      >
-        <div
-          :style="{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${round1Count}, minmax(140px, 1fr))`,
-            gap: '8px',
-          }"
-        >
-          <template v-for="r in totalRounds" :key="`row-${r}`">
-            <template v-for="idx in matchCount(r)" :key="`r${r}-m${idx}`">
-              <div
-                :style="{ gridRow: r, gridColumn: `span ${spanCount(r)}` }"
-                class="flex flex-col rounded border border-gray-200 bg-background p-3"
-              >
-                <div class="mb-2 text-xs font-semibold text-text-light">
-                  {{ nl.admin.koBracket.round }} {{ r }}
-                </div>
-                <template v-if="getMatch(r, idx)">
-                  <span class="text-sm font-medium text-text">
-                    {{
-                      getMatch(r, idx)!.teamA?.name ?? nl.admin.koBracket.tbd
-                    }}
-                  </span>
-                  <span class="my-1 text-center text-xs text-text-light"
-                    >vs</span
-                  >
-                  <span class="text-sm font-medium text-text">
-                    {{
-                      getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd
-                    }}
-                  </span>
-                  <div class="mt-2 text-xs text-text-light">
-                    {{ getMatch(r, idx)!.field.name }}
-                  </div>
-                  <div class="mt-1 text-right">
-                    <button
-                      v-if="getMatch(r, idx)!.status !== 'PLAYED'"
-                      class="text-xs text-primary hover:underline"
-                      @click="startSwap(getMatch(r, idx)!)"
-                    >
-                      {{ nl.admin.koBracket.swapTeams }}
-                    </button>
-                  </div>
-                </template>
-                <template v-else>
-                  <div
-                    class="flex grow items-center justify-center text-sm text-text-light"
-                  >
-                    {{ nl.admin.koBracket.tbd }}
-                  </div>
-                </template>
+              <div class="mb-2 text-xs font-semibold text-primary">
+                {{ getRoundLabel(r, totalRounds) }}
               </div>
-            </template>
+              <template v-if="getMatch(r, idx)">
+                <span class="text-sm font-medium text-text">
+                  {{ getMatch(r, idx)!.teamA?.name ?? nl.admin.koBracket.tbd }}
+                </span>
+                <span class="my-1 text-center text-xs text-text-light">vs</span>
+                <span class="text-sm font-medium text-text">
+                  {{ getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd }}
+                </span>
+                <div class="mt-2 text-xs text-text-light">
+                  {{ getMatch(r, idx)!.field.name }}
+                </div>
+                <div class="mt-1 text-right">
+                  <button
+                    v-if="getMatch(r, idx)!.status !== 'PLAYED'"
+                    class="text-xs text-primary hover:underline"
+                    @click="startSwap(getMatch(r, idx)!)"
+                  >
+                    {{ nl.admin.koBracket.swapTeams }}
+                  </button>
+                </div>
+              </template>
+              <template v-else>
+                <div class="flex grow items-center justify-center text-sm text-text-light">
+                  {{ nl.admin.koBracket.tbd }}
+                </div>
+              </template>
+            </div>
           </template>
-        </div>
+        </template>
       </div>
+    </div>
   </main>
 </template>
