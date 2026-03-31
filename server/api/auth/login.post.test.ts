@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import bcrypt from 'bcrypt'
 
 const mockPrismaUserFindFirst = vi.hoisted(() => vi.fn())
+const mockPrismaUserUpdate = vi.hoisted(() => vi.fn())
 const mockReplaceUserSession = vi.hoisted(() => vi.fn())
 const mockCheckRateLimit = vi.hoisted(() => vi.fn())
 const mockResetRateLimitForIp = vi.hoisted(() => vi.fn())
@@ -21,6 +22,7 @@ vi.mock('~/server/utils/prisma', () => ({
   prisma: {
     user: {
       findFirst: mockPrismaUserFindFirst,
+      update: mockPrismaUserUpdate,
     },
   },
 }))
@@ -132,6 +134,45 @@ describe('POST /api/auth/login', () => {
       await expect(loginHandler(event)).rejects.toMatchObject({
         statusCode: 401,
       })
+    })
+
+    it('returns needsPasswordSetup when referee has no password', async () => {
+      mockPrismaUserFindFirst.mockResolvedValue({
+        id: 'u2', name: 'Jan', role: 'REFEREE', password: null,
+      })
+      const event = createMockEvent({ name: 'Jan', password: 'newpass' })
+
+      const result = await loginHandler(event)
+
+      expect(result).toEqual({ needsPasswordSetup: true })
+      expect(mockReplaceUserSession).not.toHaveBeenCalled()
+    })
+
+    it('sets password and creates session when setPassword is true and password is null', async () => {
+      mockPrismaUserFindFirst.mockResolvedValue({
+        id: 'u2', name: 'Jan', role: 'REFEREE', password: null,
+      })
+      mockPrismaUserUpdate.mockResolvedValue({ id: 'u2', name: 'Jan', role: 'REFEREE' })
+      const event = createMockEvent({ name: 'Jan', password: 'newpass', setPassword: true })
+
+      const result = await loginHandler(event)
+
+      expect(mockPrismaUserUpdate).toHaveBeenCalledWith({
+        where: { id: 'u2' },
+        data: { password: expect.any(String) },
+      })
+      expect(mockReplaceUserSession).toHaveBeenCalled()
+      expect(result).toMatchObject({ user: { id: 'u2', name: 'Jan', role: 'REFEREE' } })
+    })
+
+    it('rejects setPassword when referee already has a password', async () => {
+      const hashedPassword = await bcrypt.hash('existing', 10)
+      mockPrismaUserFindFirst.mockResolvedValue({
+        id: 'u2', name: 'Jan', role: 'REFEREE', password: hashedPassword,
+      })
+      const event = createMockEvent({ name: 'Jan', password: 'newpass', setPassword: true })
+
+      await expect(loginHandler(event)).rejects.toMatchObject({ statusCode: 409 })
     })
   })
 

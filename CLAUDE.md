@@ -32,6 +32,19 @@ A full-stack Dutch-language web app for managing and displaying a single-day Kub
 | `npx prisma migrate dev` | Apply schema changes (dev) |
 | `npx prisma migrate deploy` | Apply migrations (production) |
 
+## HOW — File Editing
+
+When modifying code, **always use proper tools** — never shell scripts:
+
+| Task | Tool | Example |
+|---|---|---|
+| Read file contents | `Read()` | `Read("src/app.ts")` |
+| Edit specific lines | `Edit()` | `Edit(file, old_string, new_string)` |
+| Create new file | `Write()` | `Write(file, content)` |
+| Search files | `Grep()` or `Glob()` | `Grep("pattern", type: "ts")` |
+
+**Never use:** `node -e`, `sed`, `awk`, shell redirects, or file-system scripts for code changes. These hide changes from review and are error-prone. Use `Edit()` for surgical replacements — it fails loudly if the target string isn't found.
+
 ## HOW — External tools
 
 | Command | Purpose |

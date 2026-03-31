@@ -28,8 +28,10 @@ export function useAuth() {
   }
 
   async function logout() {
+    const { user } = useUserSession()
+    const isAdmin = user.value?.role === 'ADMIN'
     await $fetch('/api/auth/logout', { method: 'POST' })
-    await navigateTo('/login')
+    await navigateTo(isAdmin ? '/admin/admin-login' : '/ref/login')
   }
 
   return { login, logout, loading, error }

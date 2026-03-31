@@ -12,7 +12,6 @@ interface Referee {
 
 const referees = ref<Referee[]>([])
 const newName = ref('')
-const newPassword = ref('')
 const error = ref('')
 const loading = ref(false)
 const isLoading = ref(true)
@@ -28,16 +27,15 @@ async function fetchReferees() {
 }
 
 async function addReferee() {
-  if (!newName.value.trim() || !newPassword.value) return
+  if (!newName.value.trim()) return
   error.value = ''
   loading.value = true
   try {
     await $fetch('/api/admin/referees', {
       method: 'POST',
-      body: { name: newName.value.trim(), password: newPassword.value },
+      body: { name: newName.value.trim() },
     })
     newName.value = ''
-    newPassword.value = ''
     await fetchReferees()
   }
   catch (err: unknown) {
@@ -46,6 +44,17 @@ async function addReferee() {
   }
   finally {
     loading.value = false
+  }
+}
+
+async function resetPassword(id: string) {
+  error.value = ''
+  try {
+    await $fetch(`/api/admin/referees/${id}/reset-password` as string, { method: 'POST' })
+  }
+  catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } }
+    error.value = fetchErr?.data?.data?.error || nl.common.error
   }
 }
 
@@ -78,16 +87,6 @@ onMounted(fetchReferees)
             class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
           >
         </div>
-        <div class="flex-1">
-          <label class="mb-1 block text-sm font-medium text-text" for="ref-pass">{{ nl.auth.password }}</label>
-          <input
-            id="ref-pass"
-            v-model="newPassword"
-            type="password"
-            required
-            class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          >
-        </div>
         <button
           type="submit"
           :disabled="loading"
@@ -111,12 +110,20 @@ onMounted(fetchReferees)
           class="flex items-center justify-between rounded-lg bg-surface p-4 shadow-sm"
         >
           <span class="font-medium text-text">{{ referee.name }}</span>
-          <button
-            class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700"
-            @click="deleteReferee(referee.id)"
-          >
-            {{ nl.common.delete }}
-          </button>
+          <div class="flex gap-2">
+            <button
+              class="rounded bg-secondary px-3 py-1 text-sm text-white hover:opacity-80"
+              @click="resetPassword(referee.id)"
+            >
+              {{ nl.auth.resetPassword }}
+            </button>
+            <button
+              class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700"
+              @click="deleteReferee(referee.id)"
+            >
+              {{ nl.common.delete }}
+            </button>
+          </div>
         </li>
         <li v-if="referees.length === 0" class="text-text-light">
           {{ nl.common.noResults }}

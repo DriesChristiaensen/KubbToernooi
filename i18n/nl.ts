@@ -32,6 +32,11 @@ export const nl = {
     name: "Naam",
     loginFailed: "Inloggen mislukt. Controleer je gegevens.",
     sessionExpired: "Je sessie is verlopen. Log opnieuw in.",
+    showPassword: "Wachtwoord tonen",
+    hidePassword: "Wachtwoord verbergen",
+    noPasswordSet: "Nog geen wachtwoord ingesteld. Wilt u het ingevoerde wachtwoord opslaan?",
+    resetPassword: "Reset wachtwoord",
+    passwordSetSuccess: "Wachtwoord ingesteld. U bent nu ingelogd.",
   },
 
   admin: {

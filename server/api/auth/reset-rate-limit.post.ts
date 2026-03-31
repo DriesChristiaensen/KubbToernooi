@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const valid = await bcrypt.compare(body.password, admin.password)
+  const valid = await bcrypt.compare(body.password, admin.password!)
   if (!valid) {
     throw createApiError({
       error: 'Ongeldig wachtwoord',
