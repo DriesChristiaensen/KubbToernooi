@@ -20,9 +20,6 @@
     "seed:clear": "npx tsx prisma/seed.ts clear",
     "reset-rate-limit": "npx tsx scripts/reset-rate-limit.ts"
   },
-  "prisma": {
-    "seed": "npx tsx prisma/seed.ts combined"
-  },
   "dependencies": {
     "@prisma/client": "^6.19.2",
     "@vuepic/vue-datepicker": "^12.1.0",
