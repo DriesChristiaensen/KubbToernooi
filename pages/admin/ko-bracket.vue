@@ -4,7 +4,7 @@ import { VueDatePicker } from "@vuepic/vue-datepicker";
 import { nlBE } from "date-fns/locale";
 import { nl } from "~/i18n/nl";
 
-definePageMeta({ middleware: "auth", layout: "admin" });
+definePageMeta({ middleware: ["auth", "admin-tournament-guard"], layout: "admin" });
 
 interface Team {
   id: string;

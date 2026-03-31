@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { nl } from '~/i18n/nl'
 
-definePageMeta({ middleware: 'auth', layout: 'admin' })
+definePageMeta({ middleware: ['auth', 'admin-tournament-guard'], layout: 'admin' })
 
 interface Referee {
   id: string

@@ -17,80 +17,119 @@ interface Tournament {
   pointsLoss: number;
 }
 
-interface PoolTeam {
-  team: { id: string; name: string };
-}
-
-interface Pool {
+interface InactiveTournament {
   id: string;
   name: string;
-  teamsAdvancing: number;
-  poolTeams: PoolTeam[];
+  type: string;
+  status: string;
+  createdAt: string;
 }
 
 const tournament = ref<Tournament | null>(null);
-const pools = ref<Pool[]>([]);
+const inactiveTournaments = ref<InactiveTournament[]>([]);
 const isLoading = ref(true);
-const settingsError = ref("");
-const settingsSuccess = ref("");
-const settingsLoading = ref(false);
+const showWizard = ref(false);
+const showReplaceConfirm = ref(false);
+const showRestoreScreen = ref(false);
+
+const wizardStep = ref(1);
+const createError = ref("");
+const createLoading = ref(false);
+
 const publishLoading = ref(false);
 const publishError = ref("");
 
-const poolCount = ref<number | null>(null);
-const poolGenError = ref("");
-const poolGenSuccess = ref("");
-const poolGenLoading = ref(false);
-const showPoolOverwrite = ref(false);
+const restoreError = ref("");
+const restoreLoading = ref<string | null>(null);
+const deleteLoading = ref<string | null>(null);
 
-const editingPool = ref<Pool | null>(null);
-const poolError = ref("");
+const form = ref({
+  name: "",
+  type: "COMBINATION",
+  startTime: "",
+  matchDuration: 15,
+  breakTime: 5,
+  pointsWin: 3,
+  pointsDraw: 1,
+  pointsLoss: 0,
+  fieldCount: 4,
+});
 
-const hasPools = computed(() =>
-  tournament.value?.type === "POOLS" || tournament.value?.type === "COMBINATION",
+const typeOptions = [
+  { value: "POOLS", label: nl.admin.tournament.typePool },
+  { value: "KNOCKOUT", label: nl.admin.tournament.typeKnockout },
+  { value: "COMBINATION", label: nl.admin.tournament.typeCombination },
+];
+
+const step1Valid = computed(() =>
+  form.value.name.trim().length > 0
+  && form.value.startTime.length > 0
+  && form.value.matchDuration >= 1,
 );
+
+const step2Valid = computed(() => form.value.fieldCount >= 1);
 
 async function fetchTournament() {
   try {
     tournament.value = await $fetch<Tournament>("/api/admin/tournament");
   } catch {
-    settingsError.value = nl.admin.tournament.notFound;
-  } finally {
-    isLoading.value = false;
+    tournament.value = null;
   }
 }
 
-async function fetchPools() {
+async function fetchInactive() {
   try {
-    pools.value = await $fetch<Pool[]>("/api/admin/pools");
+    inactiveTournaments.value = await $fetch<InactiveTournament[]>("/api/admin/tournaments/inactive");
   } catch {
-    poolError.value = nl.common.error;
+    inactiveTournaments.value = [];
   }
 }
 
-async function saveSettings() {
-  if (!tournament.value) return;
-  settingsError.value = "";
-  settingsSuccess.value = "";
-  settingsLoading.value = true;
+function openWizard() {
+  if (tournament.value) {
+    showReplaceConfirm.value = true;
+  } else {
+    startWizard();
+  }
+}
+
+function startWizard() {
+  showReplaceConfirm.value = false;
+  wizardStep.value = 1;
+  createError.value = "";
+  showWizard.value = true;
+}
+
+function cancelWizard() {
+  showWizard.value = false;
+  createError.value = "";
+}
+
+async function createTournament() {
+  createError.value = "";
+  createLoading.value = true;
   try {
-    await $fetch("/api/admin/tournament", {
-      method: "PATCH",
+    tournament.value = await $fetch<Tournament>("/api/admin/tournament", {
+      method: "POST",
       body: {
-        type: tournament.value.type,
-        pointsWin: tournament.value.pointsWin,
-        pointsDraw: tournament.value.pointsDraw,
-        pointsLoss: tournament.value.pointsLoss,
-        matchDuration: tournament.value.matchDuration,
-        breakTime: tournament.value.breakTime,
+        name: form.value.name.trim(),
+        type: form.value.type,
+        startTime: form.value.startTime,
+        matchDuration: form.value.matchDuration,
+        breakTime: form.value.breakTime,
+        pointsWin: form.value.pointsWin,
+        pointsDraw: form.value.pointsDraw,
+        pointsLoss: form.value.pointsLoss,
+        fieldCount: form.value.fieldCount,
       },
     });
-    settingsSuccess.value = nl.admin.tournament.saveSuccess;
+    showWizard.value = false;
+    await fetchInactive();
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
-    settingsError.value = fetchErr?.data?.data?.error || nl.common.error;
+    createError.value = fetchErr?.data?.data?.error || nl.common.error;
   } finally {
-    settingsLoading.value = false;
+    createLoading.value = false;
   }
 }
 
@@ -113,79 +152,40 @@ async function togglePublish() {
   }
 }
 
-async function generatePools(overwrite = false) {
-  poolGenError.value = "";
-  poolGenSuccess.value = "";
-  showPoolOverwrite.value = false;
-  if (!poolCount.value || poolCount.value <= 0) {
-    poolGenError.value = nl.admin.pools.poolCountRequired;
-    return;
-  }
-  poolGenLoading.value = true;
+async function restoreTournament(id: string) {
+  if (!confirm(nl.admin.tournament.restoreConfirm)) return;
+  restoreError.value = "";
+  restoreLoading.value = id;
   try {
-    const result = await $fetch<{ generated: number }>("/api/admin/pools/generate", {
-      method: "POST",
-      body: { poolCount: poolCount.value, overwrite },
-    });
-    poolCount.value = null;
-    poolGenSuccess.value = `${result.generated} ${nl.admin.pools.generated}`;
-    await fetchPools();
+    await $fetch(`/api/admin/tournaments/${id}/restore`, { method: "POST" });
+    await fetchTournament();
+    await fetchInactive();
   } catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string; code?: number } } };
-    if (fetchErr?.data?.data?.code === 409) {
-      showPoolOverwrite.value = true;
-      poolGenError.value = nl.admin.pools.existingWarning;
-    } else {
-      poolGenError.value = fetchErr?.data?.data?.error || nl.common.error;
-    }
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    restoreError.value = fetchErr?.data?.data?.error || nl.common.error;
   } finally {
-    poolGenLoading.value = false;
+    restoreLoading.value = null;
   }
 }
 
-function startEditPool(pool: Pool) {
-  editingPool.value = { ...pool, poolTeams: [...pool.poolTeams] };
-}
-
-function cancelEditPool() {
-  editingPool.value = null;
-  poolError.value = "";
-}
-
-async function savePool() {
-  if (!editingPool.value) return;
-  poolError.value = "";
+async function deleteTournament(id: string) {
+  if (!confirm(nl.admin.tournament.deleteConfirm)) return;
+  restoreError.value = "";
+  deleteLoading.value = id;
   try {
-    await $fetch(`/api/admin/pools/${editingPool.value.id}` as string, {
-      method: "PUT",
-      body: {
-        name: editingPool.value.name,
-        teamsAdvancing: editingPool.value.teamsAdvancing,
-      },
-    });
-    editingPool.value = null;
-    await fetchPools();
+    await $fetch(`/api/admin/tournaments/${id}`, { method: "DELETE" });
+    await fetchInactive();
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
-    poolError.value = fetchErr?.data?.data?.error || nl.common.error;
-  }
-}
-
-async function deletePool(pool: Pool) {
-  if (!confirm(nl.admin.pools.deleteConfirm)) return;
-  poolError.value = "";
-  try {
-    await $fetch(`/api/admin/pools/${pool.id}` as string, { method: "DELETE" });
-    await fetchPools();
-  } catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string } } };
-    poolError.value = fetchErr?.data?.data?.error || nl.common.error;
+    restoreError.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    deleteLoading.value = null;
   }
 }
 
 onMounted(async () => {
-  await fetchTournament();
-  await fetchPools();
+  await Promise.all([fetchTournament(), fetchInactive()]);
+  isLoading.value = false;
 });
 </script>
 
@@ -199,77 +199,101 @@ onMounted(async () => {
         {{ nl.admin.tournament.title }}
       </h1>
     </div>
-      <p v-if="isLoading" class="text-text">
-        {{ nl.common.loading }}
-      </p>
-      <p v-else-if="!tournament" class="text-error">
-        {{ nl.admin.tournament.notFound }}
-      </p>
 
-      <template v-if="tournament">
-        <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
-          <h2 class="mb-4 font-semibold text-text">
-            {{ nl.admin.tournament.title }}
-          </h2>
+    <p v-if="isLoading" class="text-text">
+      {{ nl.common.loading }}
+    </p>
+
+    <template v-else>
+      <!-- Replace confirmation -->
+      <div
+        v-if="showReplaceConfirm"
+        class="mb-6 rounded-lg border border-warning bg-warning/10 p-4"
+      >
+        <p class="mb-3 font-medium text-text">
+          {{ nl.admin.tournament.replaceConfirm }}
+        </p>
+        <div class="flex gap-2">
+          <button
+            class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            @click="startWizard"
+          >
+            {{ nl.common.confirm }}
+          </button>
+          <button
+            class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="showReplaceConfirm = false"
+          >
+            {{ nl.common.cancel }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Creation wizard -->
+      <div v-if="showWizard" class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+        <div class="mb-4 flex items-center gap-2">
+          <span
+            v-for="step in 2"
+            :key="step"
+            :class="wizardStep >= step ? 'bg-primary text-white' : 'bg-gray-200 text-text-light'"
+            class="flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium"
+          >
+            {{ step }}
+          </span>
+          <span class="ml-2 font-semibold text-text">
+            {{ wizardStep === 1 ? nl.admin.tournament.wizardStep1 : nl.admin.tournament.wizardStep2 }}
+          </span>
+        </div>
+
+        <!-- Step 1: Tournament settings -->
+        <template v-if="wizardStep === 1">
+          <div class="mb-3">
+            <label class="mb-1 block text-sm font-medium text-text" for="t-name">
+              {{ nl.admin.tournament.name }}
+            </label>
+            <input
+              id="t-name"
+              v-model="form.name"
+              type="text"
+              required
+              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            >
+          </div>
 
           <div class="mb-3">
-            <label class="mb-1 block text-sm font-medium text-text" for="tour-type">
+            <label class="mb-1 block text-sm font-medium text-text" for="t-type">
               {{ nl.admin.tournament.type }}
             </label>
             <select
-              id="tour-type"
-              v-model="tournament.type"
+              id="t-type"
+              v-model="form.type"
               class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
             >
-              <option value="POOLS">{{ nl.admin.tournament.typePool }}</option>
-              <option value="KNOCKOUT">{{ nl.admin.tournament.typeKnockout }}</option>
-              <option value="COMBINATION">{{ nl.admin.tournament.typeCombination }}</option>
+              <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
             </select>
           </div>
 
-          <div class="mb-3 grid gap-3 md:grid-cols-3">
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text">
-                {{ nl.admin.tournament.pointsWin }}
-              </label>
-              <input
-                v-model.number="tournament.pointsWin"
-                type="number"
-                min="0"
-                class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-              >
-            </div>
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text">
-                {{ nl.admin.tournament.pointsDraw }}
-              </label>
-              <input
-                v-model.number="tournament.pointsDraw"
-                type="number"
-                min="0"
-                class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-              >
-            </div>
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text">
-                {{ nl.admin.tournament.pointsLoss }}
-              </label>
-              <input
-                v-model.number="tournament.pointsLoss"
-                type="number"
-                min="0"
-                class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-              >
-            </div>
+          <div class="mb-3">
+            <label class="mb-1 block text-sm font-medium text-text" for="t-start">
+              {{ nl.admin.tournament.startTime }}
+            </label>
+            <input
+              id="t-start"
+              v-model="form.startTime"
+              type="datetime-local"
+              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            >
           </div>
 
-          <div class="mb-4 grid gap-3 md:grid-cols-2">
+          <div class="mb-3 grid gap-3 md:grid-cols-2">
             <div>
               <label class="mb-1 block text-sm font-medium text-text">
                 {{ nl.admin.tournament.matchDuration }}
               </label>
               <input
-                v-model.number="tournament.matchDuration"
+                v-model.number="form.matchDuration"
                 type="number"
                 min="1"
                 class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
@@ -280,7 +304,7 @@ onMounted(async () => {
                 {{ nl.admin.tournament.breakTime }}
               </label>
               <input
-                v-model.number="tournament.breakTime"
+                v-model.number="form.breakTime"
                 type="number"
                 min="0"
                 class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
@@ -288,170 +312,175 @@ onMounted(async () => {
             </div>
           </div>
 
-          <p v-if="settingsError" class="mb-2 text-sm text-error">
-            {{ settingsError }}
-          </p>
-          <p v-if="settingsSuccess" class="mb-2 text-sm text-success">
-            {{ settingsSuccess }}
-          </p>
-          <div class="flex flex-wrap items-center gap-3">
-            <button
-              :disabled="settingsLoading"
-              class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-              @click="saveSettings"
-            >
-              {{ nl.admin.tournament.save }}
-            </button>
-
-            <span class="text-sm font-medium text-text-light">
-              {{ tournament.status === 'LIVE' ? nl.admin.tournament.statusLive : nl.admin.tournament.statusDraft }}
-            </span>
-
-            <button
-              :disabled="publishLoading"
-              :class="tournament.status === 'LIVE'
-                ? 'bg-secondary hover:opacity-80'
-                : 'bg-success hover:opacity-80'"
-              class="rounded px-4 py-2 font-medium text-white disabled:opacity-50"
-              @click="togglePublish"
-            >
-              {{ tournament.status === 'LIVE' ? nl.admin.tournament.unpublish : nl.admin.tournament.publish }}
-            </button>
-
-            <p v-if="publishError" class="text-sm text-error">
-              {{ publishError }}
-            </p>
-          </div>
-        </section>
-
-        <section v-if="hasPools" class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
-          <h2 class="mb-4 font-semibold text-text">
-            {{ nl.admin.pools.title }}
-          </h2>
-
-          <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
-            <div class="flex-1">
-              <label class="mb-1 block text-sm font-medium text-text" for="pool-count">
-                {{ nl.admin.pools.poolCount }}
-              </label>
-              <input
-                id="pool-count"
-                v-model.number="poolCount"
-                type="number"
-                min="1"
-                class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-              >
+          <div class="mb-4 grid gap-3 md:grid-cols-3">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.tournament.pointsWin }}</label>
+              <input v-model.number="form.pointsWin" type="number" min="0" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
             </div>
-            <button
-              :disabled="poolGenLoading"
-              class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-              @click="generatePools(false)"
-            >
-              {{ nl.admin.pools.generateButton }}
-            </button>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.tournament.pointsDraw }}</label>
+              <input v-model.number="form.pointsDraw" type="number" min="0" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.tournament.pointsLoss }}</label>
+              <input v-model.number="form.pointsLoss" type="number" min="0" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
+            </div>
           </div>
 
-          <p v-if="poolGenError" class="mb-2 text-sm text-error">
-            {{ poolGenError }}
-          </p>
-          <p v-if="poolGenSuccess" class="mb-2 text-sm text-success">
-            {{ poolGenSuccess }}
-          </p>
-          <div v-if="showPoolOverwrite" class="mb-4 flex gap-2">
+          <div class="flex gap-2">
             <button
-              class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-              @click="generatePools(true)"
+              :disabled="!step1Valid"
+              class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              @click="wizardStep = 2"
             >
-              {{ nl.common.confirm }}
+              {{ nl.admin.tournament.wizardNext }}
             </button>
             <button
-              class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
-              @click="showPoolOverwrite = false; poolGenError = ''"
+              class="rounded bg-secondary px-4 py-2 font-medium text-white hover:opacity-80"
+              @click="cancelWizard"
             >
               {{ nl.common.cancel }}
             </button>
           </div>
+        </template>
 
-          <p v-if="poolError" class="mb-2 text-sm text-error">
-            {{ poolError }}
+        <!-- Step 2: Fields -->
+        <template v-if="wizardStep === 2">
+          <div class="mb-4">
+            <label class="mb-1 block text-sm font-medium text-text" for="t-fields">
+              {{ nl.admin.tournament.fieldCount }}
+            </label>
+            <input
+              id="t-fields"
+              v-model.number="form.fieldCount"
+              type="number"
+              min="1"
+              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            >
+          </div>
+
+          <p v-if="createError" class="mb-2 text-sm text-error">
+            {{ createError }}
           </p>
 
-          <ul class="space-y-3">
-            <li
-              v-for="pool in pools"
-              :key="pool.id"
-              class="rounded-lg border border-gray-200 p-4"
+          <div class="flex gap-2">
+            <button
+              class="rounded bg-secondary px-4 py-2 font-medium text-white hover:opacity-80"
+              @click="wizardStep = 1"
             >
-              <template v-if="editingPool?.id === pool.id">
-                <div class="flex flex-col gap-2">
-                  <input
-                    v-model="editingPool.name"
-                    type="text"
-                    class="rounded border border-gray-300 px-3 py-1 text-text focus:border-primary focus:outline-none"
-                  >
-                  <div class="flex items-center gap-2">
-                    <label class="text-sm text-text">{{ nl.admin.pools.teamsAdvancing }}</label>
-                    <input
-                      v-model.number="editingPool.teamsAdvancing"
-                      type="number"
-                      min="1"
-                      class="w-20 rounded border border-gray-300 px-2 py-1 text-text focus:border-primary focus:outline-none"
-                    >
-                  </div>
-                  <div class="flex gap-2">
-                    <button
-                      class="rounded bg-success px-3 py-1 text-sm text-white hover:opacity-80"
-                      @click="savePool"
-                    >
-                      {{ nl.common.save }}
-                    </button>
-                    <button
-                      class="rounded bg-secondary px-3 py-1 text-sm text-white hover:opacity-80"
-                      @click="cancelEditPool"
-                    >
-                      {{ nl.common.cancel }}
-                    </button>
-                  </div>
-                </div>
-              </template>
-              <template v-else>
-                <div class="flex items-start justify-between">
-                  <div>
-                    <p class="font-semibold text-text">{{ pool.name }}</p>
-                    <p v-if="tournament.type === 'COMBINATION'" class="text-sm text-text-light">
-                      {{ nl.admin.pools.teamsAdvancing }}: {{ pool.teamsAdvancing }}
-                    </p>
-                    <ul class="mt-1 text-sm text-text-light">
-                      <li v-if="pool.poolTeams.length === 0">
-                        {{ nl.admin.pools.noTeams }}
-                      </li>
-                      <li v-for="pt in pool.poolTeams" :key="pt.team.id">
-                        {{ pt.team.name }}
-                      </li>
-                    </ul>
-                  </div>
-                  <div class="flex gap-2">
-                    <button
-                      class="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary-dark"
-                      @click="startEditPool(pool)"
-                    >
-                      {{ nl.common.edit }}
-                    </button>
-                    <button
-                      class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700"
-                      @click="deletePool(pool)"
-                    >
-                      {{ nl.common.delete }}
-                    </button>
-                  </div>
-                </div>
-              </template>
-            </li>
-            <li v-if="pools.length === 0" class="text-text-light">
-              {{ nl.common.noResults }}
+              {{ nl.admin.tournament.wizardBack }}
+            </button>
+            <button
+              :disabled="!step2Valid || createLoading"
+              class="rounded bg-success px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50"
+              @click="createTournament"
+            >
+              {{ nl.admin.tournament.wizardCreate }}
+            </button>
+            <button
+              class="rounded bg-secondary px-4 py-2 font-medium text-white hover:opacity-80"
+              @click="cancelWizard"
+            >
+              {{ nl.common.cancel }}
+            </button>
+          </div>
+        </template>
+      </div>
+
+      <!-- Current tournament info -->
+      <section v-if="tournament && !showWizard" class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+        <h2 class="mb-3 font-semibold text-text">
+          {{ nl.admin.tournament.currentTournament }}
+        </h2>
+        <dl class="mb-4 grid gap-2 text-sm md:grid-cols-2">
+          <div><dt class="text-text-light">{{ nl.admin.tournament.name }}</dt><dd class="font-medium text-text">{{ tournament.name }}</dd></div>
+          <div><dt class="text-text-light">{{ nl.admin.tournament.type }}</dt><dd class="font-medium text-text">{{ typeOptions.find(o => o.value === tournament!.type)?.label }}</dd></div>
+          <div><dt class="text-text-light">{{ nl.admin.tournament.matchDuration }}</dt><dd class="font-medium text-text">{{ tournament.matchDuration }} min</dd></div>
+          <div><dt class="text-text-light">{{ nl.admin.tournament.breakTime }}</dt><dd class="font-medium text-text">{{ tournament.breakTime }} min</dd></div>
+          <div><dt class="text-text-light">{{ nl.admin.tournament.pointsWin }} / {{ nl.admin.tournament.pointsDraw }} / {{ nl.admin.tournament.pointsLoss }}</dt><dd class="font-medium text-text">{{ tournament.pointsWin }} / {{ tournament.pointsDraw }} / {{ tournament.pointsLoss }}</dd></div>
+          <div><dt class="text-text-light">Status</dt><dd class="font-medium" :class="tournament.status === 'LIVE' ? 'text-success' : 'text-warning'">{{ tournament.status === 'LIVE' ? nl.admin.tournament.statusLive : nl.admin.tournament.statusDraft }}</dd></div>
+        </dl>
+        <div class="flex flex-wrap gap-2">
+          <button
+            :disabled="publishLoading"
+            :class="tournament.status === 'LIVE' ? 'bg-secondary' : 'bg-success'"
+            class="rounded px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50"
+            @click="togglePublish"
+          >
+            {{ tournament.status === 'LIVE' ? nl.admin.tournament.unpublish : nl.admin.tournament.publish }}
+          </button>
+          <button
+            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
+            @click="openWizard"
+          >
+            {{ nl.admin.tournament.createNew }}
+          </button>
+        </div>
+        <p v-if="publishError" class="mt-2 text-sm text-error">
+          {{ publishError }}
+        </p>
+      </section>
+
+      <!-- No tournament -->
+      <div v-if="!tournament && !showWizard" class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+        <p class="mb-3 text-text-light">
+          {{ nl.admin.tournament.notFound }}
+        </p>
+        <button
+          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
+          @click="openWizard"
+        >
+          {{ nl.admin.tournament.createNew }}
+        </button>
+      </div>
+
+      <!-- Restore screen toggle -->
+      <div v-if="inactiveTournaments.length > 0 || showRestoreScreen" class="rounded-lg bg-surface p-4 shadow-sm">
+        <button
+          class="mb-3 flex items-center gap-2 font-semibold text-text hover:text-primary"
+          @click="showRestoreScreen = !showRestoreScreen"
+        >
+          {{ nl.admin.tournament.restoreTitle }}
+          <span class="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-text-light">{{ inactiveTournaments.length }}</span>
+        </button>
+
+        <template v-if="showRestoreScreen">
+          <p v-if="inactiveTournaments.length === 0" class="text-sm text-text-light">
+            {{ nl.admin.tournament.noInactive }}
+          </p>
+          <p v-if="restoreError" class="mb-2 text-sm text-error">
+            {{ restoreError }}
+          </p>
+          <ul class="space-y-2">
+            <li
+              v-for="t in inactiveTournaments"
+              :key="t.id"
+              class="flex items-center justify-between rounded border border-gray-200 p-3"
+            >
+              <div>
+                <p class="font-medium text-text">{{ t.name }}</p>
+                <p class="text-xs text-text-light">{{ typeOptions.find(o => o.value === t.type)?.label }}</p>
+              </div>
+              <div class="flex gap-2">
+                <button
+                  :disabled="restoreLoading === t.id"
+                  class="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary-dark disabled:opacity-50"
+                  @click="restoreTournament(t.id)"
+                >
+                  {{ nl.admin.tournament.restoreButton }}
+                </button>
+                <button
+                  :disabled="deleteLoading === t.id"
+                  class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                  @click="deleteTournament(t.id)"
+                >
+                  {{ nl.admin.tournament.deleteButton }}
+                </button>
+              </div>
             </li>
           </ul>
-        </section>
-      </template>
+        </template>
+      </div>
+    </template>
   </main>
 </template>

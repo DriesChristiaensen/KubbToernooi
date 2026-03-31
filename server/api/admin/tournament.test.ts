@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockTournamentFindFirst = vi.hoisted(() => vi.fn());
 const mockTournamentUpdate = vi.hoisted(() => vi.fn());
+const mockTournamentUpdateMany = vi.hoisted(() => vi.fn());
+const mockTournamentCreate = vi.hoisted(() => vi.fn());
+const mockFieldCreateMany = vi.hoisted(() => vi.fn());
 
 vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("readBody", vi.fn());
@@ -17,6 +20,11 @@ vi.mock("~/server/utils/prisma", () => ({
     tournament: {
       findFirst: mockTournamentFindFirst,
       update: mockTournamentUpdate,
+      updateMany: mockTournamentUpdateMany,
+      create: mockTournamentCreate,
+    },
+    field: {
+      createMany: mockFieldCreateMany,
     },
   },
 }));
@@ -27,6 +35,7 @@ vi.mock("~/server/utils/logger", () => ({
 
 const { default: getTournamentHandler } = await import("./tournament.get");
 const { default: patchTournamentHandler } = await import("./tournament.patch");
+const { default: postTournamentHandler } = await import("./tournament.post");
 
 function createMockEvent(overrides: any = {}) {
   return {
@@ -65,62 +74,16 @@ describe("GET /api/admin/tournament", () => {
   });
 });
 
-describe("PATCH /api/admin/tournament", () => {
+describe("PATCH /api/admin/tournament (status only)", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 404 when no tournament exists", async () => {
     mockTournamentFindFirst.mockResolvedValue(null);
-    vi.mocked(readBody).mockResolvedValue({ type: "POOLS" });
+    vi.mocked(readBody).mockResolvedValue({ status: "LIVE" });
 
     await expect(patchTournamentHandler(createMockEvent())).rejects.toThrow(
       "No tournament found",
     );
-  });
-
-  it("returns 400 when type is invalid", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
-    vi.mocked(readBody).mockResolvedValue({ type: "INVALID_TYPE" });
-
-    await expect(patchTournamentHandler(createMockEvent())).rejects.toThrow(
-      "Invalid tournament type",
-    );
-  });
-
-  it("updates tournament type successfully", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
-    vi.mocked(readBody).mockResolvedValue({ type: "POOLS" });
-    mockTournamentUpdate.mockResolvedValue({ id: "t1", type: "POOLS" });
-
-    const result = await patchTournamentHandler(createMockEvent());
-
-    expect(mockTournamentUpdate).toHaveBeenCalledWith({
-      where: { id: "t1" },
-      data: expect.objectContaining({ type: "POOLS" }),
-    });
-    expect(result).toMatchObject({ type: "POOLS" });
-  });
-
-  it("updates point values successfully", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
-    vi.mocked(readBody).mockResolvedValue({
-      pointsWin: 2,
-      pointsDraw: 1,
-      pointsLoss: 0,
-    });
-    mockTournamentUpdate.mockResolvedValue({
-      id: "t1",
-      pointsWin: 2,
-      pointsDraw: 1,
-      pointsLoss: 0,
-    });
-
-    const result = await patchTournamentHandler(createMockEvent());
-
-    expect(mockTournamentUpdate).toHaveBeenCalledWith({
-      where: { id: "t1" },
-      data: expect.objectContaining({ pointsWin: 2 }),
-    });
-    expect(result).toMatchObject({ pointsWin: 2 });
   });
 
   it("returns 400 when status is invalid", async () => {
@@ -141,7 +104,7 @@ describe("PATCH /api/admin/tournament", () => {
 
     expect(mockTournamentUpdate).toHaveBeenCalledWith({
       where: { id: "t1" },
-      data: expect.objectContaining({ status: "LIVE" }),
+      data: { status: "LIVE" },
     });
     expect(result).toMatchObject({ status: "LIVE" });
   });
@@ -155,8 +118,72 @@ describe("PATCH /api/admin/tournament", () => {
 
     expect(mockTournamentUpdate).toHaveBeenCalledWith({
       where: { id: "t1" },
-      data: expect.objectContaining({ status: "DRAFT" }),
+      data: { status: "DRAFT" },
     });
     expect(result).toMatchObject({ status: "DRAFT" });
+  });
+});
+
+describe("POST /api/admin/tournament", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const validBody = {
+    name: "Kubb 2025",
+    type: "COMBINATION",
+    startTime: "2025-08-15T09:00:00Z",
+    matchDuration: 15,
+    breakTime: 5,
+    pointsWin: 3,
+    pointsDraw: 1,
+    pointsLoss: 0,
+    fieldCount: 3,
+  };
+
+  it("creates a tournament and fields when no active tournament exists", async () => {
+    mockTournamentFindFirst.mockResolvedValue(null);
+    mockTournamentCreate.mockResolvedValue({ id: "t2", name: "Kubb 2025", type: "COMBINATION" });
+    mockFieldCreateMany.mockResolvedValue({ count: 3 });
+    vi.mocked(readBody).mockResolvedValue(validBody);
+    const event = createMockEvent();
+
+    const result = await postTournamentHandler(event);
+
+    expect(mockTournamentUpdateMany).not.toHaveBeenCalled();
+    expect(mockTournamentCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ name: "Kubb 2025", type: "COMBINATION" }),
+    });
+    expect(mockFieldCreateMany).toHaveBeenCalled();
+    expect(result).toMatchObject({ name: "Kubb 2025" });
+  });
+
+  it("soft-deletes active tournament before creating a new one", async () => {
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    mockTournamentUpdateMany.mockResolvedValue({ count: 1 });
+    mockTournamentCreate.mockResolvedValue({ id: "t2", name: "Kubb 2025", type: "COMBINATION" });
+    mockFieldCreateMany.mockResolvedValue({ count: 3 });
+    vi.mocked(readBody).mockResolvedValue(validBody);
+    const event = createMockEvent();
+
+    await postTournamentHandler(event);
+
+    expect(mockTournamentUpdateMany).toHaveBeenCalledWith({
+      where: { isActive: true },
+      data: { isActive: false },
+    });
+  });
+
+  it("rejects missing name", async () => {
+    vi.mocked(readBody).mockResolvedValue({ ...validBody, name: "" });
+    await expect(postTournamentHandler(createMockEvent())).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it("rejects invalid type", async () => {
+    vi.mocked(readBody).mockResolvedValue({ ...validBody, type: "INVALID" });
+    await expect(postTournamentHandler(createMockEvent())).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it("rejects invalid fieldCount", async () => {
+    vi.mocked(readBody).mockResolvedValue({ ...validBody, fieldCount: 0 });
+    await expect(postTournamentHandler(createMockEvent())).rejects.toMatchObject({ statusCode: 400 });
   });
 });
