@@ -12,7 +12,7 @@ The following order respects dependencies:
 | -------- | ------------------------------------ | --------------------------------------------------------------------------------- |
 | 1        | T1.1 ✅ DONE, T1.2 ✅ DONE, T1.3 ✅ DONE | Database schema changes (GUID, soft-delete, tournament name) — impacts everything |
 | 2        | T3.1 ✅ DONE, T3.2 ✅ DONE, T3.3 ✅ DONE, T3.4 ✅ DONE | UI shell (header, footer, mobile nav, banner) — used by all pages     |
-| 3        | T2.1, T2.2, T2.3, T2.4, T2.5         | Auth flow changes (separate logins, ref password flow, navigation)                |
+| 3        | T2.1 ✅ DONE, T2.2 ✅ DONE, T2.3 ✅ DONE, T2.4 ✅ DONE, T2.5 ✅ DONE | Auth flow changes (separate logins, ref password flow, navigation) |
 | 4        | T4.1, T4.2, T4.3, T4.4, T10.1, T10.2 | Tournament config (wizard, restore, redirect, ref management)                     |
 | 5        | T5.1, T5.2                           | Pool management (separate page, team assignment UI)                               |
 | 6        | T6.1, T6.2, T6.3                     | KO bracket management (separate page, two-step generation, labels)                |
@@ -47,7 +47,7 @@ The following order respects dependencies:
 
 ## 2. Authentication & Login Flow
 
-### T2.1 — Separate Login Screens
+### T2.1 ✅ DONE — Separate Login Screens
 
 - **Admin login:** Dedicated page at `/admin/admin-login`. This is the only way to access admin routes.
 - **Referee login:** Dedicated page at `/ref/login`.
@@ -55,22 +55,22 @@ The following order respects dependencies:
   - `/ref` → redirect to `/ref/login` if not authenticated.
   - `/admin` → return an Unauthorized error if not authenticated (do **not** redirect to login — the admin login page is at a separate, non-obvious URL).
 
-### T2.2 — Referee Password Flow
+### T2.2 ✅ DONE — Referee Password Flow
 
 - Admin creates referee accounts **without a password** (name only).
 - On first login, the referee enters a chosen password. The system prompts: "Nog geen wachtwoord ingesteld. Wilt u het ingevoerde wachtwoord opslaan?" with confirm/cancel.
 - On confirmation, the password is hashed and stored.
 - Admin has a "Reset wachtwoord" button per referee in the referee management screen. After reset, the referee goes through the first-login flow again.
 
-### T2.3 — Password Visibility Toggle
+### T2.3 ✅ DONE — Password Visibility Toggle
 
 - On both login screens (admin and referee), add an eye icon button next to the password field to toggle between hidden and visible password.
 
-### T2.4 — Logged-In User Display
+### T2.4 ✅ DONE — Logged-In User Display
 
 - Show the logged-in user's name in the top-right corner of the header bar.
 
-### T2.5 — Logged-In User Navigation
+### T2.5 ✅ DONE — Logged-In User Navigation
 
 - Logged-in users get a navigation menu matching their role:
   - **Referee:** links to `/ref` and `/` (public pages).
