@@ -43,8 +43,8 @@ describe('GET /api/admin/referees', () => {
 
   it('returns list of referees without passwords', async () => {
     mockPrismaUserFindMany.mockResolvedValue([
-      { id: 2, name: 'Jan', role: 'REFEREE', createdAt: new Date(), updatedAt: new Date(), password: 'hash' },
-      { id: 3, name: 'Piet', role: 'REFEREE', createdAt: new Date(), updatedAt: new Date(), password: 'hash' },
+      { id: 'u2', name: 'Jan', role: 'REFEREE', createdAt: new Date(), updatedAt: new Date(), password: 'hash' },
+      { id: 'u3', name: 'Piet', role: 'REFEREE', createdAt: new Date(), updatedAt: new Date(), password: 'hash' },
     ])
     const event = createMockEvent()
 
@@ -64,7 +64,7 @@ describe('POST /api/admin/referees', () => {
   it('creates a new referee with hashed password', async () => {
     vi.mocked(readBody).mockResolvedValue({ name: 'Jan', password: 'ref123' })
     mockPrismaUserFindFirst.mockResolvedValue(null)
-    mockPrismaUserCreate.mockResolvedValue({ id: 2, name: 'Jan', role: 'REFEREE' })
+    mockPrismaUserCreate.mockResolvedValue({ id: 'u2', name: 'Jan', role: 'REFEREE' })
     const event = createMockEvent()
 
     const result = await createRefereeHandler(event)
@@ -82,7 +82,7 @@ describe('POST /api/admin/referees', () => {
 
   it('rejects duplicate referee name', async () => {
     vi.mocked(readBody).mockResolvedValue({ name: 'Jan', password: 'ref123' })
-    mockPrismaUserFindFirst.mockResolvedValue({ id: 2, name: 'Jan' })
+    mockPrismaUserFindFirst.mockResolvedValue({ id: 'u2', name: 'Jan' })
     const event = createMockEvent()
 
     await expect(createRefereeHandler(event)).rejects.toMatchObject({
@@ -113,18 +113,18 @@ describe('DELETE /api/admin/referees/:id', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('deletes a referee by id', async () => {
-    vi.mocked(getRouterParam).mockReturnValue('2')
-    mockPrismaUserDelete.mockResolvedValue({ id: 2 })
+    vi.mocked(getRouterParam).mockReturnValue('u2')
+    mockPrismaUserDelete.mockResolvedValue({ id: 'u2' })
     const event = createMockEvent()
 
     const result = await deleteRefereeHandler(event)
 
-    expect(mockPrismaUserDelete).toHaveBeenCalledWith({ where: { id: 2, role: 'REFEREE' } })
+    expect(mockPrismaUserDelete).toHaveBeenCalledWith({ where: { id: 'u2', role: 'REFEREE' } })
     expect(result).toEqual({ success: true })
   })
 
-  it('rejects non-numeric id', async () => {
-    vi.mocked(getRouterParam).mockReturnValue('abc')
+  it('rejects empty id', async () => {
+    vi.mocked(getRouterParam).mockReturnValue('')
     const event = createMockEvent()
 
     await expect(deleteRefereeHandler(event)).rejects.toMatchObject({

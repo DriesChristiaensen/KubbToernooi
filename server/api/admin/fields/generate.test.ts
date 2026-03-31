@@ -54,7 +54,7 @@ describe("POST /api/admin/fields/generate", () => {
   });
 
   it("returns 400 when count is missing", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({});
 
     await expect(generateHandler(createMockEvent())).rejects.toThrow(
@@ -63,7 +63,7 @@ describe("POST /api/admin/fields/generate", () => {
   });
 
   it("returns 400 when count is zero", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ count: 0 });
 
     await expect(generateHandler(createMockEvent())).rejects.toThrow(
@@ -72,7 +72,7 @@ describe("POST /api/admin/fields/generate", () => {
   });
 
   it("returns 400 when count is negative", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ count: -2 });
 
     await expect(generateHandler(createMockEvent())).rejects.toThrow(
@@ -81,7 +81,7 @@ describe("POST /api/admin/fields/generate", () => {
   });
 
   it("returns 400 when count is not a number", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ count: "abc" });
 
     await expect(generateHandler(createMockEvent())).rejects.toThrow(
@@ -90,9 +90,9 @@ describe("POST /api/admin/fields/generate", () => {
   });
 
   it("returns 409 when existing fields exist and overwrite is false", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ count: 3 });
-    mockFieldFindMany.mockResolvedValue([{ id: 1, name: "Veld 1" }]);
+    mockFieldFindMany.mockResolvedValue([{ id: "f1", name: "Veld 1" }]);
 
     await expect(generateHandler(createMockEvent())).rejects.toThrow(
       "Fields already exist",
@@ -100,7 +100,7 @@ describe("POST /api/admin/fields/generate", () => {
   });
 
   it("generates fields when no existing fields", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ count: 3 });
     mockFieldFindMany.mockResolvedValue([]);
     mockFieldCreateMany.mockResolvedValue({ count: 3 });
@@ -109,30 +109,30 @@ describe("POST /api/admin/fields/generate", () => {
 
     expect(mockFieldCreateMany).toHaveBeenCalledWith({
       data: [
-        { name: "Veld 1", tournamentId: 1 },
-        { name: "Veld 2", tournamentId: 1 },
-        { name: "Veld 3", tournamentId: 1 },
+        { name: "Veld 1", tournamentId: "t1" },
+        { name: "Veld 2", tournamentId: "t1" },
+        { name: "Veld 3", tournamentId: "t1" },
       ],
     });
     expect(result).toEqual({ generated: 3 });
   });
 
   it("deletes existing fields and regenerates when overwrite is true", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ count: 2, overwrite: true });
-    mockFieldFindMany.mockResolvedValue([{ id: 1, name: "Veld 1" }]);
+    mockFieldFindMany.mockResolvedValue([{ id: "f1", name: "Veld 1" }]);
     mockFieldDeleteMany.mockResolvedValue({ count: 1 });
     mockFieldCreateMany.mockResolvedValue({ count: 2 });
 
     const result = await generateHandler(createMockEvent());
 
     expect(mockFieldDeleteMany).toHaveBeenCalledWith({
-      where: { tournamentId: 1 },
+      where: { tournamentId: "t1" },
     });
     expect(mockFieldCreateMany).toHaveBeenCalledWith({
       data: [
-        { name: "Veld 1", tournamentId: 1 },
-        { name: "Veld 2", tournamentId: 1 },
+        { name: "Veld 1", tournamentId: "t1" },
+        { name: "Veld 2", tournamentId: "t1" },
       ],
     });
     expect(result).toEqual({ generated: 2 });

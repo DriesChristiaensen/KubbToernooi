@@ -3,10 +3,9 @@ import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
 
 export default defineEventHandler(async (event) => {
-  const idParam = getRouterParam(event, "id");
-  const id = Number(idParam);
+  const id = getRouterParam(event, "id");
 
-  if (Number.isNaN(id)) {
+  if (!id) {
     throw createApiError({
       error: "Ongeldig ID",
       code: 400,

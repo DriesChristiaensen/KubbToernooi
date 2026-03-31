@@ -75,20 +75,20 @@ describe("GET /api/admin/pools", () => {
   });
 
   it("returns pools with teams", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     mockPoolFindMany.mockResolvedValue([
       {
-        id: 1,
+        id: "p1",
         name: "Poule A",
         teamsAdvancing: 2,
-        poolTeams: [{ team: { id: 1, name: "Team A" } }],
+        poolTeams: [{ team: { id: "1", name: "Team A" } }],
       },
     ]);
 
     const result = await getPoolsHandler(createMockEvent());
 
     expect(mockPoolFindMany).toHaveBeenCalledWith({
-      where: { tournamentId: 1 },
+      where: { tournamentId: "t1" },
       include: { poolTeams: { include: { team: true } } },
       orderBy: { name: "asc" },
     });
@@ -110,7 +110,7 @@ describe("POST /api/admin/pools/generate", () => {
   });
 
   it("returns 400 when poolCount is invalid", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ poolCount: 0 });
 
     await expect(generatePoolsHandler(createMockEvent())).rejects.toThrow(
@@ -119,9 +119,9 @@ describe("POST /api/admin/pools/generate", () => {
   });
 
   it("returns 400 when not enough teams", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ poolCount: 3 });
-    mockTeamFindMany.mockResolvedValue([{ id: 1, name: "Team A" }]);
+    mockTeamFindMany.mockResolvedValue([{ id: "1", name: "Team A" }]);
     mockPoolFindMany.mockResolvedValue([]);
 
     await expect(generatePoolsHandler(createMockEvent())).rejects.toThrow(
@@ -130,13 +130,13 @@ describe("POST /api/admin/pools/generate", () => {
   });
 
   it("returns 409 when pools exist and overwrite is false", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ poolCount: 2 });
     mockTeamFindMany.mockResolvedValue([
-      { id: 1, name: "Team A" },
-      { id: 2, name: "Team B" },
+      { id: "1", name: "Team A" },
+      { id: "2", name: "Team B" },
     ]);
-    mockPoolFindMany.mockResolvedValue([{ id: 1, name: "Poule A" }]);
+    mockPoolFindMany.mockResolvedValue([{ id: "p1", name: "Poule A" }]);
 
     await expect(generatePoolsHandler(createMockEvent())).rejects.toThrow(
       "Pools already exist",
@@ -144,18 +144,18 @@ describe("POST /api/admin/pools/generate", () => {
   });
 
   it("generates pools successfully", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ poolCount: 2 });
     mockTeamFindMany.mockResolvedValue([
-      { id: 1, name: "Team A" },
-      { id: 2, name: "Team B" },
-      { id: 3, name: "Team C" },
-      { id: 4, name: "Team D" },
+      { id: "1", name: "Team A" },
+      { id: "2", name: "Team B" },
+      { id: "3", name: "Team C" },
+      { id: "4", name: "Team D" },
     ]);
     mockPoolFindMany.mockResolvedValue([]);
     mockPoolCreate
-      .mockResolvedValueOnce({ id: 1, name: "Poule A" })
-      .mockResolvedValueOnce({ id: 2, name: "Poule B" });
+      .mockResolvedValueOnce({ id: "p1", name: "Poule A" })
+      .mockResolvedValueOnce({ id: "p2", name: "Poule B" });
     mockPoolTeamCreateMany.mockResolvedValue({ count: 2 });
 
     const result = await generatePoolsHandler(createMockEvent());
@@ -165,25 +165,25 @@ describe("POST /api/admin/pools/generate", () => {
   });
 
   it("deletes existing pools when overwrite is true", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ poolCount: 2, overwrite: true });
     mockTeamFindMany.mockResolvedValue([
-      { id: 1, name: "Team A" },
-      { id: 2, name: "Team B" },
-      { id: 3, name: "Team C" },
-      { id: 4, name: "Team D" },
+      { id: "1", name: "Team A" },
+      { id: "2", name: "Team B" },
+      { id: "3", name: "Team C" },
+      { id: "4", name: "Team D" },
     ]);
-    mockPoolFindMany.mockResolvedValue([{ id: 1, name: "Poule A" }]);
+    mockPoolFindMany.mockResolvedValue([{ id: "p1", name: "Poule A" }]);
     mockPoolDeleteMany.mockResolvedValue({ count: 1 });
     mockPoolCreate
-      .mockResolvedValueOnce({ id: 2, name: "Poule A" })
-      .mockResolvedValueOnce({ id: 3, name: "Poule B" });
+      .mockResolvedValueOnce({ id: "p2", name: "Poule A" })
+      .mockResolvedValueOnce({ id: "p3", name: "Poule B" });
     mockPoolTeamCreateMany.mockResolvedValue({ count: 2 });
 
     await generatePoolsHandler(createMockEvent());
 
     expect(mockPoolDeleteMany).toHaveBeenCalledWith({
-      where: { tournamentId: 1 },
+      where: { tournamentId: "t1" },
     });
   });
 });
@@ -192,7 +192,7 @@ describe("PUT /api/admin/pools/:id", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 400 for invalid ID", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("abc");
+    vi.mocked(getRouterParam).mockReturnValue("");
 
     await expect(updatePoolHandler(createMockEvent())).rejects.toThrow(
       "Invalid pool ID",
@@ -200,8 +200,8 @@ describe("PUT /api/admin/pools/:id", () => {
   });
 
   it("returns 404 when pool not found", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    vi.mocked(getRouterParam).mockReturnValue("p1");
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ name: "Poule X" });
     mockPoolFindFirst.mockResolvedValue(null);
 
@@ -211,15 +211,15 @@ describe("PUT /api/admin/pools/:id", () => {
   });
 
   it("updates pool name and teamsAdvancing", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    vi.mocked(getRouterParam).mockReturnValue("p1");
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({
       name: "Poule X",
       teamsAdvancing: 1,
     });
-    mockPoolFindFirst.mockResolvedValue({ id: 1, name: "Poule A" });
+    mockPoolFindFirst.mockResolvedValue({ id: "p1", name: "Poule A" });
     mockPoolUpdate.mockResolvedValue({
-      id: 1,
+      id: "p1",
       name: "Poule X",
       teamsAdvancing: 1,
     });
@@ -227,30 +227,30 @@ describe("PUT /api/admin/pools/:id", () => {
     const result = await updatePoolHandler(createMockEvent());
 
     expect(mockPoolUpdate).toHaveBeenCalledWith({
-      where: { id: 1 },
+      where: { id: "p1" },
       data: expect.objectContaining({ name: "Poule X", teamsAdvancing: 1 }),
     });
     expect(result).toMatchObject({ name: "Poule X" });
   });
 
   it("reassigns teams when teamIds provided", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
-    vi.mocked(readBody).mockResolvedValue({ teamIds: [2, 3] });
-    mockPoolFindFirst.mockResolvedValue({ id: 1, name: "Poule A" });
-    mockPoolUpdate.mockResolvedValue({ id: 1, name: "Poule A" });
+    vi.mocked(getRouterParam).mockReturnValue("p1");
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    vi.mocked(readBody).mockResolvedValue({ teamIds: ["t2", "t3"] });
+    mockPoolFindFirst.mockResolvedValue({ id: "p1", name: "Poule A" });
+    mockPoolUpdate.mockResolvedValue({ id: "p1", name: "Poule A" });
     mockPoolTeamDeleteMany.mockResolvedValue({ count: 2 });
     mockPoolTeamCreateMany.mockResolvedValue({ count: 2 });
 
     await updatePoolHandler(createMockEvent());
 
     expect(mockPoolTeamDeleteMany).toHaveBeenCalledWith({
-      where: { poolId: 1 },
+      where: { poolId: "p1" },
     });
     expect(mockPoolTeamCreateMany).toHaveBeenCalledWith({
       data: [
-        { poolId: 1, teamId: 2 },
-        { poolId: 1, teamId: 3 },
+        { poolId: "p1", teamId: "t2" },
+        { poolId: "p1", teamId: "t3" },
       ],
     });
   });
@@ -260,7 +260,7 @@ describe("DELETE /api/admin/pools/:id", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 400 for invalid ID", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("abc");
+    vi.mocked(getRouterParam).mockReturnValue("");
 
     await expect(deletePoolHandler(createMockEvent())).rejects.toThrow(
       "Invalid pool ID",
@@ -268,12 +268,12 @@ describe("DELETE /api/admin/pools/:id", () => {
   });
 
   it("deletes pool successfully", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    mockPoolDelete.mockResolvedValue({ id: 1 });
+    vi.mocked(getRouterParam).mockReturnValue("p1");
+    mockPoolDelete.mockResolvedValue({ id: "p1" });
 
     const result = await deletePoolHandler(createMockEvent());
 
-    expect(mockPoolDelete).toHaveBeenCalledWith({ where: { id: 1 } });
+    expect(mockPoolDelete).toHaveBeenCalledWith({ where: { id: "p1" } });
     expect(result).toEqual({ success: true });
   });
 });

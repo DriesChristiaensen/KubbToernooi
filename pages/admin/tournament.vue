@@ -5,7 +5,7 @@ import { nl } from "~/i18n/nl";
 definePageMeta({ middleware: "auth" });
 
 interface Tournament {
-  id: number;
+  id: string;
   name: string;
   status: string;
   type: string;
@@ -18,11 +18,11 @@ interface Tournament {
 }
 
 interface PoolTeam {
-  team: { id: number; name: string };
+  team: { id: string; name: string };
 }
 
 interface Pool {
-  id: number;
+  id: string;
   name: string;
   teamsAdvancing: number;
   poolTeams: PoolTeam[];

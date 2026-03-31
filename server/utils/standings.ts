@@ -1,10 +1,10 @@
 import { prisma } from "~/server/utils/prisma";
 
-export async function recalculatePoolStandings(poolId: number): Promise<void> {
+export async function recalculatePoolStandings(poolId: string): Promise<void> {
   const [poolTeams, playedMatches, tournament] = await Promise.all([
     prisma.poolTeam.findMany({ where: { poolId } }),
     prisma.match.findMany({ where: { poolId, status: "PLAYED" } }),
-    prisma.tournament.findFirst({ orderBy: { id: "desc" } }),
+    prisma.tournament.findFirst({ where: { isActive: true }, orderBy: { createdAt: "desc" } }),
   ]);
 
   const pointsWin = tournament?.pointsWin ?? 3;

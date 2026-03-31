@@ -5,13 +5,13 @@ import { nl } from "~/i18n/nl";
 definePageMeta({ middleware: "auth" });
 
 interface Team {
-  id: number;
+  id: string;
   name: string;
 }
 
 const teams = ref<Team[]>([]);
 const newName = ref("");
-const editingId = ref<number | null>(null);
+const editingId = ref<string | null>(null);
 const editingName = ref("");
 const error = ref("");
 const loading = ref(false);

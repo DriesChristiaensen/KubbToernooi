@@ -35,27 +35,27 @@ const { default: handler } = await import("./matches.[id].patch");
 const slotTime = new Date("2025-06-01T09:00:00Z");
 
 function createMockEvent() {
-  return { _url: "/api/admin/schedule/matches/1", context: {} } as any;
+  return { _url: "/api/admin/schedule/matches/m1", context: {} } as any;
 }
 
 describe("PATCH /api/admin/schedule/matches/:id", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 404 when match not found", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
-    vi.mocked(getRouterParam).mockReturnValue("99");
-    vi.mocked(readBody).mockResolvedValue({ fieldId: 2 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    vi.mocked(getRouterParam).mockReturnValue("m99");
+    vi.mocked(readBody).mockResolvedValue({ fieldId: "f2" });
     mockMatchFindUnique.mockResolvedValue(null);
 
     await expect(handler(createMockEvent())).rejects.toThrow("Match not found");
   });
 
   it("returns 404 when field does not exist", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    vi.mocked(readBody).mockResolvedValue({ fieldId: 999 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    vi.mocked(getRouterParam).mockReturnValue("m1");
+    vi.mocked(readBody).mockResolvedValue({ fieldId: "f999" });
     mockMatchFindUnique.mockResolvedValue({
-      id: 1, fieldId: 1, startTime: slotTime, teamAId: 10, teamBId: 20,
+      id: "m1", fieldId: "f1", startTime: slotTime, teamAId: "t10", teamBId: "t20",
     });
     mockFieldFindFirst.mockResolvedValue(null);
 
@@ -63,35 +63,35 @@ describe("PATCH /api/admin/schedule/matches/:id", () => {
   });
 
   it("returns 409 when field is already booked at that time", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    vi.mocked(readBody).mockResolvedValue({ fieldId: 2, startTime: slotTime.toISOString() });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    vi.mocked(getRouterParam).mockReturnValue("m1");
+    vi.mocked(readBody).mockResolvedValue({ fieldId: "f2", startTime: slotTime.toISOString() });
     mockMatchFindUnique.mockResolvedValue({
-      id: 1, fieldId: 1, startTime: slotTime, teamAId: 10, teamBId: 20,
+      id: "m1", fieldId: "f1", startTime: slotTime, teamAId: "t10", teamBId: "t20",
     });
-    mockFieldFindFirst.mockResolvedValue({ id: 2 });
-    mockMatchFindMany.mockResolvedValue([{ id: 5, fieldId: 2, teamAId: 30, teamBId: 40 }]);
+    mockFieldFindFirst.mockResolvedValue({ id: "f2" });
+    mockMatchFindMany.mockResolvedValue([{ id: "m5", fieldId: "f2", teamAId: "t30", teamBId: "t40" }]);
 
     await expect(handler(createMockEvent())).rejects.toThrow("Conflict detected");
   });
 
   it("updates match field and time when no conflicts", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    vi.mocked(readBody).mockResolvedValue({ fieldId: 2, startTime: slotTime.toISOString() });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    vi.mocked(getRouterParam).mockReturnValue("m1");
+    vi.mocked(readBody).mockResolvedValue({ fieldId: "f2", startTime: slotTime.toISOString() });
     mockMatchFindUnique.mockResolvedValue({
-      id: 1, fieldId: 1, startTime: slotTime, teamAId: 10, teamBId: 20,
+      id: "m1", fieldId: "f1", startTime: slotTime, teamAId: "t10", teamBId: "t20",
     });
-    mockFieldFindFirst.mockResolvedValue({ id: 2 });
+    mockFieldFindFirst.mockResolvedValue({ id: "f2" });
     mockMatchFindMany.mockResolvedValue([]);
-    mockMatchUpdate.mockResolvedValue({ id: 1, fieldId: 2, startTime: slotTime });
+    mockMatchUpdate.mockResolvedValue({ id: "m1", fieldId: "f2", startTime: slotTime });
 
     const result = await handler(createMockEvent());
 
     expect(mockMatchUpdate).toHaveBeenCalledWith({
-      where: { id: 1 },
-      data: expect.objectContaining({ fieldId: 2 }),
+      where: { id: "m1" },
+      data: expect.objectContaining({ fieldId: "f2" }),
     });
-    expect(result).toMatchObject({ id: 1 });
+    expect(result).toMatchObject({ id: "m1" });
   });
 });

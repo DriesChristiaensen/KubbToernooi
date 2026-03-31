@@ -7,20 +7,20 @@ import { nl } from "~/i18n/nl";
 definePageMeta({ middleware: "auth" });
 
 interface Field {
-  id: number;
+  id: string;
   name: string;
 }
 
 interface Match {
-  id: number;
+  id: string;
   phase: string;
   round: number;
   startTime: string;
   status: string;
   field: Field;
-  teamA: { id: number; name: string };
-  teamB: { id: number; name: string };
-  pool: { id: number; name: string } | null;
+  teamA: { id: string; name: string };
+  teamB: { id: string; name: string };
+  pool: { id: string; name: string } | null;
 }
 
 const matches = ref<Match[]>([]);
@@ -32,7 +32,7 @@ const generateStartDateTime = ref<Date | null>(null);
 const showOverwrite = ref(false);
 
 const editingMatch = ref<Match | null>(null);
-const editFieldId = ref<number>(0);
+const editFieldId = ref<string>("");
 const editStartTime = ref<Date | null>(null);
 const editError = ref("");
 const editSuccess = ref("");

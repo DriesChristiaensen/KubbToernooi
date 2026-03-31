@@ -4,17 +4,17 @@ import { nl } from "~/i18n/nl";
 import { usePolling } from "~/composables/usePolling";
 
 interface Match {
-  id: number;
+  id: string;
   phase: string;
   round: number;
   startTime: string;
   status: string;
   scoreA: number | null;
   scoreB: number | null;
-  field: { id: number; name: string };
-  teamA: { id: number; name: string };
-  teamB: { id: number; name: string };
-  pool: { id: number; name: string } | null;
+  field: { id: string; name: string };
+  teamA: { id: string; name: string };
+  teamB: { id: string; name: string };
+  pool: { id: string; name: string } | null;
 }
 
 const STORAGE_KEY = "kubb-team-filter";

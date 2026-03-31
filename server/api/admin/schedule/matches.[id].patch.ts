@@ -4,7 +4,7 @@ import { getActiveTournament } from "~/server/utils/tournament";
 
 export default defineEventHandler(async (event) => {
   await getActiveTournament();
-  const id = Number(getRouterParam(event, "id"));
+  const id = getRouterParam(event, "id") as string;
   const body = await readBody(event);
 
   const match = await prisma.match.findUnique({ where: { id } });
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const newFieldId = body?.fieldId !== undefined ? Number(body.fieldId) : match.fieldId;
+  const newFieldId = body?.fieldId !== undefined ? (body.fieldId as string) : match.fieldId;
   const newStartTime = body?.startTime !== undefined ? new Date(body.startTime) : match.startTime;
 
   if (body?.fieldId !== undefined) {

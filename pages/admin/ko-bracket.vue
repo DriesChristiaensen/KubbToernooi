@@ -7,20 +7,20 @@ import { nl } from "~/i18n/nl";
 definePageMeta({ middleware: "auth" });
 
 interface Team {
-  id: number;
+  id: string;
   name: string;
 }
 
 interface KoMatch {
-  id: number;
+  id: string;
   round: number;
   status: string;
-  teamAId: number | null;
-  teamBId: number | null;
+  teamAId: string | null;
+  teamBId: string | null;
   teamA: Team | null;
   teamB: Team | null;
-  nextMatchId: number | null;
-  field: { id: number; name: string };
+  nextMatchId: string | null;
+  field: { id: string; name: string };
 }
 
 const matches = ref<KoMatch[]>([]);
@@ -32,9 +32,9 @@ const showOverwrite = ref(false);
 const tournamentType = ref("");
 const lastPoolMatchTime = ref<string | null>(null);
 
-const swapMatchId = ref<number | null>(null);
-const swapTeamAId = ref<number>(0);
-const swapTeamBId = ref<number>(0);
+const swapMatchId = ref<string | null>(null);
+const swapTeamAId = ref<string>("");
+const swapTeamBId = ref<string>("");
 const swapError = ref("");
 const swapSuccess = ref("");
 const rankedTournamentTeams = ref<Team[]>([]);
@@ -95,8 +95,8 @@ async function generate(overwrite = false) {
 
 function startSwap(match: KoMatch) {
   swapMatchId.value = match.id;
-  swapTeamAId.value = match.teamAId ?? 0;
-  swapTeamBId.value = match.teamBId ?? 0;
+  swapTeamAId.value = match.teamAId ?? "";
+  swapTeamBId.value = match.teamBId ?? "";
   swapError.value = "";
   swapSuccess.value = "";
 }
@@ -188,7 +188,7 @@ onMounted(async () => {
       { teamsAdvancing: number; standings: { team: Team }[] }[]
     >("/api/public/standings");
     if (pools.length > 0) {
-      const seen = new Set<number>();
+      const seen = new Set<string>();
       const ranked: Team[] = [];
       for (const pool of pools) {
         for (const s of pool.standings.slice(0, pool.teamsAdvancing)) {

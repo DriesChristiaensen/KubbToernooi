@@ -7,35 +7,35 @@ definePageMeta({ middleware: "auth" });
 const { logout } = useAuth();
 
 interface MatchTeam {
-  id: number;
+  id: string;
   name: string;
 }
 
 interface Match {
-  id: number;
+  id: string;
   phase: "POOL" | "KO";
   round: number;
   startTime: string;
   status: string;
-  field: { id: number; name: string };
+  field: { id: string; name: string };
   teamA: MatchTeam;
   teamB: MatchTeam;
   scoreA: number | null;
   scoreB: number | null;
-  koWinnerId: number | null;
+  koWinnerId: string | null;
 }
 
 const matches = ref<Match[]>([]);
 const isLoading = ref(true);
 const errorMsg = ref("");
-const saving = ref<number | null>(null);
+const saving = ref<string | null>(null);
 const saveError = ref("");
 
 const scoreInputs = ref<
-  Record<number, { scoreA: string; scoreB: string; koWinnerId: string }>
+  Record<string, { scoreA: string; scoreB: string; koWinnerId: string }>
 >({});
 const savedScores = ref<
-  Record<number, { scoreA: string | null; scoreB: string | null }>
+  Record<string, { scoreA: string | null; scoreB: string | null }>
 >({});
 
 async function fetchMatches() {
@@ -88,7 +88,7 @@ async function saveScore(match: Match) {
     scoreB: Number(input.scoreB),
   };
   if (match.phase === "KO" && isDraw(match) && input.koWinnerId) {
-    body.koWinnerId = Number(input.koWinnerId);
+    body.koWinnerId = input.koWinnerId;
   }
   try {
     const updated = await $fetch<Match>(`/api/ref/matches/${match.id}`, {

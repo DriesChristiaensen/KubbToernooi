@@ -36,7 +36,7 @@ enum MatchPhase {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   name      String
   password  String
   role      Role
@@ -45,8 +45,9 @@ model User {
 }
 
 model Tournament {
-  id            Int              @id @default(autoincrement())
-  name          String
+  id            String           @id @default(uuid())
+  name          String           @unique
+  isActive      Boolean          @default(true)
   status        TournamentStatus @default(DRAFT)
   type          TournamentType   @default(COMBINATION)
   startTime     DateTime
@@ -64,9 +65,9 @@ model Tournament {
 }
 
 model Team {
-  id           Int      @id @default(autoincrement())
+  id           String   @id @default(uuid())
   name         String
-  tournamentId Int
+  tournamentId String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -81,9 +82,9 @@ model Team {
 }
 
 model Field {
-  id           Int      @id @default(autoincrement())
+  id           String   @id @default(uuid())
   name         String
-  tournamentId Int
+  tournamentId String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -94,9 +95,9 @@ model Field {
 }
 
 model Pool {
-  id             Int      @id @default(autoincrement())
+  id             String   @id @default(uuid())
   name           String
-  tournamentId   Int
+  tournamentId   String
   teamsAdvancing Int      @default(2)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -110,9 +111,9 @@ model Pool {
 }
 
 model PoolTeam {
-  id     Int @id @default(autoincrement())
-  poolId Int
-  teamId Int
+  id     String @id @default(uuid())
+  poolId String
+  teamId String
 
   pool Pool @relation(fields: [poolId], references: [id], onDelete: Cascade)
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -121,19 +122,19 @@ model PoolTeam {
 }
 
 model Match {
-  id          Int         @id @default(autoincrement())
+  id          String      @id @default(uuid())
   phase       MatchPhase
   round       Int         @default(1)
   startTime   DateTime
-  fieldId     Int
-  poolId      Int?
-  teamAId     Int?
-  teamBId     Int?
+  fieldId     String
+  poolId      String?
+  teamAId     String?
+  teamBId     String?
   scoreA      Int?
   scoreB      Int?
   status      MatchStatus @default(SCHEDULED)
-  koWinnerId  Int?
-  nextMatchId Int?
+  koWinnerId  String?
+  nextMatchId String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -147,9 +148,9 @@ model Match {
 }
 
 model Standing {
-  id             Int      @id @default(autoincrement())
-  poolId         Int
-  teamId         Int
+  id             String   @id @default(uuid())
+  poolId         String
+  teamId         String
   played         Int      @default(0)
   won            Int      @default(0)
   drawn          Int      @default(0)

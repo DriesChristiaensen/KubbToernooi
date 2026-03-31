@@ -8,22 +8,24 @@ const bodySchema = z.object({
   startDateTime: z.string().optional(),
 });
 
-function generateRoundRobin(teamIds: number[]): Array<Array<[number, number]>> {
+const BYE = "";
+
+function generateRoundRobin(teamIds: string[]): Array<Array<[string, string]>> {
   const n = teamIds.length;
   if (n < 2) return [];
 
   const teams = [...teamIds];
-  if (n % 2 !== 0) teams.push(-1);
+  if (n % 2 !== 0) teams.push(BYE);
 
   const N = teams.length;
-  const rounds: Array<Array<[number, number]>> = [];
+  const rounds: Array<Array<[string, string]>> = [];
 
   for (let round = 0; round < N - 1; round++) {
-    const roundMatches: Array<[number, number]> = [];
+    const roundMatches: Array<[string, string]> = [];
     for (let i = 0; i < N / 2; i++) {
       const a = teams[i];
       const b = teams[N - 1 - i];
-      if (a !== -1 && b !== -1) roundMatches.push([a, b]);
+      if (a !== BYE && b !== BYE) roundMatches.push([a, b]);
     }
     if (roundMatches.length > 0) rounds.push(roundMatches);
     const last = teams[N - 1];
@@ -86,9 +88,9 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const poolRounds = new Map<number, Array<Array<[number, number]>>>();
+  const poolRounds = new Map<string, Array<Array<[string, string]>>>();
   for (const pool of pools) {
-    const teamIds = pool.poolTeams.map((pt: { teamId: number }) => pt.teamId);
+    const teamIds = pool.poolTeams.map((pt: { teamId: string }) => pt.teamId);
     poolRounds.set(pool.id, generateRoundRobin(teamIds));
   }
 
@@ -100,17 +102,17 @@ export default defineEventHandler(async (event) => {
     phase: "POOL";
     round: number;
     startTime: Date;
-    fieldId: number;
-    poolId: number;
-    teamAId: number;
-    teamBId: number;
+    fieldId: string;
+    poolId: string;
+    teamAId: string;
+    teamBId: string;
     status: "SCHEDULED";
   }> = [];
 
   let slotIndex = 0;
 
   for (let round = 0; round < maxRounds; round++) {
-    const roundMatches: Array<{ poolId: number; teamA: number; teamB: number }> = [];
+    const roundMatches: Array<{ poolId: string; teamA: string; teamB: string }> = [];
 
     for (const [poolId, rounds] of poolRounds) {
       if (round < rounds.length) {

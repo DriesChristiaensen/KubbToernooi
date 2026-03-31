@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockTournamentFindFirst = vi.hoisted(() => vi.fn());
-const mockTournamentDeleteMany = vi.hoisted(() => vi.fn());
+const mockTournamentUpdateMany = vi.hoisted(() => vi.fn());
 const mockTournamentCreate = vi.hoisted(() => vi.fn());
 const mockTeamCreate = vi.hoisted(() => vi.fn());
 const mockFieldCreate = vi.hoisted(() => vi.fn());
@@ -25,7 +25,7 @@ vi.mock("~/server/utils/prisma", () => ({
   prisma: {
     tournament: {
       findFirst: mockTournamentFindFirst,
-      deleteMany: mockTournamentDeleteMany,
+      updateMany: mockTournamentUpdateMany,
       create: mockTournamentCreate,
     },
     team: { create: mockTeamCreate },
@@ -73,15 +73,15 @@ describe("POST /api/admin/import", () => {
 
   it("returns 409 when data exists and no password provided", async () => {
     vi.mocked(readBody).mockResolvedValue({ data: validData });
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
 
     await expect(handler(createMockEvent())).rejects.toThrow("Password required");
   });
 
   it("returns 401 when password is wrong", async () => {
     vi.mocked(readBody).mockResolvedValue({ data: validData, password: "wrong" });
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
-    mockUserFindFirst.mockResolvedValue({ id: 1, password: "hash" });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    mockUserFindFirst.mockResolvedValue({ id: "u1", password: "hash" });
     mockBcryptCompare.mockResolvedValue(false);
 
     await expect(handler(createMockEvent())).rejects.toThrow("Invalid password");
@@ -90,11 +90,11 @@ describe("POST /api/admin/import", () => {
   it("imports tournament when no existing data", async () => {
     vi.mocked(readBody).mockResolvedValue({ data: validData });
     mockTournamentFindFirst.mockResolvedValue(null);
-    mockTournamentCreate.mockResolvedValue({ id: 10 });
+    mockTournamentCreate.mockResolvedValue({ id: "t10" });
 
     const result = await handler(createMockEvent());
 
-    expect(mockTournamentDeleteMany).not.toHaveBeenCalled();
+    expect(mockTournamentUpdateMany).not.toHaveBeenCalled();
     expect(mockTournamentCreate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ name: "Kubb 2025" }) }),
     );
@@ -103,15 +103,15 @@ describe("POST /api/admin/import", () => {
 
   it("replaces existing data with correct password", async () => {
     vi.mocked(readBody).mockResolvedValue({ data: validData, password: "correct" });
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
-    mockUserFindFirst.mockResolvedValue({ id: 1, password: "hash" });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    mockUserFindFirst.mockResolvedValue({ id: "u1", password: "hash" });
     mockBcryptCompare.mockResolvedValue(true);
-    mockTournamentDeleteMany.mockResolvedValue({ count: 1 });
-    mockTournamentCreate.mockResolvedValue({ id: 10 });
+    mockTournamentUpdateMany.mockResolvedValue({ count: 1 });
+    mockTournamentCreate.mockResolvedValue({ id: "t10" });
 
     const result = await handler(createMockEvent());
 
-    expect(mockTournamentDeleteMany).toHaveBeenCalled();
+    expect(mockTournamentUpdateMany).toHaveBeenCalled();
     expect(mockTournamentCreate).toHaveBeenCalled();
     expect(result).toMatchObject({ imported: true });
   });

@@ -4,8 +4,8 @@ import { nl } from "~/i18n/nl";
 import { usePolling } from "~/composables/usePolling";
 
 interface Standing {
-  teamId: number;
-  team: { id: number; name: string };
+  teamId: string;
+  team: { id: string; name: string };
   played: number;
   won: number;
   drawn: number;
@@ -17,7 +17,7 @@ interface Standing {
 }
 
 interface Pool {
-  id: number;
+  id: string;
   name: string;
   standings: Standing[];
 }
