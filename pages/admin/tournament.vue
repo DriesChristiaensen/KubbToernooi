@@ -46,6 +46,8 @@ const restoreLoading = ref<string | null>(null);
 const deleteLoading = ref<string | null>(null);
 
 const startDateTimePicker = ref<Date | null>(null);
+const touched = ref({ name: false, startTime: false, matchDuration: false });
+const fieldErrors = ref({ name: '' });
 
 const form = ref({
   name: "",
@@ -101,12 +103,23 @@ function startWizard() {
   wizardStep.value = 1;
   createError.value = "";
   startDateTimePicker.value = null;
+  touched.value = { name: false, startTime: false, matchDuration: false };
+  fieldErrors.value = { name: '' };
   showWizard.value = true;
 }
 
 function cancelWizard() {
   showWizard.value = false;
   createError.value = "";
+  touched.value = { name: false, startTime: false, matchDuration: false };
+  fieldErrors.value = { name: '' };
+}
+
+function goToStep2() {
+  touched.value.name = true;
+  touched.value.startTime = true;
+  touched.value.matchDuration = true;
+  if (step1Valid.value) wizardStep.value = 2;
 }
 
 async function createTournament() {
@@ -130,8 +143,15 @@ async function createTournament() {
     showWizard.value = false;
     await fetchInactive();
   } catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string } } };
-    createError.value = fetchErr?.data?.data?.error || nl.common.error;
+    const fetchErr = err as { data?: { data?: { error?: string; field?: string } } };
+    const errField = fetchErr?.data?.data?.field;
+    const errMsg = fetchErr?.data?.data?.error || nl.common.error;
+    if (errField === 'name') {
+      fieldErrors.value.name = errMsg;
+      wizardStep.value = 1;
+    } else {
+      createError.value = errMsg;
+    }
   } finally {
     createLoading.value = false;
   }
@@ -261,7 +281,10 @@ onMounted(async () => {
               type="text"
               required
               class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+              @blur="touched.name = true; fieldErrors.name = ''"
             >
+            <p v-if="touched.name && !form.name.trim()" class="mt-1 text-xs text-error">{{ nl.admin.tournament.nameRequired }}</p>
+            <p v-if="fieldErrors.name" class="mt-1 text-xs text-error">{{ fieldErrors.name }}</p>
           </div>
 
           <div class="mb-3">
@@ -291,8 +314,10 @@ onMounted(async () => {
                 :is24="true"
                 auto-apply
                 :locale="nlBE"
+                @closed="touched.startTime = true"
               />
             </ClientOnly>
+            <p v-if="touched.startTime && !startDateTimePicker" class="mt-1 text-xs text-error">{{ nl.admin.tournament.startTimeRequired }}</p>
           </div>
 
           <div class="mb-3 grid gap-3 md:grid-cols-2">
@@ -305,7 +330,9 @@ onMounted(async () => {
                 type="number"
                 min="1"
                 class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+                @blur="touched.matchDuration = true"
               >
+              <p v-if="touched.matchDuration && form.matchDuration < 1" class="mt-1 text-xs text-error">{{ nl.admin.tournament.matchDurationRequired }}</p>
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text">
@@ -337,9 +364,8 @@ onMounted(async () => {
 
           <div class="flex gap-2">
             <button
-              :disabled="!step1Valid"
               class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-              @click="wizardStep = 2"
+              @click="goToStep2"
             >
               {{ nl.admin.tournament.wizardNext }}
             </button>

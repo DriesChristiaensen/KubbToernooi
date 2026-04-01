@@ -32,6 +32,16 @@ export default defineEventHandler(async (event) => {
 
   const body = parsed.data;
 
+  const duplicate = await prisma.tournament.findFirst({ where: { name: body.name } });
+  if (duplicate) {
+    throw createApiError({
+      error: 'Er bestaat al een toernooi met deze naam',
+      code: 409,
+      reason: 'Tournament name already exists',
+      field: 'name',
+    });
+  }
+
   const existing = await prisma.tournament.findFirst({ where: { isActive: true } });
   if (existing) {
     await prisma.tournament.updateMany({

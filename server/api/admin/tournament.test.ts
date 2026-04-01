@@ -8,10 +8,10 @@ const mockFieldCreateMany = vi.hoisted(() => vi.fn());
 
 vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("readBody", vi.fn());
-vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
+vi.stubGlobal("createApiError", ({ error, code, reason, field }: any) => {
   const err = new Error(reason) as any;
   err.statusCode = code;
-  err.data = { error, code, reason, stacktrace: {} };
+  err.data = { error, code, reason, ...(field !== undefined ? { field } : {}), stacktrace: {} };
   return err;
 });
 
@@ -178,7 +178,7 @@ describe("POST /api/admin/tournament", () => {
   });
 
   it("soft-deletes active tournament before creating a new one", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    mockTournamentFindFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: "t1" });
     mockTournamentUpdateMany.mockResolvedValue({ count: 1 });
     mockTournamentCreate.mockResolvedValue({ id: "t2", name: "Kubb 2025", type: "COMBINATION" });
     mockFieldCreateMany.mockResolvedValue({ count: 3 });
@@ -191,6 +191,12 @@ describe("POST /api/admin/tournament", () => {
       where: { isActive: true },
       data: { isActive: false },
     });
+  });
+
+  it("rejects duplicate name with 409", async () => {
+    mockTournamentFindFirst.mockResolvedValueOnce({ id: "t1", name: "Kubb 2025" });
+    vi.mocked(readBody).mockResolvedValue(validBody);
+    await expect(postTournamentHandler(createMockEvent())).rejects.toMatchObject({ statusCode: 409, data: { field: "name" } });
   });
 
   it("rejects missing name", async () => {
