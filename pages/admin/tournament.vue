@@ -323,15 +323,15 @@ onMounted(async () => {
           <div class="mb-4 grid gap-3 md:grid-cols-3">
             <div>
               <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.tournament.pointsWin }}</label>
-              <input v-model.number="form.pointsWin" type="number" min="0" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
+              <input v-model.number="form.pointsWin" type="number" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.tournament.pointsDraw }}</label>
-              <input v-model.number="form.pointsDraw" type="number" min="0" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
+              <input v-model.number="form.pointsDraw" type="number" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.tournament.pointsLoss }}</label>
-              <input v-model.number="form.pointsLoss" type="number" min="0" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
+              <input v-model.number="form.pointsLoss" type="number" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
             </div>
           </div>
 

@@ -8,9 +8,9 @@ const bodySchema = z.object({
   startTime: z.string().refine((s) => !isNaN(new Date(s).getTime()), { message: "Invalid date" }),
   matchDuration: z.number().int().positive(),
   breakTime: z.number().int().min(0),
-  pointsWin: z.number().int().min(0),
-  pointsDraw: z.number().int().min(0),
-  pointsLoss: z.number().int().min(0),
+  pointsWin: z.number().int(),
+  pointsDraw: z.number().int(),
+  pointsLoss: z.number().int(),
   fieldCount: z.number().int().min(1),
 });
 
