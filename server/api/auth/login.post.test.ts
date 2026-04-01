@@ -96,6 +96,35 @@ describe('POST /api/auth/login', () => {
         statusCode: 401,
       })
     })
+
+    it('returns needsPasswordSetup when admin has no password', async () => {
+      mockPrismaUserFindFirst.mockResolvedValue({
+        id: 'u1', name: 'Admin', role: 'ADMIN', password: null,
+      })
+      const event = createMockEvent({ password: 'newpass' })
+
+      const result = await loginHandler(event)
+
+      expect(result).toEqual({ needsPasswordSetup: true })
+      expect(mockReplaceUserSession).not.toHaveBeenCalled()
+    })
+
+    it('sets password and creates session when admin has no password and setPassword is true', async () => {
+      mockPrismaUserFindFirst.mockResolvedValue({
+        id: 'u1', name: 'Admin', role: 'ADMIN', password: null,
+      })
+      mockPrismaUserUpdate.mockResolvedValue({ id: 'u1', name: 'Admin', role: 'ADMIN' })
+      const event = createMockEvent({ password: 'newpass', setPassword: true })
+
+      const result = await loginHandler(event)
+
+      expect(mockPrismaUserUpdate).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: { password: expect.any(String) },
+      })
+      expect(mockReplaceUserSession).toHaveBeenCalled()
+      expect(result).toMatchObject({ user: { id: 'u1', name: 'Admin', role: 'ADMIN' } })
+    })
   })
 
   describe('referee login (name + password)', () => {

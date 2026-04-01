@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (isRefLogin && user.password === null) {
+  if (user.password === null) {
     if (body.setPassword) {
       const hashed = await bcrypt.hash(body.password, 12)
       await prisma.user.update({ where: { id: user.id }, data: { password: hashed } })
@@ -53,9 +53,6 @@ export default defineEventHandler(async (event) => {
         code: 409,
         reason: 'Password already set',
       })
-    }
-    if (user.password === null) {
-      throw createApiError({ error: 'Geen wachtwoord ingesteld', code: 401, reason: 'No password set for this user' })
     }
     const passwordValid = await bcrypt.compare(body.password, user.password)
     if (!passwordValid) {

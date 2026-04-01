@@ -51,7 +51,7 @@ async function handleSubmit() {
       </div>
 
       <form @submit.prevent="handleSubmit">
-        <div v-if="loginMode === 'ref'" class="mb-4">
+        <div v-show="loginMode === 'ref'" class="mb-4">
           <label class="mb-1 block text-sm font-medium text-text" for="name">
             {{ nl.auth.name }}
           </label>
