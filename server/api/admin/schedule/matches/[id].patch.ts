@@ -4,7 +4,10 @@ import { getActiveTournament } from "~/server/utils/tournament";
 
 export default defineEventHandler(async (event) => {
   await getActiveTournament();
-  const id = getRouterParam(event, "id") as string;
+  const id = getRouterParam(event, "id");
+  if (!id) {
+    throw createApiError({ error: "Wedstrijd ID is verplicht", code: 400, reason: "Match ID is required" });
+  }
   const body = await readBody(event);
 
   const match = await prisma.match.findUnique({ where: { id } });

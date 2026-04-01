@@ -1,35 +1,35 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 
-const VALID_TYPES = ["POOLS", "KNOCKOUT", "COMBINATION"] as const;
+const bodySchema = z.object({
+  name: z.string().trim().min(1),
+  type: z.enum(["POOLS", "KNOCKOUT", "COMBINATION"]),
+  startTime: z.string().refine((s) => !isNaN(new Date(s).getTime()), { message: "Invalid date" }),
+  matchDuration: z.number().int().positive(),
+  breakTime: z.number().int().min(0),
+  pointsWin: z.number().int().min(0),
+  pointsDraw: z.number().int().min(0),
+  pointsLoss: z.number().int().min(0),
+  fieldCount: z.number().int().min(1),
+});
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event);
+  const raw = await readBody(event);
+  const parsed = bodySchema.safeParse(raw ?? {});
 
-  if (!body?.name?.trim()) {
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0];
+    const field = firstIssue?.path[0] as string | undefined;
+    const isDutchName = field === "name";
     throw createApiError({
-      error: "Naam is verplicht",
+      error: isDutchName ? "Naam is verplicht" : "Ongeldige invoer",
       code: 400,
-      reason: "Missing tournament name",
+      reason: parsed.error.issues.map((i) => i.message).join("; "),
     });
   }
 
-  if (!VALID_TYPES.includes(body.type)) {
-    throw createApiError({
-      error: "Ongeldig competitietype",
-      code: 400,
-      reason: "Invalid tournament type",
-    });
-  }
-
-  const fieldCount = Number(body.fieldCount);
-  if (!fieldCount || fieldCount < 1) {
-    throw createApiError({
-      error: "Aantal velden moet minimaal 1 zijn",
-      code: 400,
-      reason: "Invalid fieldCount",
-    });
-  }
+  const body = parsed.data;
 
   const existing = await prisma.tournament.findFirst({ where: { isActive: true } });
   if (existing) {
@@ -41,21 +41,21 @@ export default defineEventHandler(async (event) => {
 
   const tournament = await prisma.tournament.create({
     data: {
-      name: body.name.trim(),
+      name: body.name,
       type: body.type,
       startTime: new Date(body.startTime),
-      matchDuration: Number(body.matchDuration),
-      breakTime: Number(body.breakTime),
-      pointsWin: Number(body.pointsWin),
-      pointsDraw: Number(body.pointsDraw),
-      pointsLoss: Number(body.pointsLoss),
+      matchDuration: body.matchDuration,
+      breakTime: body.breakTime,
+      pointsWin: body.pointsWin,
+      pointsDraw: body.pointsDraw,
+      pointsLoss: body.pointsLoss,
       isActive: true,
       status: "DRAFT",
     },
   });
 
   await prisma.field.createMany({
-    data: Array.from({ length: fieldCount }, (_, i) => ({
+    data: Array.from({ length: body.fieldCount }, (_, i) => ({
       name: `Veld ${i + 1}`,
       tournamentId: tournament.id,
     })),

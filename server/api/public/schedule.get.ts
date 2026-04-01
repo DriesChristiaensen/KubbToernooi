@@ -1,13 +1,20 @@
+import type { MatchPhase } from "@prisma/client";
 import { prisma } from "~/server/utils/prisma";
 
 export default defineEventHandler(async (_event) => {
-  const tournament = await prisma.tournament.findFirst({ orderBy: { id: "desc" } });
+  const tournament = await prisma.tournament.findFirst({ where: { isActive: true } });
 
-  if (!tournament || tournament.status === "DRAFT") return [];
+  if (!tournament) return [];
+
+  const phases: MatchPhase[] = [];
+  if (tournament.poolScheduleLive) phases.push("POOL");
+  if (tournament.koScheduleLive) phases.push("KO");
+  if (phases.length === 0) return [];
 
   return await prisma.match.findMany({
     where: {
       field: { tournamentId: tournament.id },
+      phase: { in: phases },
       teamAId: { not: null },
       teamBId: { not: null },
     },

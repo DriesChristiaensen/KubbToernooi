@@ -14,6 +14,15 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  const fromTime = new Date(body.fromTime);
+  if (isNaN(fromTime.getTime())) {
+    throw createApiError({
+      error: "Ongeldig tijdstip",
+      code: 400,
+      reason: "fromTime is not a valid date",
+    });
+  }
+
   if (body?.offsetMinutes === undefined || body?.offsetMinutes === null) {
     throw createApiError({
       error: "Aantal minuten is verplicht",
@@ -22,8 +31,14 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const fromTime = new Date(body.fromTime);
   const offsetMs = Number(body.offsetMinutes) * 60 * 1000;
+  if (isNaN(offsetMs)) {
+    throw createApiError({
+      error: "Ongeldig aantal minuten",
+      code: 400,
+      reason: "offsetMinutes must be a number",
+    });
+  }
 
   const matches = await prisma.match.findMany({
     where: {

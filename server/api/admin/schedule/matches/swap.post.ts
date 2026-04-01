@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Safe: matches.length < 2 check above guarantees both IDs are present in the result
   const matchA = matches.find((m) => m.id === body.matchAId)!;
   const matchB = matches.find((m) => m.id === body.matchBId)!;
 

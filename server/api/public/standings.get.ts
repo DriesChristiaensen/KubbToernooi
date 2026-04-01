@@ -1,9 +1,9 @@
 import { prisma } from "~/server/utils/prisma";
 
 export default defineEventHandler(async (_event) => {
-  const tournament = await prisma.tournament.findFirst({ orderBy: { id: "desc" } });
+  const tournament = await prisma.tournament.findFirst({ where: { isActive: true } });
 
-  if (!tournament || tournament.status === "DRAFT") return [];
+  if (!tournament || !tournament.poolScheduleLive) return [];
 
   return await prisma.pool.findMany({
     where: { tournamentId: tournament.id },
