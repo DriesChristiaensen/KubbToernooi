@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { VueDatePicker } from "@vuepic/vue-datepicker";
+import { nlBE } from "date-fns/locale";
 import { nl } from "~/i18n/nl";
 
 definePageMeta({ middleware: "auth", layout: "admin" });
@@ -43,10 +45,11 @@ const restoreError = ref("");
 const restoreLoading = ref<string | null>(null);
 const deleteLoading = ref<string | null>(null);
 
+const startDateTimePicker = ref<Date | null>(null);
+
 const form = ref({
   name: "",
   type: "COMBINATION",
-  startTime: "",
   matchDuration: 15,
   breakTime: 5,
   pointsWin: 3,
@@ -63,7 +66,7 @@ const typeOptions = [
 
 const step1Valid = computed(() =>
   form.value.name.trim().length > 0
-  && form.value.startTime.length > 0
+  && startDateTimePicker.value !== null
   && form.value.matchDuration >= 1,
 );
 
@@ -97,6 +100,7 @@ function startWizard() {
   showReplaceConfirm.value = false;
   wizardStep.value = 1;
   createError.value = "";
+  startDateTimePicker.value = null;
   showWizard.value = true;
 }
 
@@ -114,7 +118,7 @@ async function createTournament() {
       body: {
         name: form.value.name.trim(),
         type: form.value.type,
-        startTime: form.value.startTime,
+        startTime: startDateTimePicker.value?.toISOString() ?? '',
         matchDuration: form.value.matchDuration,
         breakTime: form.value.breakTime,
         pointsWin: form.value.pointsWin,
@@ -276,15 +280,19 @@ onMounted(async () => {
           </div>
 
           <div class="mb-3">
-            <label class="mb-1 block text-sm font-medium text-text" for="t-start">
+            <label class="mb-1 block text-sm font-medium text-text">
               {{ nl.admin.tournament.startTime }}
             </label>
-            <input
-              id="t-start"
-              v-model="form.startTime"
-              type="datetime-local"
-              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-            >
+            <ClientOnly>
+              <VueDatePicker
+                v-model="startDateTimePicker"
+                :formats="{ input: 'dd/MM/yyyy HH:mm' }"
+                :enable-time-picker="true"
+                :is24="true"
+                auto-apply
+                :locale="nlBE"
+              />
+            </ClientOnly>
           </div>
 
           <div class="mb-3 grid gap-3 md:grid-cols-2">
