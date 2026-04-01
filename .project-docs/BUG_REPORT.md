@@ -291,7 +291,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ---
 
-### Bug #18: Schedule Generation — Tournament `startTime` May Carry Date-Only Value, Ignoring Time Component
+### Bug #18: Schedule Generation — Tournament `startTime` May Carry Date-Only Value, Ignoring Time Component — DONE AND RESOLVED
 
 - **Location:** `server/api/admin/schedule/generate.post.ts:44`, `server/api/admin/tournament.post.ts:8,47`
 - **Issue:** The user reports "each match should be after the starting dateTime, not after the starting date AND after the starting time" — suggesting that in practice, matches are being scheduled from midnight (00:00) of the start date, not from the actual start time.
