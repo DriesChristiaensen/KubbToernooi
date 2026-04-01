@@ -3,6 +3,9 @@ import { logRequest } from "~/server/utils/logger";
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
+  if (!id) {
+    throw createApiError({ error: "Ongeldig toernooi-ID", code: 400, reason: "Invalid tournament ID" });
+  }
 
   const tournament = await prisma.tournament.findFirst({
     where: { id, isActive: false },
