@@ -151,6 +151,17 @@ export const nl = {
       saveMatch: "Opslaan",
       matchSaved: "Wedstrijd opgeslagen",
       existingMatches: "Er zijn al wedstrijden. Overschrijven?",
+      viewPerField: "Per veld",
+      viewPerTeam: "Per team",
+      viewPerSlot: "Per tijdslot",
+      switchModeHint: "Klik op een andere wedstrijd om te wisselen",
+      swapSuccess: "Wedstrijden gewisseld",
+      swapError: "Wisselen mislukt",
+      poolScheduleLive: "Poule-schema live",
+      poolScheduleDraft: "Poule-schema concept",
+      koScheduleLive: "KO-schema live",
+      koScheduleDraft: "KO-schema concept",
+      opponent: "Tegenstander",
     },
     koBracket: {
       title: "Knock-out Schema",
@@ -182,6 +193,10 @@ export const nl = {
     banner: {
       draft: "Toernooi concept nog niet gepubliceerd",
       live: "Toernooi is live",
+      poolLiveKoDraft: "Poule-schema is live — KO-schema is nog niet gepubliceerd",
+      poolDraftKoLive: "KO-schema is live — Poule-schema is nog niet gepubliceerd",
+      allLive: "Alle schema's zijn live",
+      noneLive: "Geen schema's gepubliceerd",
     },
 
     export: {

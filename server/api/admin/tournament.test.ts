@@ -122,6 +122,27 @@ describe("PATCH /api/admin/tournament (status only)", () => {
     });
     expect(result).toMatchObject({ status: "DRAFT" });
   });
+
+  it("updates poolScheduleLive successfully", async () => {
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    vi.mocked(readBody).mockResolvedValue({ poolScheduleLive: true });
+    mockTournamentUpdate.mockResolvedValue({ id: "t1", poolScheduleLive: true });
+
+    const result = await patchTournamentHandler(createMockEvent());
+
+    expect(mockTournamentUpdate).toHaveBeenCalledWith({
+      where: { id: "t1" },
+      data: { poolScheduleLive: true },
+    });
+    expect(result).toMatchObject({ poolScheduleLive: true });
+  });
+
+  it("returns 400 when no valid fields provided", async () => {
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    vi.mocked(readBody).mockResolvedValue({});
+
+    await expect(patchTournamentHandler(createMockEvent())).rejects.toMatchObject({ statusCode: 400 });
+  });
 });
 
 describe("POST /api/admin/tournament", () => {

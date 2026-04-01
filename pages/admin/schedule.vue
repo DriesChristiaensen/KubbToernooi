@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import { nlBE } from "date-fns/locale";
 import { nl } from "~/i18n/nl";
@@ -23,27 +23,35 @@ interface Match {
   pool: { id: string; name: string } | null;
 }
 
+interface Tournament {
+  type: string;
+  poolScheduleLive: boolean;
+  koScheduleLive: boolean;
+}
+
 const matches = ref<Match[]>([]);
 const fields = ref<Field[]>([]);
+const tournament = ref<Tournament | null>(null);
 const generateLoading = ref(false);
 const generateError = ref("");
 const generateSuccess = ref("");
 const generateStartDateTime = ref<Date | null>(null);
 const showOverwrite = ref(false);
 
-const editingMatch = ref<Match | null>(null);
-const editFieldId = ref<string>("");
-const editStartTime = ref<Date | null>(null);
-const editError = ref("");
-const editSuccess = ref("");
-const conflictResult = ref<{ ok: boolean; conflicts: string[] } | null>(null);
-const conflictLoading = ref(false);
-
 const timeShiftFrom = ref("");
 const timeShiftMinutes = ref<number>(0);
 const timeShiftLoading = ref(false);
 const timeShiftError = ref("");
 const timeShiftSuccess = ref("");
+
+const viewMode = ref<"field" | "team" | "slot">("field");
+const switchMatchId = ref<string | null>(null);
+const swapLoading = ref(false);
+const swapError = ref("");
+const swapSuccess = ref("");
+
+const phaseToggleLoading = ref(false);
+const phaseToggleError = ref("");
 
 async function fetchMatches() {
   try {
@@ -55,6 +63,14 @@ async function fetchMatches() {
 
 async function fetchFields() {
   fields.value = await $fetch<Field[]>("/api/admin/fields").catch(() => []);
+}
+
+async function fetchTournament() {
+  try {
+    tournament.value = await $fetch<Tournament>("/api/admin/tournament");
+  } catch {
+    // non-critical
+  }
 }
 
 async function generateSchedule(overwrite = false) {
@@ -92,59 +108,6 @@ async function generateSchedule(overwrite = false) {
   }
 }
 
-function startEditMatch(match: Match) {
-  editingMatch.value = match;
-  editFieldId.value = match.field.id;
-  editStartTime.value = new Date(match.startTime);
-  editError.value = "";
-  editSuccess.value = "";
-  conflictResult.value = null;
-}
-
-function cancelEditMatch() {
-  editingMatch.value = null;
-  conflictResult.value = null;
-}
-
-async function checkConflict() {
-  if (!editingMatch.value || !editStartTime.value) return;
-  conflictLoading.value = true;
-  conflictResult.value = null;
-  try {
-    conflictResult.value = await $fetch<{ ok: boolean; conflicts: string[] }>(
-      `/api/admin/schedule/conflict-check?matchId=${editingMatch.value.id}&fieldId=${editFieldId.value}&startTime=${editStartTime.value.toISOString()}`,
-    );
-  } catch {
-    conflictResult.value = { ok: false, conflicts: [nl.common.error] };
-  } finally {
-    conflictLoading.value = false;
-  }
-}
-
-async function saveMatch() {
-  if (!editingMatch.value || !editStartTime.value) return;
-  editError.value = "";
-  editSuccess.value = "";
-  try {
-    await $fetch(
-      `/api/admin/schedule/matches/${editingMatch.value.id}` as string,
-      {
-        method: "PATCH",
-        body: {
-          fieldId: editFieldId.value,
-          startTime: editStartTime.value.toISOString(),
-        },
-      },
-    );
-    editSuccess.value = nl.admin.schedule.matchSaved;
-    editingMatch.value = null;
-    await fetchMatches();
-  } catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string } } };
-    editError.value = fetchErr?.data?.data?.error || nl.common.error;
-  }
-}
-
 async function applyTimeShift() {
   timeShiftError.value = "";
   timeShiftSuccess.value = "";
@@ -174,8 +137,95 @@ async function applyTimeShift() {
   }
 }
 
+function clickMatch(match: Match) {
+  if (switchMatchId.value === null) {
+    switchMatchId.value = match.id;
+    swapError.value = "";
+    swapSuccess.value = "";
+    return;
+  }
+  if (switchMatchId.value === match.id) {
+    switchMatchId.value = null;
+    return;
+  }
+  swapMatches(switchMatchId.value, match.id);
+}
+
+async function swapMatches(matchAId: string, matchBId: string) {
+  swapLoading.value = true;
+  swapError.value = "";
+  swapSuccess.value = "";
+  try {
+    await $fetch("/api/admin/schedule/matches/swap", {
+      method: "POST",
+      body: { matchAId, matchBId },
+    });
+    swapSuccess.value = nl.admin.schedule.swapSuccess;
+    switchMatchId.value = null;
+    await fetchMatches();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    swapError.value = fetchErr?.data?.data?.error || nl.common.error;
+    switchMatchId.value = null;
+  } finally {
+    swapLoading.value = false;
+  }
+}
+
+async function togglePhase(field: "poolScheduleLive" | "koScheduleLive") {
+  if (!tournament.value) return;
+  phaseToggleError.value = "";
+  phaseToggleLoading.value = true;
+  const newVal = !tournament.value[field];
+  try {
+    await $fetch("/api/admin/tournament", {
+      method: "PATCH",
+      body: { [field]: newVal },
+    });
+    tournament.value[field] = newVal;
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    phaseToggleError.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    phaseToggleLoading.value = false;
+  }
+}
+
+// Computed views
+const matchesByField = computed(() => {
+  const map = new Map<string, { field: Field; matches: Match[] }>();
+  for (const m of matches.value) {
+    if (!map.has(m.field.id)) map.set(m.field.id, { field: m.field, matches: [] });
+    map.get(m.field.id)!.matches.push(m);
+  }
+  return Array.from(map.values()).sort((a, b) => a.field.name.localeCompare(b.field.name));
+});
+
+const matchesByTeam = computed(() => {
+  const map = new Map<string, { teamName: string; matches: Match[] }>();
+  for (const m of matches.value) {
+    if (!m.teamA || !m.teamB) continue;
+    [
+      { id: m.teamA.id, name: m.teamA.name, opponent: m.teamB.name },
+      { id: m.teamB.id, name: m.teamB.name, opponent: m.teamA.name },
+    ].forEach(({ id, name }) => {
+      if (!map.has(id)) map.set(id, { teamName: name, matches: [] });
+      map.get(id)!.matches.push(m);
+    });
+  }
+  return Array.from(map.values()).sort((a, b) => a.teamName.localeCompare(b.teamName));
+});
+
+const uniqueSlots = computed(() =>
+  [...new Set(matches.value.map((m) => m.startTime))].sort(),
+);
+
+function getMatchForSlot(fieldId: string, slot: string): Match | undefined {
+  return matches.value.find((m) => m.field.id === fieldId && m.startTime === slot);
+}
+
 onMounted(async () => {
-  await Promise.all([fetchMatches(), fetchFields()]);
+  await Promise.all([fetchMatches(), fetchFields(), fetchTournament()]);
 });
 </script>
 
@@ -189,235 +239,272 @@ onMounted(async () => {
         {{ nl.admin.schedule.title }}
       </h1>
     </div>
-      <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
-        <h2 class="mb-4 font-semibold text-text">
+
+    <!-- Generate schedule -->
+    <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+      <h2 class="mb-4 font-semibold text-text">
+        {{ nl.admin.schedule.generate }}
+      </h2>
+      <div class="mb-4">
+        <label class="mb-1 block text-sm font-medium text-text" for="sched-start">
+          {{ nl.admin.schedule.startDateTime }}
+        </label>
+        <ClientOnly>
+          <VueDatePicker
+            v-model="generateStartDateTime"
+            :formats="{ input: 'dd/MM/yyyy HH:mm' }"
+            :enable-time-picker="true"
+            :is24="true"
+            auto-apply
+            :locale="nlBE"
+          />
+        </ClientOnly>
+      </div>
+      <p v-if="generateError" class="mb-2 text-sm text-error">
+        {{ generateError }}
+      </p>
+      <p v-if="generateSuccess" class="mb-2 text-sm text-success">
+        {{ generateSuccess }}
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <button
+          :disabled="generateLoading"
+          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+          @click="generateSchedule(false)"
+        >
           {{ nl.admin.schedule.generate }}
-        </h2>
-
-        <div class="mb-4">
-          <label
-            class="mb-1 block text-sm font-medium text-text"
-            for="sched-start"
-          >
-            {{ nl.admin.schedule.startDateTime }}
-          </label>
-          <ClientOnly>
-            <VueDatePicker
-              v-model="generateStartDateTime"
-              :formats="{ input: 'dd/MM/yyyy HH:mm' }"
-              :enable-time-picker="true"
-              :is24="true"
-              auto-apply
-              :locale="nlBE"
-            />
-          </ClientOnly>
-        </div>
-
-        <p v-if="generateError" class="mb-2 text-sm text-error">
-          {{ generateError }}
-        </p>
-        <p v-if="generateSuccess" class="mb-2 text-sm text-success">
-          {{ generateSuccess }}
-        </p>
-
-        <div class="flex flex-wrap gap-3">
+        </button>
+        <template v-if="showOverwrite">
           <button
-            :disabled="generateLoading"
-            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-            @click="generateSchedule(false)"
+            class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            @click="generateSchedule(true)"
           >
-            {{ nl.admin.schedule.generate }}
+            {{ nl.common.confirm }}
           </button>
+          <button
+            class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="showOverwrite = false; generateError = ''"
+          >
+            {{ nl.common.cancel }}
+          </button>
+        </template>
+      </div>
+    </section>
 
-          <template v-if="showOverwrite">
-            <button
-              class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-              @click="generateSchedule(true)"
+    <!-- Phase live toggles -->
+    <section v-if="tournament && matches.length > 0" class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+      <h2 class="mb-3 font-semibold text-text">Status</h2>
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-if="tournament.type === 'POOLS' || tournament.type === 'COMBINATION'"
+          :disabled="phaseToggleLoading"
+          :class="tournament.poolScheduleLive ? 'bg-success' : 'bg-warning'"
+          class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
+          @click="togglePhase('poolScheduleLive')"
+        >
+          {{ tournament.poolScheduleLive ? nl.admin.schedule.poolScheduleLive : nl.admin.schedule.poolScheduleDraft }}
+        </button>
+        <button
+          v-if="tournament.type === 'KNOCKOUT' || tournament.type === 'COMBINATION'"
+          :disabled="phaseToggleLoading"
+          :class="tournament.koScheduleLive ? 'bg-success' : 'bg-warning'"
+          class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
+          @click="togglePhase('koScheduleLive')"
+        >
+          {{ tournament.koScheduleLive ? nl.admin.schedule.koScheduleLive : nl.admin.schedule.koScheduleDraft }}
+        </button>
+      </div>
+      <p v-if="phaseToggleError" class="mt-2 text-sm text-error">
+        {{ phaseToggleError }}
+      </p>
+    </section>
+
+    <!-- Time shift -->
+    <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+      <h2 class="mb-4 font-semibold text-text">
+        {{ nl.admin.schedule.timeShift }}
+      </h2>
+      <div class="grid gap-3 md:grid-cols-3">
+        <div>
+          <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.schedule.shiftFrom }}</label>
+          <select
+            v-model="timeShiftFrom"
+            class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+          >
+            <option value="" disabled>—</option>
+            <option
+              v-for="time in [...new Set(matches.map((m) => m.startTime))].sort()"
+              :key="time"
+              :value="time"
             >
-              {{ nl.common.confirm }}
-            </button>
-            <button
-              class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
-              @click="
-                showOverwrite = false;
-                generateError = '';
-              "
-            >
-              {{ nl.common.cancel }}
-            </button>
-          </template>
+              {{ formatDateTime(time) }}
+            </option>
+          </select>
         </div>
-      </section>
-
-      <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
-        <h2 class="mb-4 font-semibold text-text">
-          {{ nl.admin.schedule.timeShift }}
-        </h2>
-        <div class="grid gap-3 md:grid-cols-3">
-          <div>
-            <label class="mb-1 block text-sm font-medium text-text">
-              {{ nl.admin.schedule.shiftFrom }}
-            </label>
-            <select
-              v-model="timeShiftFrom"
-              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-            >
-              <option value="" disabled>—</option>
-              <option
-                v-for="time in [
-                  ...new Set(matches.map((m) => m.startTime)),
-                ].sort()"
-                :key="time"
-                :value="time"
-              >
-                {{ formatDateTime(time) }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium text-text">
-              {{ nl.admin.schedule.shiftMinutes }}
-            </label>
-            <input
-              v-model.number="timeShiftMinutes"
-              type="number"
-              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-            >
-          </div>
-          <div class="flex items-end">
-            <button
-              :disabled="timeShiftLoading"
-              class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-              @click="applyTimeShift"
-            >
-              {{ nl.admin.schedule.shiftApply }}
-            </button>
-          </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.schedule.shiftMinutes }}</label>
+          <input
+            v-model.number="timeShiftMinutes"
+            type="number"
+            class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+          >
         </div>
-        <p v-if="timeShiftError" class="mt-2 text-sm text-error">
-          {{ timeShiftError }}
-        </p>
-        <p v-if="timeShiftSuccess" class="mt-2 text-sm text-success">
-          {{ timeShiftSuccess }}
-        </p>
-      </section>
+        <div class="flex items-end">
+          <button
+            :disabled="timeShiftLoading"
+            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+            @click="applyTimeShift"
+          >
+            {{ nl.admin.schedule.shiftApply }}
+          </button>
+        </div>
+      </div>
+      <p v-if="timeShiftError" class="mt-2 text-sm text-error">
+        {{ timeShiftError }}
+      </p>
+      <p v-if="timeShiftSuccess" class="mt-2 text-sm text-success">
+        {{ timeShiftSuccess }}
+      </p>
+    </section>
 
-      <section class="rounded-lg bg-surface p-4 shadow-sm">
-        <p v-if="editSuccess" class="mb-2 text-sm text-success">
-          {{ editSuccess }}
-        </p>
+    <!-- Match schedule views -->
+    <section v-if="matches.length > 0" class="rounded-lg bg-surface p-4 shadow-sm">
+      <!-- View mode tabs -->
+      <div class="mb-4 flex gap-1 border-b border-gray-200">
+        <button
+          v-for="(label, mode) in { field: nl.admin.schedule.viewPerField, team: nl.admin.schedule.viewPerTeam, slot: nl.admin.schedule.viewPerSlot }"
+          :key="mode"
+          :class="viewMode === mode ? 'border-b-2 border-primary font-semibold text-primary' : 'text-text-light hover:text-text'"
+          class="-mb-px px-4 py-2 text-sm"
+          @click="viewMode = mode as typeof viewMode"
+        >
+          {{ label }}
+        </button>
+      </div>
 
-        <p v-if="matches.length === 0" class="text-text-light">
-          {{ nl.common.noResults }}
-        </p>
+      <!-- Switch mode status -->
+      <div v-if="switchMatchId" class="mb-3 rounded-lg border border-primary bg-primary/5 px-4 py-2 text-sm text-primary">
+        {{ nl.admin.schedule.switchModeHint }}
+      </div>
+      <p v-if="swapError" class="mb-2 text-sm text-error">
+        {{ swapError }}
+      </p>
+      <p v-if="swapSuccess" class="mb-2 text-sm text-success">
+        {{ swapSuccess }}
+      </p>
 
-        <ul v-else class="divide-y divide-gray-200">
-          <li v-for="match in matches" :key="match.id" class="py-3">
-            <template v-if="editingMatch?.id === match.id">
-              <div
-                class="flex flex-col gap-3 rounded-lg border border-primary p-3"
+      <!-- View: Per field -->
+      <template v-if="viewMode === 'field'">
+        <div v-for="group in matchesByField" :key="group.field.id" class="mb-6">
+          <h3 class="mb-2 font-semibold text-text">{{ group.field.name }}</h3>
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 text-left text-text-light">
+                <th class="pb-1 pr-4">{{ nl.admin.schedule.timeLabel }}</th>
+                <th class="pb-1 pr-4">{{ nl.admin.teams.nameLabel ?? 'Team A' }}</th>
+                <th class="pb-1">{{ nl.admin.teams.nameLabel ?? 'Team B' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="m in group.matches.sort((a, b) => a.startTime.localeCompare(b.startTime))"
+                :key="m.id"
+                :class="[
+                  'cursor-pointer border-b border-gray-100 transition-colors',
+                  switchMatchId === m.id ? 'bg-primary/10 outline outline-2 outline-primary' : 'hover:bg-gray-50'
+                ]"
+                @click="clickMatch(m)"
               >
-                <div class="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <label class="mb-1 block text-sm font-medium text-text">
-                      {{ nl.admin.schedule.fieldLabel }}
-                    </label>
-                    <select
-                      v-model="editFieldId"
-                      class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+                <td class="py-2 pr-4 text-text-light">{{ formatDateTime(m.startTime) }}</td>
+                <td class="py-2 pr-4 font-medium text-text">{{ m.teamA?.name ?? '?' }}</td>
+                <td class="py-2 font-medium text-text">{{ m.teamB?.name ?? '?' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+
+      <!-- View: Per team -->
+      <template v-else-if="viewMode === 'team'">
+        <div v-for="group in matchesByTeam" :key="group.teamName" class="mb-6">
+          <h3 class="mb-2 font-semibold text-text">{{ group.teamName }}</h3>
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 text-left text-text-light">
+                <th class="pb-1 pr-4">{{ nl.admin.schedule.timeLabel }}</th>
+                <th class="pb-1 pr-4">{{ nl.admin.schedule.fieldLabel }}</th>
+                <th class="pb-1">{{ nl.admin.schedule.opponent }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="m in group.matches.sort((a, b) => a.startTime.localeCompare(b.startTime))"
+                :key="m.id"
+                :class="[
+                  'cursor-pointer border-b border-gray-100 transition-colors',
+                  switchMatchId === m.id ? 'bg-primary/10 outline outline-2 outline-primary' : 'hover:bg-gray-50'
+                ]"
+                @click="clickMatch(m)"
+              >
+                <td class="py-2 pr-4 text-text-light">{{ formatDateTime(m.startTime) }}</td>
+                <td class="py-2 pr-4 text-text">{{ m.field.name }}</td>
+                <td class="py-2 font-medium text-text">
+                  {{ m.teamA?.name === group.teamName ? m.teamB?.name : m.teamA?.name }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+
+      <!-- View: Per time slot (grid) -->
+      <template v-else>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 text-left">
+                <th class="pb-1 pr-4 text-text-light">{{ nl.admin.schedule.timeLabel }}</th>
+                <th v-for="f in fields" :key="f.id" class="pb-1 pr-4 font-semibold text-text">
+                  {{ f.name }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="slot in uniqueSlots"
+                :key="slot"
+                class="border-b border-gray-100"
+              >
+                <td class="py-2 pr-4 text-text-light">{{ formatDateTime(slot) }}</td>
+                <td
+                  v-for="f in fields"
+                  :key="f.id"
+                  class="py-2 pr-4"
+                >
+                  <template v-if="getMatchForSlot(f.id, slot)">
+                    <button
+                      :class="[
+                        'w-full rounded p-1 text-left text-xs transition-colors',
+                        switchMatchId === getMatchForSlot(f.id, slot)!.id
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 hover:bg-gray-200 text-text'
+                      ]"
+                      @click="clickMatch(getMatchForSlot(f.id, slot)!)"
                     >
-                      <option v-for="f in fields" :key="f.id" :value="f.id">
-                        {{ f.name }}
-                      </option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="mb-1 block text-sm font-medium text-text">
-                      {{ nl.admin.schedule.timeLabel }}
-                    </label>
-                    <ClientOnly>
-                      <VueDatePicker
-                        v-model="editStartTime"
-                        :formats="{ input: 'dd/MM/yyyy HH:mm' }"
-                        :enable-time-picker="true"
-                        :is24="true"
-                        auto-apply
-                        :locale="nlBE"
-                      />
-                    </ClientOnly>
-                  </div>
-                </div>
+                      {{ getMatchForSlot(f.id, slot)!.teamA?.name ?? '?' }} vs {{ getMatchForSlot(f.id, slot)!.teamB?.name ?? '?' }}
+                    </button>
+                  </template>
+                  <span v-else class="text-text-light">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+    </section>
 
-                <div
-                  v-if="conflictResult"
-                  :class="conflictResult.ok ? 'text-success' : 'text-error'"
-                  class="text-sm"
-                >
-                  <span v-if="conflictResult.ok">{{
-                    nl.admin.schedule.noConflict
-                  }}</span>
-                  <ul v-else>
-                    <li v-for="c in conflictResult.conflicts" :key="c">
-                      {{ c }}
-                    </li>
-                  </ul>
-                </div>
-
-                <p v-if="editError" class="text-sm text-error">
-                  {{ editError }}
-                </p>
-
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    :disabled="conflictLoading"
-                    class="rounded bg-secondary px-3 py-1 text-sm text-white hover:opacity-80 disabled:opacity-50"
-                    @click="checkConflict"
-                  >
-                    {{ nl.admin.schedule.checkConflict }}
-                  </button>
-                  <button
-                    class="rounded bg-success px-3 py-1 text-sm text-white hover:opacity-80"
-                    @click="saveMatch"
-                  >
-                    {{ nl.admin.schedule.saveMatch }}
-                  </button>
-                  <button
-                    class="rounded bg-gray-400 px-3 py-1 text-sm text-white hover:opacity-80"
-                    @click="cancelEditMatch"
-                  >
-                    {{ nl.common.cancel }}
-                  </button>
-                </div>
-              </div>
-            </template>
-            <template v-else>
-              <div class="flex items-center justify-between gap-2">
-                <div
-                  class="flex flex-col gap-1 md:flex-row md:items-center md:gap-4"
-                >
-                  <span class="text-sm font-medium text-text-light">
-                    {{ formatDateTime(match.startTime) }}
-                  </span>
-                  <span class="font-semibold text-text">
-                    {{ match.teamA.name }} vs {{ match.teamB.name }}
-                  </span>
-                  <span class="text-sm text-text-light">
-                    {{ match.field.name }}
-                  </span>
-                  <span v-if="match.pool" class="text-sm text-text-light">
-                    {{ match.pool.name }}
-                  </span>
-                </div>
-                <button
-                  class="rounded bg-primary px-2 py-1 text-sm text-white hover:bg-primary-dark"
-                  @click="startEditMatch(match)"
-                >
-                  {{ nl.common.edit }}
-                </button>
-              </div>
-            </template>
-          </li>
-        </ul>
-      </section>
+    <p v-else-if="matches.length === 0" class="text-text-light">
+      {{ nl.common.noResults }}
+    </p>
   </main>
 </template>

@@ -17,7 +17,10 @@ export default defineEventHandler(async (event) => {
   const proposedFieldId = query.fieldId ? (query.fieldId as string) : undefined;
   const proposedStartTime = query.startTime ? new Date(query.startTime as string) : undefined;
 
-  const match = await prisma.match.findUnique({ where: { id: matchId } });
+  const match = await prisma.match.findUnique({
+    where: { id: matchId },
+    include: { teamA: true, teamB: true },
+  });
   if (!match) {
     throw createApiError({
       error: "Wedstrijd niet gevonden",
@@ -30,25 +33,32 @@ export default defineEventHandler(async (event) => {
   const checkStartTime = proposedStartTime ?? match.startTime;
 
   const conflictingMatches = await prisma.match.findMany({
-    where: {
-      id: { not: matchId as string },
-      startTime: checkStartTime,
-    },
+    where: { id: { not: matchId as string }, startTime: checkStartTime },
+    include: { field: true, teamA: true, teamB: true },
   });
 
   const conflicts: string[] = [];
 
   const fieldConflict = conflictingMatches.find((m) => m.fieldId === checkFieldId);
-  if (fieldConflict) conflicts.push("Veld is al bezet op dit tijdstip");
+  if (fieldConflict) {
+    const fieldName = fieldConflict.field?.name ?? checkFieldId;
+    const tA = fieldConflict.teamA?.name ?? "?";
+    const tB = fieldConflict.teamB?.name ?? "?";
+    conflicts.push(`Veld ${fieldName} is al bezet: ${tA} vs ${tB}`);
+  }
 
   const teamConflict = conflictingMatches.find(
     (m) =>
-      m.teamAId === match.teamAId ||
-      m.teamBId === match.teamAId ||
-      m.teamAId === match.teamBId ||
-      m.teamBId === match.teamBId,
+      m.teamAId === match.teamAId
+      || m.teamBId === match.teamAId
+      || m.teamAId === match.teamBId
+      || m.teamBId === match.teamBId,
   );
-  if (teamConflict) conflicts.push("Een van de teams speelt al een andere wedstrijd op dit tijdstip");
+  if (teamConflict) {
+    const tA = match.teamA?.name ?? "?";
+    const tB = match.teamB?.name ?? "?";
+    conflicts.push(`${tA} of ${tB} speelt al een andere wedstrijd op dit tijdstip`);
+  }
 
   return { ok: conflicts.length === 0, conflicts };
 });

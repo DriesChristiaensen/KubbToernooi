@@ -8,19 +8,40 @@ export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
   const body = await readBody(event);
 
-  if (!VALID_STATUSES.includes(body?.status)) {
+  const data: Record<string, unknown> = {};
+
+  if (body?.status !== undefined) {
+    if (!VALID_STATUSES.includes(body.status)) {
+      throw createApiError({
+        error: "Ongeldige status",
+        code: 400,
+        reason: "Invalid tournament status",
+      });
+    }
+    data.status = body.status;
+  }
+
+  if (body?.poolScheduleLive !== undefined) {
+    data.poolScheduleLive = Boolean(body.poolScheduleLive);
+  }
+
+  if (body?.koScheduleLive !== undefined) {
+    data.koScheduleLive = Boolean(body.koScheduleLive);
+  }
+
+  if (Object.keys(data).length === 0) {
     throw createApiError({
-      error: "Ongeldige status",
+      error: "Geen geldige velden opgegeven",
       code: 400,
-      reason: "Invalid tournament status",
+      reason: "No valid fields provided",
     });
   }
 
   const updated = await prisma.tournament.update({
     where: { id: tournament.id },
-    data: { status: body.status },
+    data,
   });
 
-  logRequest(event, "success", `Tournament status updated: ${body.status}`);
+  logRequest(event, "success", `Tournament updated: ${JSON.stringify(data)}`);
   return updated;
 });
