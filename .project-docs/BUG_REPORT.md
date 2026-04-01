@@ -174,7 +174,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ---
 
-### Bug #10: Stale `/login` Route Remains Accessible
+### Bug #10: Stale `/login` Route Remains Accessible — DONE AND RESOLVED
 
 - **Location:** `pages/login.vue`
 - **Issue:** The route `/login` still exists and is accessible. Login was split into role-specific pages: `/admin/admin-login` and `/ref/login`. The shared `/login` page now causes confusion because it is not linked from anywhere but can still be reached by URL.
@@ -186,7 +186,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ## Category 4: High Priority Bugs (New — reported 2026-04-01)
 
-### Bug #11: Tournament Wizard — Datetime Input Renders as 12h Clock and Accepts 6-Digit Year
+### Bug #11: Tournament Wizard — Datetime Input Renders as 12h Clock and Accepts 6-Digit Year — DONE AND RESOLVED
 
 - **Location:** `pages/admin/tournament.vue:283–287`
 - **Issue:** The `startTime` input uses `type="datetime-local"` (native HTML input). On Windows with en-US or nl-BE locale settings, Chrome/Edge render this as a 12h clock (AM/PM) rather than 24h. Additionally, the year field accepts up to 6 digits, allowing nonsense values like `202600`.
@@ -198,7 +198,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ---
 
-### Bug #12: Tournament Wizard — Points Fields Allow Negative Values via Keyboard
+### Bug #12: Tournament Wizard — Points Fields Allow Negative Values via Keyboard — DONE AND RESOLVED
 
 - **Location:** `pages/admin/tournament.vue:318–328`
 - **Issue:** The `pointsWin`, `pointsDraw`, and `pointsLoss` inputs have `min="0"` and the backend Zod schema uses `.int().min(0)` — however, HTML `min` only prevents the browser spinner from going below 0. A user can type `-3` directly into the field and the frontend does not catch this before sending. The backend will reject it with `400 "Ongeldige invoer"` but no field-level error is shown.
@@ -208,7 +208,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ---
 
-### Bug #13: Tournament Wizard — No Per-Field Validation Feedback; Duplicate Name Error Unclear
+### Bug #13: Tournament Wizard — No Per-Field Validation Feedback; Duplicate Name Error Unclear — DONE AND RESOLVED
 
 - **Location:** `pages/admin/tournament.vue:64–71`, `server/api/admin/tournament.post.ts`
 - **Issue (two parts):**
