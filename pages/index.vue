@@ -56,8 +56,7 @@ const teamSearch = ref("");
 
 // T8.5 – main tab state
 const activeMainTab = ref<"pool" | "ko" | "eindstand">("pool");
-const activeSubTabPool = ref<"matches" | "standings">("matches");
-const activeSubTabKo = ref<"matches" | "standings">("matches");
+const activeSubTab = ref<"matches" | "standings">("matches");
 const activeEindstandSub = ref<"ko" | "pool">("ko");
 
 const MATCH_DURATION_MS = 15 * 60 * 1000;
@@ -131,9 +130,19 @@ const showKoTab = computed(
   () => tournamentType.value === "KNOCKOUT" || tournamentType.value === "COMBINATION",
 );
 
-const multipleMainTabs = computed(
-  () => [showEindstand.value, showPoolTab.value, showKoTab.value].filter(Boolean).length > 1,
-);
+const mainTabs = computed(() => {
+  const tabs: { key: "pool" | "ko" | "eindstand"; label: string }[] = [];
+  if (showPoolTab.value) tabs.push({ key: "pool", label: s.tabPool });
+  if (showKoTab.value) tabs.push({ key: "ko", label: s.tabKo });
+  if (showEindstand.value) tabs.push({ key: "eindstand", label: s.tabEindstand });
+  return tabs;
+});
+
+const statusOpts = [
+  { key: "all" as const, label: s.filterAll },
+  { key: "played" as const, label: s.filterPlayed },
+  { key: "toPlay" as const, label: s.filterToPlay },
+];
 
 // T8.3 – unique teams from all matches
 const uniqueTeams = computed(() => {
@@ -267,67 +276,58 @@ const koFinalMatch = computed(() => {
       </div>
 
       <!-- T8.2 – Status filter -->
-      <div class="mb-4 flex gap-2">
+      <div class="mb-4 inline-flex overflow-hidden rounded border border-gray-300">
         <button
-          v-for="opt in [
-            { key: 'all', label: s.filterAll },
-            { key: 'played', label: s.filterPlayed },
-            { key: 'toPlay', label: s.filterToPlay },
-          ]"
+          v-for="(opt, idx) in statusOpts"
           :key="opt.key"
-          :class="statusFilter === opt.key
-            ? 'bg-primary text-white'
-            : 'border border-gray-300 text-text hover:bg-gray-100'"
-          class="rounded px-3 py-1.5 text-sm"
-          @click="statusFilter = (opt.key as 'all' | 'played' | 'toPlay')"
+          :class="[
+            statusFilter === opt.key ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50',
+            idx < statusOpts.length - 1 ? 'border-r border-gray-300' : '',
+          ]"
+          class="px-3 py-1.5 text-sm"
+          @click="statusFilter = opt.key"
         >
           {{ opt.label }}
         </button>
       </div>
 
-      <!-- T8.5 – Main tabs -->
-      <div v-if="multipleMainTabs" class="mb-4 flex gap-1 border-b border-gray-200">
-        <button
-          v-if="showEindstand"
-          :class="activeMainTab === 'eindstand' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-text-light hover:text-text'"
-          class="px-4 py-2 text-sm"
-          @click="activeMainTab = 'eindstand'"
-        >
-          {{ s.tabEindstand }}
-        </button>
-        <button
-          v-if="showPoolTab"
-          :class="activeMainTab === 'pool' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-text-light hover:text-text'"
-          class="px-4 py-2 text-sm"
-          @click="activeMainTab = 'pool'"
-        >
-          {{ s.tabPool }}
-        </button>
-        <button
-          v-if="showKoTab"
-          :class="activeMainTab === 'ko' ? 'border-b-2 border-primary text-primary font-semibold' : 'text-text-light hover:text-text'"
-          class="px-4 py-2 text-sm"
-          @click="activeMainTab = 'ko'"
-        >
-          {{ s.tabKo }}
-        </button>
+      <!-- T8.5 – Main tabs + sub-tabs as parallel button groups -->
+      <div class="mb-4 flex flex-wrap items-center gap-3">
+        <div v-if="mainTabs.length > 1" class="inline-flex overflow-hidden rounded border border-gray-300">
+          <button
+            v-for="(tab, idx) in mainTabs"
+            :key="tab.key"
+            :class="[
+              activeMainTab === tab.key ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50',
+              idx < mainTabs.length - 1 ? 'border-r border-gray-300' : '',
+            ]"
+            class="px-3 py-1.5 text-sm"
+            @click="activeMainTab = tab.key"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+        <div v-if="activeMainTab !== 'eindstand'" class="inline-flex overflow-hidden rounded border border-gray-300">
+          <button
+            :class="activeSubTab === 'matches' ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50'"
+            class="border-r border-gray-300 px-3 py-1.5 text-sm"
+            @click="activeSubTab = 'matches'"
+          >
+            {{ s.tabMatches }}
+          </button>
+          <button
+            :class="activeSubTab === 'standings' ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50'"
+            class="px-3 py-1.5 text-sm"
+            @click="activeSubTab = 'standings'"
+          >
+            {{ s.tabStandings }}
+          </button>
+        </div>
       </div>
 
       <!-- POOL tab -->
       <template v-if="activeMainTab === 'pool' && showPoolTab">
-        <div class="mb-3 flex gap-1 border-b border-gray-100">
-          <button
-            v-for="sub in [{ key: 'matches', label: s.tabMatches }, { key: 'standings', label: s.tabStandings }]"
-            :key="sub.key"
-            :class="activeSubTabPool === sub.key ? 'border-b-2 border-primary text-primary font-medium' : 'text-text-light hover:text-text'"
-            class="px-3 py-1.5 text-sm"
-            @click="activeSubTabPool = (sub.key as 'matches' | 'standings')"
-          >
-            {{ sub.label }}
-          </button>
-        </div>
-
-        <template v-if="activeSubTabPool === 'matches'">
+        <template v-if="activeSubTab === 'matches'">
           <p v-if="displayPoolMatches.length === 0" class="text-text-light">{{ s.noMatches }}</p>
           <ul class="space-y-3">
             <li
@@ -391,19 +391,7 @@ const koFinalMatch = computed(() => {
 
       <!-- KO tab -->
       <template v-if="activeMainTab === 'ko' && showKoTab">
-        <div class="mb-3 flex gap-1 border-b border-gray-100">
-          <button
-            v-for="sub in [{ key: 'matches', label: s.tabMatches }, { key: 'standings', label: s.tabStandings }]"
-            :key="sub.key"
-            :class="activeSubTabKo === sub.key ? 'border-b-2 border-primary text-primary font-medium' : 'text-text-light hover:text-text'"
-            class="px-3 py-1.5 text-sm"
-            @click="activeSubTabKo = (sub.key as 'matches' | 'standings')"
-          >
-            {{ sub.label }}
-          </button>
-        </div>
-
-        <template v-if="activeSubTabKo === 'matches'">
+        <template v-if="activeSubTab === 'matches'">
           <p v-if="displayKoMatches.length === 0" class="text-text-light">{{ s.noMatches }}</p>
           <div v-for="group in koRounds" :key="group.round" class="mb-5">
             <h3 class="mb-2 font-semibold text-text">{{ group.label }}</h3>
@@ -451,13 +439,16 @@ const koFinalMatch = computed(() => {
       <template v-if="activeMainTab === 'eindstand' && showEindstand">
         <!-- COMBINATION: sub-tabs -->
         <template v-if="tournamentType === 'COMBINATION'">
-          <div class="mb-3 flex gap-1 border-b border-gray-100">
+          <div class="mb-3 inline-flex overflow-hidden rounded border border-gray-300">
             <button
-              v-for="sub in [{ key: 'ko', label: s.tabKo }, { key: 'pool', label: s.tabPool }]"
+              v-for="(sub, idx) in [{ key: 'ko' as const, label: s.tabKo }, { key: 'pool' as const, label: s.tabPool }]"
               :key="sub.key"
-              :class="activeEindstandSub === sub.key ? 'border-b-2 border-primary text-primary font-medium' : 'text-text-light hover:text-text'"
+              :class="[
+                activeEindstandSub === sub.key ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50',
+                idx === 0 ? 'border-r border-gray-300' : '',
+              ]"
               class="px-3 py-1.5 text-sm"
-              @click="activeEindstandSub = (sub.key as 'ko' | 'pool')"
+              @click="activeEindstandSub = sub.key"
             >
               {{ sub.label }}
             </button>
