@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { nl } from '~/i18n/nl'
-import { useAuth } from '~/composables/useAuth'
 
 definePageMeta({ layout: false })
 
@@ -12,10 +11,55 @@ if (loggedIn.value && user.value?.role === 'ADMIN') {
 
 const password = ref('')
 const showPassword = ref(false)
-const { login, loading, error } = useAuth()
+const isLoading = ref(false)
+const error = ref('')
+const showPasswordSetupConfirm = ref(false)
 
 async function handleSubmit() {
-  await login({ password: password.value })
+  error.value = ''
+  isLoading.value = true
+  try {
+    const result = await $fetch<{ needsPasswordSetup?: boolean; user?: { role: string } }>('/api/auth/login', {
+      method: 'POST',
+      body: { password: password.value },
+    })
+    if (result.needsPasswordSetup) {
+      showPasswordSetupConfirm.value = true
+      isLoading.value = false
+      return
+    }
+    await useUserSession().fetch()
+    await navigateTo('/admin')
+  }
+  catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string }; error?: string } }
+    error.value = fetchErr?.data?.data?.error || fetchErr?.data?.error || nl.auth.loginFailed
+    isLoading.value = false
+  }
+}
+
+async function confirmPasswordSetup() {
+  error.value = ''
+  isLoading.value = true
+  showPasswordSetupConfirm.value = false
+  try {
+    await $fetch('/api/auth/login', {
+      method: 'POST',
+      body: { password: password.value, setPassword: true },
+    })
+    await useUserSession().fetch()
+    await navigateTo('/admin')
+  }
+  catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string }; error?: string } }
+    error.value = fetchErr?.data?.data?.error || fetchErr?.data?.error || nl.auth.loginFailed
+    isLoading.value = false
+  }
+}
+
+function cancelPasswordSetup() {
+  showPasswordSetupConfirm.value = false
+  isLoading.value = false
 }
 </script>
 
@@ -26,7 +70,28 @@ async function handleSubmit() {
         {{ nl.common.appName }}
       </h1>
 
-      <form @submit.prevent="handleSubmit">
+      <div v-if="showPasswordSetupConfirm" class="text-center">
+        <p class="mb-6 text-sm text-text">
+          {{ nl.auth.noPasswordSet }}
+        </p>
+        <div class="flex gap-3">
+          <button
+            :disabled="isLoading"
+            class="flex-1 rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+            @click="confirmPasswordSetup"
+          >
+            {{ nl.common.confirm }}
+          </button>
+          <button
+            class="flex-1 rounded bg-secondary px-4 py-2 font-medium text-white hover:opacity-80"
+            @click="cancelPasswordSetup"
+          >
+            {{ nl.common.cancel }}
+          </button>
+        </div>
+      </div>
+
+      <form v-else @submit.prevent="handleSubmit">
         <div class="mb-4">
           <label class="mb-1 block text-sm font-medium text-text" for="password">
             {{ nl.auth.password }}
@@ -62,10 +127,10 @@ async function handleSubmit() {
 
         <button
           type="submit"
-          :disabled="loading"
+          :disabled="isLoading"
           class="w-full rounded bg-primary px-4 py-2 font-medium text-white transition-colors hover:bg-primary-dark disabled:opacity-50"
         >
-          {{ loading ? nl.common.loading : nl.auth.login }}
+          {{ isLoading ? nl.common.loading : nl.auth.login }}
         </button>
       </form>
     </div>
