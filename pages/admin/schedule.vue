@@ -220,6 +220,71 @@ const uniqueSlots = computed(() =>
   [...new Set(matches.value.map((m) => m.startTime))].sort(),
 );
 
+const conflictingMatchIds = computed(() => {
+  const ids = new Set<string>();
+  const list = matches.value;
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const a = list[i]!;
+      const b = list[j]!;
+      if (a.startTime !== b.startTime) continue;
+      const fieldConflict = a.field.id === b.field.id;
+      const teamConflict
+        = a.teamA?.id === b.teamA?.id
+        || a.teamA?.id === b.teamB?.id
+        || a.teamB?.id === b.teamA?.id
+        || a.teamB?.id === b.teamB?.id;
+      if (fieldConflict || teamConflict) {
+        ids.add(a.id);
+        ids.add(b.id);
+      }
+    }
+  }
+  return ids;
+});
+
+const switchMatch = computed(() =>
+  matches.value.find((m) => m.id === switchMatchId.value) ?? null,
+);
+
+const highlightedMatchIds = computed(() => {
+  const sm = switchMatch.value;
+  if (!sm) return new Set<string>();
+  const ids = new Set<string>();
+  const teamIds = [sm.teamA?.id, sm.teamB?.id].filter(Boolean);
+  for (const m of matches.value) {
+    if (m.id === sm.id) continue;
+    if (
+      m.field.id === sm.field.id
+      || teamIds.includes(m.teamA?.id)
+      || teamIds.includes(m.teamB?.id)
+    ) {
+      ids.add(m.id);
+    }
+  }
+  return ids;
+});
+
+function rowClass(matchId: string): string {
+  if (switchMatchId.value === matchId)
+    return "cursor-pointer border-b border-gray-100 bg-primary/10 outline outline-2 outline-primary transition-colors";
+  if (switchMatchId.value && highlightedMatchIds.value.has(matchId))
+    return "cursor-pointer border-b border-gray-100 bg-orange-50 outline outline-2 outline-orange-400 transition-colors";
+  if (conflictingMatchIds.value.has(matchId))
+    return "cursor-pointer border-b border-gray-100 bg-red-50 outline outline-1 outline-red-400 transition-colors";
+  return "cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition-colors";
+}
+
+function cellClass(matchId: string): string {
+  if (switchMatchId.value === matchId)
+    return "w-full rounded p-1 text-left text-xs transition-colors bg-primary text-white";
+  if (switchMatchId.value && highlightedMatchIds.value.has(matchId))
+    return "w-full rounded p-1 text-left text-xs transition-colors bg-orange-200 text-orange-900 outline outline-2 outline-orange-400";
+  if (conflictingMatchIds.value.has(matchId))
+    return "w-full rounded p-1 text-left text-xs transition-colors bg-red-100 text-red-800 outline outline-1 outline-red-400";
+  return "w-full rounded p-1 text-left text-xs transition-colors bg-gray-100 hover:bg-gray-200 text-text";
+}
+
 function getMatchForSlot(fieldId: string, slot: string): Match | undefined {
   return matches.value.find((m) => m.field.id === fieldId && m.startTime === slot);
 }
@@ -382,9 +447,15 @@ onMounted(async () => {
         </button>
       </div>
 
+      <!-- Conflict warning (persistent across all tabs) -->
+      <div v-if="conflictingMatchIds.size > 0" class="mb-3 rounded-lg border border-error bg-error/10 px-4 py-2 text-sm font-medium text-error">
+        {{ nl.admin.schedule.swapConflictWarning }}
+      </div>
+
       <!-- Switch mode status -->
-      <div v-if="switchMatchId" class="mb-3 rounded-lg border border-primary bg-primary/5 px-4 py-2 text-sm text-primary">
-        {{ nl.admin.schedule.switchModeHint }}
+      <div v-if="switchMatchId" class="mb-3 space-y-1 rounded-lg border border-primary bg-primary/5 px-4 py-2 text-sm text-primary">
+        <div>{{ nl.admin.schedule.switchModeHint }}</div>
+        <div class="text-orange-500">{{ nl.admin.schedule.switchHighlightHint }}</div>
       </div>
       <p v-if="swapError" class="mb-2 text-sm text-error">
         {{ swapError }}
@@ -409,10 +480,7 @@ onMounted(async () => {
               <tr
                 v-for="m in group.matches.sort((a, b) => a.startTime.localeCompare(b.startTime))"
                 :key="m.id"
-                :class="[
-                  'cursor-pointer border-b border-gray-100 transition-colors',
-                  switchMatchId === m.id ? 'bg-primary/10 outline outline-2 outline-primary' : 'hover:bg-gray-50'
-                ]"
+                :class="rowClass(m.id)"
                 @click="clickMatch(m)"
               >
                 <td class="py-2 pr-4 text-text-light">{{ formatDateTime(m.startTime) }}</td>
@@ -440,10 +508,7 @@ onMounted(async () => {
               <tr
                 v-for="m in group.matches.sort((a, b) => a.startTime.localeCompare(b.startTime))"
                 :key="m.id"
-                :class="[
-                  'cursor-pointer border-b border-gray-100 transition-colors',
-                  switchMatchId === m.id ? 'bg-primary/10 outline outline-2 outline-primary' : 'hover:bg-gray-50'
-                ]"
+                :class="rowClass(m.id)"
                 @click="clickMatch(m)"
               >
                 <td class="py-2 pr-4 text-text-light">{{ formatDateTime(m.startTime) }}</td>
@@ -483,12 +548,7 @@ onMounted(async () => {
                 >
                   <template v-if="getMatchForSlot(f.id, slot)">
                     <button
-                      :class="[
-                        'w-full rounded p-1 text-left text-xs transition-colors',
-                        switchMatchId === getMatchForSlot(f.id, slot)!.id
-                          ? 'bg-primary text-white'
-                          : 'bg-gray-100 hover:bg-gray-200 text-text'
-                      ]"
+                      :class="cellClass(getMatchForSlot(f.id, slot)!.id)"
                       @click="clickMatch(getMatchForSlot(f.id, slot)!)"
                     >
                       {{ getMatchForSlot(f.id, slot)!.teamA?.name ?? '?' }} vs {{ getMatchForSlot(f.id, slot)!.teamB?.name ?? '?' }}
