@@ -178,6 +178,20 @@ function clearFavTeam() {
   myTeamOnly.value = false;
 }
 
+function isFavTeam(id: string): boolean {
+  return !!favTeamId.value && favTeamId.value === id;
+}
+
+const favTeamPool = computed(() => {
+  if (!favTeamId.value) return null;
+  return standings.value.find((p) => p.standings.some((st) => st.teamId === favTeamId.value)) ?? null;
+});
+
+const displayStandings = computed(() => {
+  if (myTeamOnly.value && favTeamId.value && favTeamPool.value) return [favTeamPool.value];
+  return standings.value;
+});
+
 // T8.2 + T8.3 – apply filters
 function applyFilters(list: Match[]): Match[] {
   let result = list;
@@ -260,8 +274,8 @@ const koFinalMatch = computed(() => {
         </button>
         <button
           v-if="favTeamName"
-          :class="myTeamOnly ? 'bg-primary text-white' : 'border border-gray-300 text-text'"
-          class="rounded px-3 py-1.5 text-sm hover:bg-primary/10"
+          :class="myTeamOnly ? 'bg-pink-500 text-white' : 'border border-pink-400 text-pink-600 hover:bg-pink-50'"
+          class="rounded px-3 py-1.5 text-sm"
           @click="myTeamOnly = !myTeamOnly"
         >
           {{ s.myTeam }}
@@ -340,7 +354,11 @@ const koFinalMatch = computed(() => {
                 <span>{{ formatDateTime(match.startTime) }}</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="font-semibold text-text">{{ match.teamA.name }} vs {{ match.teamB.name }}</span>
+                <span class="font-semibold">
+                  <span :class="isFavTeam(match.teamA.id) ? 'text-pink-600' : 'text-text'">{{ match.teamA.name }}</span>
+                  <span class="text-text"> vs </span>
+                  <span :class="isFavTeam(match.teamB.id) ? 'text-pink-600' : 'text-text'">{{ match.teamB.name }}</span>
+                </span>
                 <span :class="statusClasses(match)" class="rounded px-2 py-0.5 text-xs font-medium">
                   <template v-if="match.status === 'PLAYED'">{{ match.scoreA }} - {{ match.scoreB }} ({{ statusLabel(match) }})</template>
                   <template v-else>{{ statusLabel(match) }}</template>
@@ -351,8 +369,8 @@ const koFinalMatch = computed(() => {
         </template>
 
         <template v-else>
-          <p v-if="standings.length === 0" class="text-text-light">{{ nl.common.noResults }}</p>
-          <div v-for="pool in standings" :key="pool.id" class="mb-6">
+          <p v-if="displayStandings.length === 0" class="text-text-light">{{ nl.common.noResults }}</p>
+          <div v-for="pool in displayStandings" :key="pool.id" class="mb-6">
             <h3 class="mb-2 font-semibold text-text">
               {{ nl.public.standings.pool }}: {{ pool.name }}
             </h3>
@@ -370,8 +388,8 @@ const koFinalMatch = computed(() => {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                  <tr v-for="(st, idx) in pool.standings" :key="st.teamId" :class="idx % 2 === 0 ? '' : 'bg-gray-50'">
-                    <td class="px-3 py-2 font-medium text-text">{{ st.team.name }}</td>
+                  <tr v-for="(st, idx) in pool.standings" :key="st.teamId" :class="isFavTeam(st.teamId) ? 'bg-pink-50' : (idx % 2 === 0 ? '' : 'bg-gray-50')">
+                    <td :class="isFavTeam(st.teamId) ? 'px-3 py-2 font-bold text-pink-600' : 'px-3 py-2 font-medium text-text'">{{ st.team.name }}</td>
                     <td class="px-2 py-2 text-center text-text">{{ st.played }}</td>
                     <td class="px-2 py-2 text-center text-text">{{ st.won }}</td>
                     <td class="px-2 py-2 text-center text-text">{{ st.drawn }}</td>
@@ -406,7 +424,11 @@ const koFinalMatch = computed(() => {
                   <span>{{ formatDateTime(match.startTime) }}</span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="font-semibold text-text">{{ match.teamA.name }} vs {{ match.teamB.name }}</span>
+                  <span class="font-semibold">
+                    <span :class="isFavTeam(match.teamA.id) ? 'text-pink-600' : 'text-text'">{{ match.teamA.name }}</span>
+                    <span class="text-text"> vs </span>
+                    <span :class="isFavTeam(match.teamB.id) ? 'text-pink-600' : 'text-text'">{{ match.teamB.name }}</span>
+                  </span>
                   <span :class="statusClasses(match)" class="rounded px-2 py-0.5 text-xs font-medium">
                     <template v-if="match.status === 'PLAYED'">{{ match.scoreA }} - {{ match.scoreB }} ({{ statusLabel(match) }})</template>
                     <template v-else>{{ statusLabel(match) }}</template>
@@ -422,9 +444,13 @@ const koFinalMatch = computed(() => {
           <div v-for="group in koRounds" :key="group.round" class="mb-4">
             <h3 class="mb-2 font-semibold text-text">{{ group.label }}</h3>
             <ul class="space-y-2">
-              <li v-for="match in group.matches" :key="match.id" class="rounded-lg border border-gray-200 bg-surface p-3 shadow-sm">
+              <li v-for="match in group.matches" :key="match.id" :class="(isFavTeam(match.teamA.id) || isFavTeam(match.teamB.id)) ? 'rounded-lg border border-pink-200 bg-pink-50 p-3 shadow-sm' : 'rounded-lg border border-gray-200 bg-surface p-3 shadow-sm'">
                 <div class="flex items-center justify-between">
-                  <span class="text-text">{{ match.teamA.name }} vs {{ match.teamB.name }}</span>
+                  <span>
+                    <span :class="isFavTeam(match.teamA.id) ? 'font-bold text-pink-600' : 'text-text'">{{ match.teamA.name }}</span>
+                    <span class="text-text"> vs </span>
+                    <span :class="isFavTeam(match.teamB.id) ? 'font-bold text-pink-600' : 'text-text'">{{ match.teamB.name }}</span>
+                  </span>
                   <span v-if="match.status === 'PLAYED'" class="text-sm font-semibold text-text">
                     {{ match.scoreA }} - {{ match.scoreB }}
                   </span>
