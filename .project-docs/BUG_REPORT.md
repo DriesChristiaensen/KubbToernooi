@@ -161,7 +161,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ---
 
-### Bug #9: Referee Password Reset — 404 URL Mismatch
+### Bug #9: Referee Password Reset — 404 URL Mismatch — DONE AND RESOLVED
 
 - **Location:** `pages/admin/referees.vue:52–53`, `server/api/admin/referees/[id].reset-password.post.ts`
 - **Observed error:** `404 (Page not found: /api/admin/referees/ab724a69-48cf-4033-99a6-1a8064115277/reset-password)`
