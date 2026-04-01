@@ -95,8 +95,24 @@ export default defineEventHandler(async (event) => {
   }
 
   const maxRounds = Math.max(...Array.from(poolRounds.values()).map((r) => r.length), 0);
-  const fieldCount = fields.length;
   const slotDurationMs = (tournament.matchDuration + tournament.breakTime) * 60 * 1000;
+
+  // Build flat match list ordered by round across all pools (T7.2: enables round mixing)
+  const allMatches: Array<{ poolId: string; teamA: string; teamB: string; round: number }> = [];
+  for (let round = 0; round < maxRounds; round++) {
+    for (const [poolId, rounds] of poolRounds) {
+      if (round < rounds.length) {
+        for (const [a, b] of rounds[round]) {
+          allMatches.push({ poolId, teamA: a, teamB: b, round: round + 1 });
+        }
+      }
+    }
+  }
+
+  // Greedy packing: assign each match to the earliest available field slot
+  // Hard constraint: no team plays in overlapping slots
+  const fieldNextSlot = new Map<string, number>(fields.map((f: { id: string }) => [f.id, 0]));
+  const teamNextSlot = new Map<string, number>();
 
   const matchData: Array<{
     phase: "POOL";
@@ -109,38 +125,34 @@ export default defineEventHandler(async (event) => {
     status: "SCHEDULED";
   }> = [];
 
-  let slotIndex = 0;
+  for (const m of allMatches) {
+    const teamConstraint = Math.max(teamNextSlot.get(m.teamA) ?? 0, teamNextSlot.get(m.teamB) ?? 0);
 
-  for (let round = 0; round < maxRounds; round++) {
-    const roundMatches: Array<{ poolId: string; teamA: string; teamB: string }> = [];
+    let bestField = fields[0]!;
+    let bestSlot = Math.max(fieldNextSlot.get(bestField.id) ?? 0, teamConstraint);
 
-    for (const [poolId, rounds] of poolRounds) {
-      if (round < rounds.length) {
-        for (const [a, b] of rounds[round]) {
-          roundMatches.push({ poolId, teamA: a, teamB: b });
-        }
+    for (const field of fields) {
+      const startSlot = Math.max(fieldNextSlot.get(field.id) ?? 0, teamConstraint);
+      if (startSlot < bestSlot) {
+        bestSlot = startSlot;
+        bestField = field;
       }
     }
 
-    for (let batch = 0; batch < roundMatches.length; batch += fieldCount) {
-      const batchMatches = roundMatches.slice(batch, batch + fieldCount);
-      const slotStart = new Date(baseTime.getTime() + slotIndex * slotDurationMs);
+    matchData.push({
+      phase: "POOL",
+      round: m.round,
+      startTime: new Date(baseTime.getTime() + bestSlot * slotDurationMs),
+      fieldId: bestField.id,
+      poolId: m.poolId,
+      teamAId: m.teamA,
+      teamBId: m.teamB,
+      status: "SCHEDULED",
+    });
 
-      for (let i = 0; i < batchMatches.length; i++) {
-        const m = batchMatches[i];
-        matchData.push({
-          phase: "POOL",
-          round: round + 1,
-          startTime: slotStart,
-          fieldId: fields[i]!.id,
-          poolId: m.poolId,
-          teamAId: m.teamA,
-          teamBId: m.teamB,
-          status: "SCHEDULED",
-        });
-      }
-      slotIndex++;
-    }
+    fieldNextSlot.set(bestField.id, bestSlot + 1);
+    teamNextSlot.set(m.teamA, bestSlot + 1);
+    teamNextSlot.set(m.teamB, bestSlot + 1);
   }
 
   await prisma.match.createMany({ data: matchData });
