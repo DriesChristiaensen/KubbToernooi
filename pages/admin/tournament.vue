@@ -398,7 +398,7 @@ onMounted(async () => {
           <div><dt class="text-text-light">{{ nl.admin.tournament.matchDuration }}</dt><dd class="font-medium text-text">{{ tournament.matchDuration }} min</dd></div>
           <div><dt class="text-text-light">{{ nl.admin.tournament.breakTime }}</dt><dd class="font-medium text-text">{{ tournament.breakTime }} min</dd></div>
           <div><dt class="text-text-light">{{ nl.admin.tournament.pointsWin }} / {{ nl.admin.tournament.pointsDraw }} / {{ nl.admin.tournament.pointsLoss }}</dt><dd class="font-medium text-text">{{ tournament.pointsWin }} / {{ tournament.pointsDraw }} / {{ tournament.pointsLoss }}</dd></div>
-          <div><dt class="text-text-light">Status</dt><dd class="font-medium" :class="tournament.status === 'LIVE' ? 'text-success' : 'text-warning'">{{ tournament.status === 'LIVE' ? nl.admin.tournament.statusLive : nl.admin.tournament.statusDraft }}</dd></div>
+          <div><dt class="text-text-light">{{ nl.admin.tournament.statusLabel }}</dt><dd class="font-medium" :class="tournament.status === 'LIVE' ? 'text-success' : 'text-warning'">{{ tournament.status === 'LIVE' ? nl.admin.tournament.statusLive : nl.admin.tournament.statusDraft }}</dd></div>
         </dl>
         <div class="flex flex-wrap gap-2">
           <button

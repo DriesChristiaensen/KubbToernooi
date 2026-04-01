@@ -127,7 +127,7 @@ async function applyTimeShift() {
         },
       },
     );
-    timeShiftSuccess.value = `${result.shifted} wedstrijden verschoven`;
+    timeShiftSuccess.value = `${result.shifted} ${nl.admin.schedule.shiftSuccess}`;
     await fetchMatches();
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };

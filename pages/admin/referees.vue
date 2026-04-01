@@ -73,7 +73,7 @@ onMounted(fetchReferees)
         &larr; {{ nl.common.back }}
       </NuxtLink>
       <h1 class="text-lg font-bold text-text">
-        Scheidsrechters
+        {{ nl.admin.referees.title }}
       </h1>
     </div>
       <form class="mb-6 flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-sm md:flex-row md:items-end" @submit.prevent="addReferee">
