@@ -4,7 +4,10 @@ import { logRequest } from "~/server/utils/logger";
 
 const bodySchema = z.object({
   overwrite: z.boolean().optional(),
-  startDateTime: z.string().optional(),
+  startDateTime: z.string()
+    .refine((s) => !isNaN(new Date(s).getTime()), { message: "Invalid date" })
+    .refine((s) => /T|:/.test(s), { message: "startDateTime must include a time component" })
+    .optional(),
 });
 
 export default defineEventHandler(async (event) => {

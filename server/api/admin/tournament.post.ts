@@ -5,7 +5,9 @@ import { logRequest } from "~/server/utils/logger";
 const bodySchema = z.object({
   name: z.string().trim().min(1),
   type: z.enum(["POOLS", "KNOCKOUT", "COMBINATION"]),
-  startTime: z.string().refine((s) => !isNaN(new Date(s).getTime()), { message: "Invalid date" }),
+  startTime: z.string()
+    .refine((s) => !isNaN(new Date(s).getTime()), { message: "Invalid date" })
+    .refine((s) => /T|:/.test(s), { message: "startTime must include a time component" }),
   matchDuration: z.number().int().positive(),
   breakTime: z.number().int().min(0),
   pointsWin: z.number().int(),
