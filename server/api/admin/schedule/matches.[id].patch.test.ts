@@ -30,7 +30,7 @@ vi.mock("~/server/utils/prisma", () => ({
 
 vi.mock("~/server/utils/logger", () => ({ logRequest: vi.fn() }));
 
-const { default: handler } = await import("./matches.[id].patch");
+const { default: handler } = await import("./matches/[id].patch");
 
 const slotTime = new Date("2025-06-01T09:00:00Z");
 

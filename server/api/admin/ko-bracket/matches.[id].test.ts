@@ -24,7 +24,7 @@ vi.mock("~/server/utils/prisma", () => ({
 
 vi.mock("~/server/utils/logger", () => ({ logRequest: vi.fn() }));
 
-const { default: handler } = await import("./matches.[id].patch");
+const { default: handler } = await import("./matches/[id].patch");
 
 function createMockEvent() {
   return { _url: "/api/admin/ko-bracket/matches/m1", context: {} } as any;

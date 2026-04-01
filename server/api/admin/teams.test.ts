@@ -39,8 +39,8 @@ vi.mock("~/server/utils/logger", () => ({
 
 const { default: getTeamsHandler } = await import("./teams.get");
 const { default: createTeamHandler } = await import("./teams.post");
-const { default: updateTeamHandler } = await import("./teams.[id].put");
-const { default: deleteTeamHandler } = await import("./teams.[id].delete");
+const { default: updateTeamHandler } = await import("./teams/[id].put");
+const { default: deleteTeamHandler } = await import("./teams/[id].delete");
 
 function createMockEvent(overrides: any = {}) {
   return {

@@ -39,7 +39,7 @@ vi.mock("~/server/utils/logger", () => ({
 }));
 
 const { default: getMatchesHandler } = await import("./matches.get");
-const { default: patchMatchHandler } = await import("./matches.[id].patch");
+const { default: patchMatchHandler } = await import("./matches/[id].patch");
 
 function createMockEvent(overrides: any = {}) {
   return {

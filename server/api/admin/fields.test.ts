@@ -39,8 +39,8 @@ vi.mock("~/server/utils/logger", () => ({
 
 const { default: getFieldsHandler } = await import("./fields.get");
 const { default: createFieldHandler } = await import("./fields.post");
-const { default: updateFieldHandler } = await import("./fields.[id].put");
-const { default: deleteFieldHandler } = await import("./fields.[id].delete");
+const { default: updateFieldHandler } = await import("./fields/[id].put");
+const { default: deleteFieldHandler } = await import("./fields/[id].delete");
 
 function createMockEvent(overrides: any = {}) {
   return {
