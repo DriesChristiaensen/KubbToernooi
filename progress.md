@@ -118,9 +118,20 @@
   - GET /api/public/info — returns tournament type (3 tests)
   - 205 tests total
 
+- **Code Quality Pass (AcceptanceCriteriaAllCode.md):** Done
+  - Public APIs: fixed `isActive` filter, per-phase flags (poolScheduleLive/koScheduleLive)
+  - tournament.post.ts: added Zod validation for all fields
+  - time-shift.post.ts: added date/NaN validation
+  - Null checks: added to tournaments/delete, tournaments/restore, schedule/matches.[id].patch
+  - Non-null assertions: replaced `admin.password!` with null checks in import + reset-rate-limit
+  - Type cast comments: added justification comments per AC 4.2 across all routes
+  - i18n: added missing keys (referees.title, schedule.statusSection/shiftSuccess, tournament.statusLabel)
+  - Hardcoded strings fixed: referees.vue, schedule.vue (3 occurrences), index.vue, tournament.vue
+  - 209 tests, lint clean, typecheck clean
+
 ## Current Task
 
-All T-items from TweaksAndAdditionsKubbWebapp.md implemented (except T7.2 deferred)
+Code quality pass complete. All AcceptanceCriteriaAllCode.md items addressed.
 
 ## Blockers
 
