@@ -228,6 +228,11 @@ export const nl = {
       invalidKoWinner: "Winnaar moet één van de spelende teams zijn",
       phasePool: "Poule",
       phaseKo: "Knock-out",
+      overwriteConfirm: "Er is al een score genoteerd. Wilt u deze overschrijven?",
+      overwriteYes: "Zeker",
+      deleteScore: "Score verwijderen",
+      deleteScoreConfirm: "Weet u zeker dat u de score wilt verwijderen?",
+      editScore: "Score aanpassen",
     },
   },
 
