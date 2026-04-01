@@ -70,6 +70,7 @@ export default defineEventHandler(async (event) => {
     await prisma.tournament.updateMany({ data: { isActive: false } });
   }
 
+  // Source data is Record<string, unknown> from exported JSON; casts use enum fallbacks for safety
   const newTournament = await prisma.tournament.create({
     data: {
       name: String(t.name),
