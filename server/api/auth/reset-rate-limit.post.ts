@@ -32,7 +32,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const valid = await bcrypt.compare(body.password, admin.password!)
+  if (!admin.password) {
+    throw createApiError({ error: 'Admin-account heeft geen wachtwoord ingesteld', code: 500, reason: 'Admin has no password' })
+  }
+  const valid = await bcrypt.compare(body.password, admin.password)
   if (!valid) {
     throw createApiError({
       error: 'Ongeldig wachtwoord',
