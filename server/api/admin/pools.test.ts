@@ -52,8 +52,8 @@ const { default: getPoolsHandler } = await import("./pools.get");
 const { default: generatePoolsHandler } = await import(
   "./pools/generate.post"
 );
-const { default: updatePoolHandler } = await import("./pools.[id].put");
-const { default: deletePoolHandler } = await import("./pools.[id].delete");
+const { default: updatePoolHandler } = await import("./pools/[id].put");
+const { default: deletePoolHandler } = await import("./pools/[id].delete");
 
 function createMockEvent(overrides: any = {}) {
   return {
