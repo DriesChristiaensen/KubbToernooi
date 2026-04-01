@@ -225,7 +225,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ---
 
-### Bug #14: Schedule — Match Swap Performs No Conflict Check; No Visual Overlap Preview
+### Bug #14: Schedule — Match Swap Performs No Conflict Check; No Visual Overlap Preview — DONE AND RESOLVED
 
 - **Location:** `server/api/admin/schedule/matches/swap.post.ts`, `pages/admin/schedule.vue:140–173`
 - **Issue (two parts):**
