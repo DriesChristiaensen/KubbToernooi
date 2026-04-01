@@ -26,7 +26,13 @@ export default defineEventHandler(async (event) => {
 
   const data: Record<string, unknown> = {};
   if (body?.name !== undefined) data.name = body.name;
-  if (body?.teamsAdvancing !== undefined) data.teamsAdvancing = Number(body.teamsAdvancing);
+  if (body?.teamsAdvancing !== undefined) {
+    const n = Number(body.teamsAdvancing);
+    if (!Number.isInteger(n) || n < 0) {
+      throw createApiError({ error: "Ongeldig aantal doorstoters", code: 400, reason: "teamsAdvancing must be a non-negative integer" });
+    }
+    data.teamsAdvancing = n;
+  }
 
   const updated = await prisma.pool.update({ where: { id }, data });
 
@@ -34,7 +40,8 @@ export default defineEventHandler(async (event) => {
     await prisma.poolTeam.deleteMany({ where: { poolId: id } });
     if (body.teamIds.length > 0) {
       await prisma.poolTeam.createMany({
-        data: (body.teamIds as string[]).map((teamId) => ({ poolId: id, teamId })),
+        // Safe: Array.isArray guard above confirms body.teamIds is an array
+      data: (body.teamIds as string[]).map((teamId) => ({ poolId: id, teamId })),
       });
     }
   }

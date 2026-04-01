@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
   const updateData: Record<string, unknown> = { scoreA, scoreB, status: "PLAYED" };
 
   if (match.phase === "KO" && isDraw) {
+    // Safe: ternary guard ensures koWinnerId is truthy before casting
     const koWinnerId = body?.koWinnerId ? (body.koWinnerId as string) : null;
     if (!koWinnerId) {
       throw createApiError({

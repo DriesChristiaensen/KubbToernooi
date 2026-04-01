@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
 
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0];
+    // Safe: path[0] is string | number | undefined; string comparison below is false for non-strings
     const field = firstIssue?.path[0] as string | undefined;
     const isDutchName = field === "name";
     throw createApiError({

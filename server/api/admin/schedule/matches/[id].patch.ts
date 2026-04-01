@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Safe: undefined check ensures fieldId is defined before casting
   const newFieldId = body?.fieldId !== undefined ? (body.fieldId as string) : match.fieldId;
   const newStartTime = body?.startTime !== undefined ? new Date(body.startTime) : match.startTime;
 

@@ -13,9 +13,18 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Safe: !query.matchId guard above ensures this is a non-empty string
   const matchId = query.matchId as string;
+  // Safe: ternary guard ensures fieldId/startTime are defined before casting
   const proposedFieldId = query.fieldId ? (query.fieldId as string) : undefined;
-  const proposedStartTime = query.startTime ? new Date(query.startTime as string) : undefined;
+  let proposedStartTime: Date | undefined;
+  if (query.startTime) {
+    const parsed = new Date(query.startTime as string);
+    if (isNaN(parsed.getTime())) {
+      throw createApiError({ error: "Ongeldig tijdstip", code: 400, reason: "startTime is not a valid date" });
+    }
+    proposedStartTime = parsed;
+  }
 
   const match = await prisma.match.findUnique({
     where: { id: matchId },
@@ -33,7 +42,7 @@ export default defineEventHandler(async (event) => {
   const checkStartTime = proposedStartTime ?? match.startTime;
 
   const conflictingMatches = await prisma.match.findMany({
-    where: { id: { not: matchId as string }, startTime: checkStartTime },
+    where: { id: { not: matchId }, startTime: checkStartTime },
     include: { field: true, teamA: true, teamB: true },
   });
 

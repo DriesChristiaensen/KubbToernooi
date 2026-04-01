@@ -4,7 +4,10 @@ import { getActiveTournament } from "~/server/utils/tournament";
 
 export default defineEventHandler(async (event) => {
   await getActiveTournament();
-  const id = getRouterParam(event, "id") as string;
+  const id = getRouterParam(event, "id");
+  if (!id) {
+    throw createApiError({ error: "Wedstrijd ID is verplicht", code: 400, reason: "Match ID is required" });
+  }
   const body = await readBody(event);
 
   const match = await prisma.match.findUnique({ where: { id } });
@@ -16,6 +19,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Safe: undefined check above ensures fieldId is defined before casting
   const newFieldId = body?.fieldId !== undefined ? (body.fieldId as string) : match.fieldId;
   const newStartTime = body?.startTime !== undefined ? new Date(body.startTime) : match.startTime;
 
