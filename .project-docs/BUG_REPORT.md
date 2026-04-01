@@ -244,7 +244,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ## Category 5: Medium Priority Bugs (New — reported 2026-04-01)
 
-### Bug #15: Public Page — Phase and Sub-Tab Buttons Are Not Styled as Button Groups
+### Bug #15: Public Page — Phase and Sub-Tab Buttons Are Not Styled as Button Groups — DONE AND RESOLVED
 
 - **Location:** `pages/index.vue:289–314`, `pages/index.vue:318–329`
 - **Issue:** "Poule" / "KO" (main tabs) and "Wedstrijden" / "Standen" (sub-tabs) are rendered as individual underline-style tab buttons. The user expects them to be connected button groups (pill or segmented control style) and to be positioned as two parallel horizontal groups at the top of the content area simultaneously — not one disappearing when the other is active.
@@ -281,7 +281,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ---
 
-### Bug #17: Public Page — Status Filter Buttons Not Styled as Button Group
+### Bug #17: Public Page — Status Filter Buttons Not Styled as Button Group — DONE AND RESOLVED
 
 - **Location:** `pages/index.vue:270–286`
 - **Issue:** "Alle wedstrijden", "Gespeeld", and "Te spelen" are rendered as three separate `<button>` elements with individual rounded corners. They should form a single connected segmented control (button group), consistent with the desired treatment for the phase/sub-tab buttons (Bug #15).
