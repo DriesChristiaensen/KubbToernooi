@@ -102,9 +102,25 @@
   - Teams page: CSV upload removed (T4.4)
   - 187 tests total
 
+- **Priority 8 (T9.1-T9.4) — Referee Features:** Done
+  - T9.1: Overwrite confirmation dialog for existing scores
+  - T9.2: Save success feedback (green button + check icon, 2 sec)
+  - T9.3: Read mode vs edit mode for scores
+  - T9.4: Score deletion (POST /api/ref/matches/:id/delete-score, 3 tests)
+  - 202 tests total
+
+- **Priority 9 (T8.1-T8.5) — Public View:** Done
+  - T8.1: Status labels updated ("Niet begonnen", "Wordt gespeeld", "Beëindigd")
+  - T8.2: Status filter bar ("Alle wedstrijden", "Gespeeld", "Te spelen")
+  - T8.3: Favorite team cookie (modal picker, 48h cookie, "Mijn team" toggle)
+  - T8.4: Standings link in AppHeader + HamburgerMenu
+  - T8.5: Phase tabs (Pool/KO/Combination) + sub-tabs (Wedstrijden/Standen) + Eindstand tab
+  - GET /api/public/info — returns tournament type (3 tests)
+  - 205 tests total
+
 ## Current Task
 
-Priority 5 (T5.1, T5.2) — Pool management separate page + team assignment UI
+All T-items from TweaksAndAdditionsKubbWebapp.md implemented (except T7.2 deferred)
 
 ## Blockers
 

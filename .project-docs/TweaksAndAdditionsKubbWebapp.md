@@ -13,12 +13,12 @@ The following order respects dependencies:
 | 1        | T1.1 ✅ DONE, T1.2 ✅ DONE, T1.3 ✅ DONE | Database schema changes (GUID, soft-delete, tournament name) — impacts everything |
 | 2        | T3.1 ✅ DONE, T3.2 ✅ DONE, T3.3 ✅ DONE, T3.4 ✅ DONE | UI shell (header, footer, mobile nav, banner) — used by all pages     |
 | 3        | T2.1 ✅ DONE, T2.2 ✅ DONE, T2.3 ✅ DONE, T2.4 ✅ DONE, T2.5 ✅ DONE | Auth flow changes (separate logins, ref password flow, navigation) |
-| 4        | T4.1, T4.2, T4.3, T4.4, T10.1, T10.2 | Tournament config (wizard, restore, redirect, ref management)                     |
-| 5        | T5.1, T5.2                           | Pool management (separate page, team assignment UI)                               |
-| 6        | T6.1, T6.2, T6.3                     | KO bracket management (separate page, two-step generation, labels)                |
-| 7        | T7.1, T7.2, T7.3, T7.4, T7.5, T7.6   | Schedule management (views, editing, conflicts, per-phase live status)            |
-| 8        | T9.1, T9.2, T9.3, T9.4               | Referee features (score UX improvements)                                          |
-| 9        | T8.1, T8.2, T8.3, T8.4, T8.5         | Public view (labels, filters, favorite team, tabs)                                |
+| 4        | T4.1 ✅ DONE, T4.2 ✅ DONE, T4.3 ✅ DONE, T4.4 ✅ DONE, T10.1 ✅ DONE, T10.2 ✅ DONE | Tournament config (wizard, restore, redirect, ref management)         |
+| 5        | T5.1 ✅ DONE, T5.2 ✅ DONE            | Pool management (separate page, team assignment UI)                               |
+| 6        | T6.1 ✅ DONE, T6.2 ✅ DONE, T6.3 ✅ DONE | KO bracket management (separate page, two-step generation, labels)             |
+| 7        | T7.1 ✅ DONE, T7.2 ✅ DONE, T7.3 ✅ DONE, T7.4 ✅ DONE, T7.5 ✅ DONE, T7.6 ✅ DONE | Schedule management (views, editing, conflicts, per-phase live status) |
+| 8        | T9.1 ✅ DONE, T9.2 ✅ DONE, T9.3 ✅ DONE, T9.4 ✅ DONE | Referee features (score UX improvements)                              |
+| 9        | T8.1 ✅ DONE, T8.2 ✅ DONE, T8.3 ✅ DONE, T8.4 ✅ DONE, T8.5 ✅ DONE | Public view (labels, filters, favorite team, tabs)                     |
 
 ---
 
@@ -108,7 +108,7 @@ The following order respects dependencies:
 
 ## 4. Tournament Configuration
 
-### T4.1 — Tournament Creation Wizard
+### T4.1 ✅ DONE — Tournament Creation Wizard
 
 - When no tournament exists, all admin subroutes redirect to `/admin/tournament`.
 - The `/admin/tournament` page presents a wizard-style workflow with sequential steps:
@@ -118,19 +118,19 @@ The following order respects dependencies:
   4. **If KO or combination:** Number of teams in the first KO round.
 - The wizard must include a start day and start time selector for schedule generation.
 
-### T4.2 — Tournament Replacement Confirmation
+### T4.2 ✅ DONE — Tournament Replacement Confirmation
 
 - If a tournament already exists, the tournament settings page must be behind a confirmation prompt: "Een nieuw toernooi aanmaken zal het huidige toernooi archiveren. Weet u het zeker?"
 - A tournament cannot be edited — only replaced by creating a new one (which soft-deletes the current one per T1.2).
 
-### T4.3 — Tournament Restore & Cleanup
+### T4.3 ✅ DONE — Tournament Restore & Cleanup
 
 - Add a "Herstellen" (Restore) screen accessible from the admin tournament page.
 - Lists all inactive (soft-deleted) tournaments by name.
 - **Restore action:** Sets the current active tournament to inactive, and reactivates the selected old tournament.
 - **Delete action:** Permanently deletes an inactive tournament and all its related data (hard delete).
 
-### T4.4 — Remove CSV Upload for Teams
+### T4.4 ✅ DONE — Remove CSV Upload for Teams
 
 - Remove the CSV upload option from the team bulk import. Keep only the text field (one name per line).
 
@@ -138,13 +138,13 @@ The following order respects dependencies:
 
 ## 5. Pool Management
 
-### T5.1 — Separate Pool Management Page
+### T5.1 ✅ DONE — Separate Pool Management Page
 
 - Pools are managed on a dedicated admin page (`/admin/pools`), **not** within the tournament settings page.
 - This page is only accessible when the tournament type is "poule" or "combination".
 - When the tournament type is "KO only", pool management is not available.
 
-### T5.2 — Pool Team Assignment UI
+### T5.2 ✅ DONE — Pool Team Assignment UI
 
 - The pool editing screen shows:
   - A list of all pools with their assigned teams.
@@ -157,18 +157,18 @@ The following order respects dependencies:
 
 ## 6. KO Bracket Management
 
-### T6.1 — Separate KO Management Page
+### T6.1 ✅ DONE — Separate KO Management Page
 
 - KO bracket management lives on a dedicated admin page (`/admin/ko`), **not** within the tournament settings page.
 - Only accessible when the tournament type is "KO" or "combination".
 
-### T6.2 — Two-Step KO Bracket Generation
+### T6.2 ✅ DONE — Two-Step KO Bracket Generation
 
 - **Step 1 — Generate structure:** Create the KO bracket without teams. Configure only fields and time slots. Each match gets a descriptive name (e.g. "1/8 finale A", "1/8 finale B", "Kwartfinale C").
 - **Step 2 — Fill teams:** A separate "Teams invullen" button populates the bracket with teams based on pool standings and seeding logic (top half vs. bottom half, random within halves).
 - Step 2 can only be triggered after step 1 is complete.
 
-### T6.3 — KO Match Round Labels
+### T6.3 ✅ DONE — KO Match Round Labels
 
 - Every KO match must display a round label: "1/16 finale", "1/8 finale", "Kwartfinale", "Halve finale", "Finale".
 - These labels appear in all views: admin, referee, and public.
@@ -177,16 +177,16 @@ The following order respects dependencies:
 
 ## 7. Schedule Management
 
-### T7.1 — Schedule Generation: Day and Time Picker
+### T7.1 ✅ DONE — Schedule Generation: Day and Time Picker
 
 - When generating a schedule, the admin must select both a **start day** (date picker) and a **start time** (time picker).
 
-### T7.2 — Mixed Rounds in Pool Phase
+### T7.2 ✅ DONE — Mixed Rounds in Pool Phase
 
 - When generating the pool phase schedule, different rounds may overlap. For example: the last matches of round 1 may run simultaneously with the first matches of round 2, to optimize field usage.
 - **Hard constraint:** No team may have overlapping matches, regardless of round mixing.
 
-### T7.3 — Schedule Viewing: Three Views
+### T7.3 ✅ DONE — Schedule Viewing: Three Views
 
 The admin schedule page must offer three view modes (tabs or toggle):
 
@@ -194,7 +194,7 @@ The admin schedule page must offer three view modes (tabs or toggle):
 2. **Per team:** Table with columns: start time, field, opponent. One table per team.
 3. **Per time slot:** Large grid. Rows = start times. Columns = fields. Cells = "Team A vs. Team B".
 
-### T7.4 — Schedule Editing: Switch Mode
+### T7.4 ✅ DONE — Schedule Editing: Switch Mode
 
 - A draft schedule is created first (not immediately live).
 - The admin edits the schedule by swapping matches:
@@ -205,11 +205,11 @@ The admin schedule page must offer three view modes (tabs or toggle):
 - **Teams within a match are not editable.** Only time slots and fields can be swapped.
 - Overlaps/conflicts are allowed during editing but clearly displayed with an error message.
 
-### T7.5 — Conflict Error Messages
+### T7.5 ✅ DONE — Conflict Error Messages
 
 - When a schedule conflict is detected, the error message must include: **field name** and **both team names** involved in the conflict.
 
-### T7.6 — Separate Live Status per Schedule Phase
+### T7.6 ✅ DONE — Separate Live Status per Schedule Phase
 
 - Pool schedule and KO schedule can be published ("Live" gezet) independently.
 - The admin can keep one in draft while the other is live.
@@ -222,21 +222,21 @@ The admin schedule page must offer three view modes (tabs or toggle):
 
 ## 8. Public View
 
-### T8.1 — Match Status Labels
+### T8.1 ✅ DONE — Match Status Labels
 
 - Every match in the public overview displays one of three labels:
   - **"Niet begonnen"** — match has not started yet.
   - **"Wordt gespeeld"** — match is currently in progress.
   - **"Beëindigd"** — match is finished (score entered).
 
-### T8.2 — Match Status Filter
+### T8.2 ✅ DONE — Match Status Filter
 
 - Add a filter bar to the public match overview with three options:
   - **"Alle wedstrijden"** — show all matches.
   - **"Gespeeld"** — show only matches with a score.
   - **"Te spelen"** — show all matches without a score (includes "Niet begonnen" and "Wordt gespeeld").
 
-### T8.3 — Favorite Team Selection
+### T8.3 ✅ DONE — Favorite Team Selection
 
 - Replace the "Zoek op teamnaam" search field with a "Kies favoriete team" button.
 - Clicking the button opens a **modal popup** with:
@@ -245,12 +245,12 @@ The admin schedule page must offer three view modes (tabs or toggle):
 - The selected team is saved in a **browser cookie** valid for 48 hours.
 - Every match overview screen has a filter toggle: **"Mijn team"** — filters to show only matches involving the favorite team.
 
-### T8.4 — Standings in Navbar
+### T8.4 ✅ DONE — Standings in Navbar
 
 - Move the "Standen" (standings) link into the main navigation bar.
 - On mobile: it appears inside the hamburger menu.
 
-### T8.5 — Public View: Phase Tabs and Sub-Tabs
+### T8.5 ✅ DONE — Public View: Phase Tabs and Sub-Tabs
 
 The public match and standings view must use a tabbed structure:
 
@@ -278,25 +278,25 @@ The public match and standings view must use a tabbed structure:
 
 ## 9. Referee Features
 
-### T9.1 — Score Update Confirmation
+### T9.1 ✅ DONE — Score Update Confirmation
 
 - When a referee tries to update a score that has already been entered, show a confirmation dialog: "Er is al een score genoteerd. Wilt u deze overschrijven?"
 - Options: "Zeker" (confirm) / "Annuleren" (cancel).
 
-### T9.2 — Score Save Success Feedback
+### T9.2 ✅ DONE — Score Save Success Feedback
 
 - After a successful score save (database call confirmed), the save button:
   - Turns **green**.
   - Shows a **check icon** instead of the default text/icon.
   - Returns to normal after **2 seconds**.
 
-### T9.3 — Score Display: Read Mode vs. Edit Mode
+### T9.3 ✅ DONE — Score Display: Read Mode vs. Edit Mode
 
 - When a match already has a score, display the score as **plain text**.
 - Next to it, show an **edit icon button**.
 - Clicking the edit button switches to input mode, allowing the score to be modified.
 
-### T9.4 — Score Deletion
+### T9.4 ✅ DONE — Score Deletion
 
 - Referees must have the ability to **delete** a previously entered score (e.g. when a match is still in progress and was scored prematurely).
 - This resets the match status back to "Wordt gespeeld" or "Niet begonnen" depending on the current time.
@@ -305,12 +305,12 @@ The public match and standings view must use a tabbed structure:
 
 ## 10. Admin Dashboard
 
-### T10.1 — Redirect to Tournament Page When No Tournament Exists
+### T10.1 ✅ DONE — Redirect to Tournament Page When No Tournament Exists
 
 - If no active tournament is found in the database, **all** admin subroutes redirect to `/admin/tournament`.
 - The tournament page must provide the wizard to create a new tournament (T4.1).
 
-### T10.2 — Referee Management Without Password
+### T10.2 ✅ DONE — Referee Management Without Password
 
 - In the referee management screen, the admin adds referees by **name only** — no password field.
 - A "Reset wachtwoord" button is available per referee (see T2.2).
