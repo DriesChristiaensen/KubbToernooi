@@ -15,6 +15,7 @@ const newName = ref('')
 const error = ref('')
 const loading = ref(false)
 const isLoading = ref(true)
+const resetSuccess = ref<Set<string>>(new Set())
 
 async function fetchReferees() {
   try {
@@ -51,6 +52,10 @@ async function resetPassword(id: string) {
   error.value = ''
   try {
     await $fetch(`/api/admin/referees/${id}/reset-password` as string, { method: 'POST' })
+    resetSuccess.value = new Set([...resetSuccess.value, id])
+    setTimeout(() => {
+      resetSuccess.value = new Set([...resetSuccess.value].filter(x => x !== id))
+    }, 2000)
   }
   catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } }
@@ -112,10 +117,12 @@ onMounted(fetchReferees)
           <span class="font-medium text-text">{{ referee.name }}</span>
           <div class="flex gap-2">
             <button
-              class="rounded bg-secondary px-3 py-1 text-sm text-white hover:opacity-80"
+              :class="resetSuccess.has(referee.id) ? 'bg-success' : 'bg-secondary hover:opacity-80'"
+              class="rounded px-3 py-1 text-sm text-white transition-colors"
               @click="resetPassword(referee.id)"
             >
-              {{ nl.auth.resetPassword }}
+              <span v-if="resetSuccess.has(referee.id)">✓</span>
+              <span v-else>{{ nl.auth.resetPassword }}</span>
             </button>
             <button
               class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700"
