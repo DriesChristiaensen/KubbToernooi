@@ -133,8 +133,13 @@ export const nl = {
       assignSuccess: "Indeling opgeslagen",
       notAvailableForType: "Poule-beheer is niet beschikbaar voor dit toernooitype.",
     },
+    referees: {
+      title: "Scheidsrechters",
+    },
+
     schedule: {
       title: "Speelschema",
+      statusSection: "Status",
       generate: "Schema genereren",
       startDateTime: "Starttijdstip schema",
       startDateTimeRequired: "Voer een starttijdstip in voor het schema",

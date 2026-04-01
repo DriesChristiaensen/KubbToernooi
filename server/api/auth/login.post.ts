@@ -54,7 +54,10 @@ export default defineEventHandler(async (event) => {
         reason: 'Password already set',
       })
     }
-    const passwordValid = await bcrypt.compare(body.password, user.password as string)
+    if (user.password === null) {
+      throw createApiError({ error: 'Geen wachtwoord ingesteld', code: 401, reason: 'No password set for this user' })
+    }
+    const passwordValid = await bcrypt.compare(body.password, user.password)
     if (!passwordValid) {
       logRequest(event, 'error', 'Invalid password')
       throw createApiError({

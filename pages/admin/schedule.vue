@@ -293,7 +293,7 @@ onMounted(async () => {
 
     <!-- Phase live toggles -->
     <section v-if="tournament && matches.length > 0" class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
-      <h2 class="mb-3 font-semibold text-text">Status</h2>
+      <h2 class="mb-3 font-semibold text-text">{{ nl.admin.schedule.statusSection }}</h2>
       <div class="flex flex-wrap gap-2">
         <button
           v-if="tournament.type === 'POOLS' || tournament.type === 'COMBINATION'"
