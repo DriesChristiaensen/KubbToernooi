@@ -35,7 +35,7 @@ vi.mock('~/server/utils/logger', () => ({
 const { default: getRefereesHandler } = await import('./referees.get')
 const { default: createRefereeHandler } = await import('./referees.post')
 const { default: deleteRefereeHandler } = await import('./referees/[id].delete')
-const { default: resetPasswordHandler } = await import('./referees/[id].reset-password.post')
+const { default: resetPasswordHandler } = await import('./referees/[id]/reset-password.post')
 
 function createMockEvent(overrides: any = {}) {
   return { _url: 'http://localhost/api/admin/referees', context: {}, ...overrides } as any

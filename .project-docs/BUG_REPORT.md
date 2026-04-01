@@ -132,7 +132,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ---
 
-### Bug #7: Score Save — 400 "Invalid match ID" Due to Nuxt Route Conflict
+### Bug #7: Score Save — 400 "Invalid match ID" Due to Nuxt Route Conflict — DONE AND RESOLVED
 
 - **Location:** `server/api/ref/matches.[id].patch.ts` (dot-notation legacy), `server/api/ref/matches/[id].patch.ts` (directory notation)
 - **Observed error:** `PATCH http://localhost:3000/api/ref/matches/3a161cde-3c4b-408f-858e-9d07fa6bc8c5 400 (Invalid match ID)`
@@ -147,7 +147,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ---
 
-### Bug #8: Logout Button Non-Functional
+### Bug #8: Logout Button Non-Functional — DONE AND RESOLVED
 
 - **Location:** `composables/useAuth.ts:30–35`, admin/ref layout files
 - **Issue:** The logout button does not perform the logout or navigate away. The user remains on the same page after clicking.
