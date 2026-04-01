@@ -260,7 +260,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ---
 
-### Bug #16: Public Page — "Mijn Team" Has No Pink Theme and Incomplete Filtering/Highlighting
+### Bug #16: Public Page — "Mijn Team" Has No Pink Theme and Incomplete Filtering/Highlighting — DONE AND RESOLVED
 
 - **Location:** `pages/index.vue:245–267`, `pages/index.vue:172–189`
 - **Issue:** The "Mijn Team" / favorite-team feature is partially implemented:
