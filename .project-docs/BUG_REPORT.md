@@ -306,7 +306,7 @@ Bugs 1–5 (resolved) covered referee UX, score button state, datetime parameter
 
 ## Category 6: Algorithm / Logic Bugs (New — reported 2026-04-01)
 
-### Bug #19: Schedule Generation — Greedy Algorithm Does Not Balance Poule Load or Spread Team Matches
+### Bug #19: Schedule Generation — Greedy Algorithm Does Not Balance Poule Load or Spread Team Matches — DONE AND RESOLVED
 
 - **Location:** `server/api/admin/schedule/generate.post.ts:91–156`
 - **Issue (three sub-problems):**
