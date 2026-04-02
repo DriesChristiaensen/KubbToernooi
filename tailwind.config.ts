@@ -29,6 +29,12 @@ export default {
         success: '#16A34A',
         warning: '#EAB308',
         error: '#DC2626',
+        fav: {
+          DEFAULT: '#EC4899',
+          light: '#FDF2F8',
+          border: '#FBCFE8',
+          text: '#DB2777',
+        },
         background: '#F8FAFC',
         surface: '#FFFFFF',
         text: {

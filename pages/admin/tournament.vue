@@ -122,6 +122,11 @@ function goToStep2() {
   if (step1Valid.value) wizardStep.value = 2;
 }
 
+function touchName() {
+  touched.value.name = true;
+  fieldErrors.value.name = '';
+}
+
 async function createTournament() {
   createError.value = "";
   createLoading.value = true;
@@ -281,7 +286,7 @@ onMounted(async () => {
               type="text"
               required
               class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-              @blur="touched.name = true; fieldErrors.name = ''"
+              @blur="touchName"
             >
             <p v-if="touched.name && !form.name.trim()" class="mt-1 text-xs text-error">{{ nl.admin.tournament.nameRequired }}</p>
             <p v-if="fieldErrors.name" class="mt-1 text-xs text-error">{{ fieldErrors.name }}</p>

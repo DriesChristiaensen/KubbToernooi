@@ -13,6 +13,14 @@ const bodySchema = z.object({
 
 const BYE = "";
 
+interface RoundQueue {
+  poolId: string;
+  rounds: Array<Array<[string, string]>>;
+  roundIdx: number;
+  scheduled: number;
+  total: number;
+}
+
 function generateRoundRobin(teamIds: string[]): Array<Array<[string, string]>> {
   const n = teamIds.length;
   if (n < 2) return [];
@@ -102,13 +110,6 @@ export default defineEventHandler(async (event) => {
   // Priority-queue over rounds: always schedule the pool furthest behind in completion ratio.
   // For equal-sized pools this produces the same round-interleaved order as before (T7.2).
   // For unequal pools the larger pool gets proportionally more early slots, balancing load (T19).
-  interface RoundQueue {
-    poolId: string;
-    rounds: Array<Array<[string, string]>>;
-    roundIdx: number;
-    scheduled: number;
-    total: number;
-  }
   const roundQueues: RoundQueue[] = Array.from(poolRounds.entries()).map(([poolId, rounds]) => ({
     poolId,
     rounds,
