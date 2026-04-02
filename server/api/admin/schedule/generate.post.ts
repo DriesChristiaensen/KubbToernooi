@@ -97,19 +97,38 @@ export default defineEventHandler(async (event) => {
     poolRounds.set(pool.id, generateRoundRobin(teamIds));
   }
 
-  const maxRounds = Math.max(...Array.from(poolRounds.values()).map((r) => r.length), 0);
   const slotDurationMs = (tournament.matchDuration + tournament.breakTime) * 60 * 1000;
 
-  // Build flat match list ordered by round across all pools (T7.2: enables round mixing)
+  // Priority-queue over rounds: always schedule the pool furthest behind in completion ratio.
+  // For equal-sized pools this produces the same round-interleaved order as before (T7.2).
+  // For unequal pools the larger pool gets proportionally more early slots, balancing load (T19).
+  interface RoundQueue {
+    poolId: string;
+    rounds: Array<Array<[string, string]>>;
+    roundIdx: number;
+    scheduled: number;
+    total: number;
+  }
+  const roundQueues: RoundQueue[] = Array.from(poolRounds.entries()).map(([poolId, rounds]) => ({
+    poolId,
+    rounds,
+    roundIdx: 0,
+    scheduled: 0,
+    total: rounds.reduce((sum, r) => sum + r.length, 0),
+  }));
+
   const allMatches: Array<{ poolId: string; teamA: string; teamB: string; round: number }> = [];
-  for (let round = 0; round < maxRounds; round++) {
-    for (const [poolId, rounds] of poolRounds) {
-      if (round < rounds.length) {
-        for (const [a, b] of rounds[round]) {
-          allMatches.push({ poolId, teamA: a, teamB: b, round: round + 1 });
-        }
-      }
+  while (roundQueues.some((q) => q.roundIdx < q.rounds.length)) {
+    const available = roundQueues.filter((q) => q.roundIdx < q.rounds.length);
+    const best = available.reduce((min, q) =>
+      q.scheduled / q.total < min.scheduled / min.total ? q : min,
+    );
+    const currentRound = best.rounds[best.roundIdx];
+    for (const [a, b] of currentRound) {
+      allMatches.push({ poolId: best.poolId, teamA: a, teamB: b, round: best.roundIdx + 1 });
     }
+    best.scheduled += currentRound.length;
+    best.roundIdx++;
   }
 
   // Greedy packing: assign each match to the earliest available field slot
