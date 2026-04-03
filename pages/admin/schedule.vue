@@ -4,7 +4,10 @@ import { VueDatePicker } from "@vuepic/vue-datepicker";
 import { nlBE } from "date-fns/locale";
 import { nl } from "~/i18n/nl";
 
-definePageMeta({ middleware: ["auth", "admin-tournament-guard"], layout: "admin" });
+definePageMeta({
+  middleware: ["auth", "admin-tournament-guard"],
+  layout: "admin",
+});
 
 interface Field {
   id: string;
@@ -17,6 +20,8 @@ interface Match {
   round: number;
   startTime: string;
   status: string;
+  scoreA: number | null;
+  scoreB: number | null;
   field: Field;
   teamA: { id: string; name: string };
   teamB: { id: string; name: string };
@@ -54,6 +59,10 @@ const swapSuccess = ref("");
 
 const phaseToggleLoading = ref(false);
 const phaseToggleError = ref("");
+const showDraftWarning = ref(false);
+const pendingDraftField = ref<"poolScheduleLive" | "koScheduleLive" | null>(
+  null,
+);
 
 async function fetchMatches() {
   try {
@@ -177,9 +186,33 @@ async function swapMatches(matchAId: string, matchBId: string) {
 
 async function togglePhase(field: "poolScheduleLive" | "koScheduleLive") {
   if (!tournament.value) return;
+  const newVal = !tournament.value[field];
+  if (!newVal) {
+    const now = Date.now();
+    const phaseFilter = field === "poolScheduleLive" ? "POOL" : "KO";
+    const phaseMatches = matches.value.filter((m) => m.phase === phaseFilter);
+    const hasStarted = phaseMatches.some(
+      (m) =>
+        m.scoreA !== null ||
+        m.scoreB !== null ||
+        new Date(m.startTime).getTime() < now,
+    );
+    if (hasStarted) {
+      pendingDraftField.value = field;
+      showDraftWarning.value = true;
+      return;
+    }
+  }
+  await executeDraftToggle(field, newVal);
+}
+
+async function executeDraftToggle(
+  field: "poolScheduleLive" | "koScheduleLive",
+  newVal: boolean,
+) {
+  if (!tournament.value) return;
   phaseToggleError.value = "";
   phaseToggleLoading.value = true;
-  const newVal = !tournament.value[field];
   try {
     await $fetch("/api/admin/tournament", {
       method: "PATCH",
@@ -194,14 +227,29 @@ async function togglePhase(field: "poolScheduleLive" | "koScheduleLive") {
   }
 }
 
+async function confirmDraftToggle() {
+  if (!pendingDraftField.value) return;
+  showDraftWarning.value = false;
+  await executeDraftToggle(pendingDraftField.value, false);
+  pendingDraftField.value = null;
+}
+
+function cancelDraftToggle() {
+  showDraftWarning.value = false;
+  pendingDraftField.value = null;
+}
+
 // Computed views
 const matchesByField = computed(() => {
   const map = new Map<string, { field: Field; matches: Match[] }>();
   for (const m of matches.value) {
-    if (!map.has(m.field.id)) map.set(m.field.id, { field: m.field, matches: [] });
+    if (!map.has(m.field.id))
+      map.set(m.field.id, { field: m.field, matches: [] });
     map.get(m.field.id)!.matches.push(m);
   }
-  return Array.from(map.values()).sort((a, b) => a.field.name.localeCompare(b.field.name));
+  return Array.from(map.values()).sort((a, b) =>
+    a.field.name.localeCompare(b.field.name),
+  );
 });
 
 const matchesByTeam = computed(() => {
@@ -216,7 +264,9 @@ const matchesByTeam = computed(() => {
       map.get(id)!.matches.push(m);
     });
   }
-  return Array.from(map.values()).sort((a, b) => a.teamName.localeCompare(b.teamName));
+  return Array.from(map.values()).sort((a, b) =>
+    a.teamName.localeCompare(b.teamName),
+  );
 });
 
 const uniqueSlots = computed(() =>
@@ -232,11 +282,11 @@ const conflictingMatchIds = computed(() => {
       const b = list[j]!;
       if (a.startTime !== b.startTime) continue;
       const fieldConflict = a.field.id === b.field.id;
-      const teamConflict
-        = a.teamA?.id === b.teamA?.id
-        || a.teamA?.id === b.teamB?.id
-        || a.teamB?.id === b.teamA?.id
-        || a.teamB?.id === b.teamB?.id;
+      const teamConflict =
+        a.teamA?.id === b.teamA?.id ||
+        a.teamA?.id === b.teamB?.id ||
+        a.teamB?.id === b.teamA?.id ||
+        a.teamB?.id === b.teamB?.id;
       if (fieldConflict || teamConflict) {
         ids.add(a.id);
         ids.add(b.id);
@@ -246,49 +296,64 @@ const conflictingMatchIds = computed(() => {
   return ids;
 });
 
-const switchMatch = computed(() =>
-  matches.value.find((m) => m.id === switchMatchId.value) ?? null,
+const switchMatch = computed(
+  () => matches.value.find((m) => m.id === switchMatchId.value) ?? null,
 );
 
-const matchDurationMs = computed(() => (tournament.value?.matchDuration ?? 15) * 60 * 1000);
+const matchDurationMs = computed(
+  () => (tournament.value?.matchDuration ?? 15) * 60 * 1000,
+);
 
-function hasCrossFieldTeamConflict(teamAId: string | undefined, teamBId: string | undefined, targetStartTime: string, excludeIds: Set<string>): boolean {
-  const targetMs = new Date(targetStartTime).getTime();
-  const durMs = matchDurationMs.value;
-  return matches.value.some((m) => {
-    if (excludeIds.has(m.id)) return false;
-    const involvesTeam = m.teamA?.id === teamAId || m.teamB?.id === teamAId
-      || m.teamA?.id === teamBId || m.teamB?.id === teamBId;
-    if (!involvesTeam) return false;
-    const otherMs = new Date(m.startTime).getTime();
-    return Math.abs(otherMs - targetMs) < durMs;
-  });
+function wouldSwapCauseConflict(sm: Match, target: Match): boolean {
+  const smTime = new Date(sm.startTime).getTime();
+  const targetTime = new Date(target.startTime).getTime();
+  const dur = matchDurationMs.value;
+  const exclude = new Set([sm.id, target.id]);
+  for (const m of matches.value) {
+    if (exclude.has(m.id)) continue;
+    const mTime = new Date(m.startTime).getTime();
+    const involvesSmTeams =
+      m.teamA?.id === sm.teamA?.id ||
+      m.teamB?.id === sm.teamA?.id ||
+      m.teamA?.id === sm.teamB?.id ||
+      m.teamB?.id === sm.teamB?.id;
+    const involvesTargetTeams =
+      m.teamA?.id === target.teamA?.id ||
+      m.teamB?.id === target.teamA?.id ||
+      m.teamA?.id === target.teamB?.id ||
+      m.teamB?.id === target.teamB?.id;
+    if (involvesSmTeams && Math.abs(mTime - targetTime) < dur) return true;
+    if (involvesTargetTeams && Math.abs(mTime - smTime) < dur) return true;
+  }
+  return false;
 }
+
+const isSelectedMatchScheduleLive = computed(() => {
+  const sm = switchMatch.value;
+  if (!sm || !tournament.value) return false;
+  return sm.phase === "KO"
+    ? tournament.value.koScheduleLive
+    : tournament.value.poolScheduleLive;
+});
 
 const highlightedMatchIds = computed(() => {
   const sm = switchMatch.value;
-  if (!sm || tournament.value?.poolScheduleLive) return new Set<string>();
+  if (!sm || isSelectedMatchScheduleLive.value) return new Set<string>();
   const ids = new Set<string>();
   for (const m of matches.value) {
     if (m.id === sm.id) continue;
-    const exclude = new Set([sm.id, m.id]);
-    if (hasCrossFieldTeamConflict(sm.teamA?.id, sm.teamB?.id, m.startTime, exclude)) {
-      ids.add(m.id);
-    }
+    if (wouldSwapCauseConflict(sm, m)) ids.add(m.id);
   }
   return ids;
 });
 
 const disabledSwapMatchIds = computed(() => {
   const sm = switchMatch.value;
-  if (!sm || !tournament.value?.poolScheduleLive) return new Set<string>();
+  if (!sm || !isSelectedMatchScheduleLive.value) return new Set<string>();
   const ids = new Set<string>();
   for (const m of matches.value) {
     if (m.id === sm.id) continue;
-    const exclude = new Set([sm.id, m.id]);
-    if (hasCrossFieldTeamConflict(sm.teamA?.id, sm.teamB?.id, m.startTime, exclude)) {
-      ids.add(m.id);
-    }
+    if (wouldSwapCauseConflict(sm, m)) ids.add(m.id);
   }
   return ids;
 });
@@ -318,7 +383,9 @@ function cellClass(matchId: string): string {
 }
 
 function getMatchForSlot(fieldId: string, slot: string): Match | undefined {
-  return matches.value.find((m) => m.field.id === fieldId && m.startTime === slot);
+  return matches.value.find(
+    (m) => m.field.id === fieldId && m.startTime === slot,
+  );
 }
 
 onMounted(async () => {
@@ -328,6 +395,29 @@ onMounted(async () => {
 
 <template>
   <main class="mx-auto max-w-content p-4">
+    <!-- Draft warning modal -->
+    <div
+      v-if="showDraftWarning"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    >
+      <div class="mx-4 max-w-md rounded-lg bg-surface p-6 shadow-xl">
+        <p class="mb-4 text-text">{{ nl.admin.schedule.draftWarning }}</p>
+        <div class="flex gap-3">
+          <button
+            class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            @click="confirmDraftToggle"
+          >
+            {{ nl.common.confirm }}
+          </button>
+          <button
+            class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="cancelDraftToggle"
+          >
+            {{ nl.common.cancel }}
+          </button>
+        </div>
+      </div>
+    </div>
     <div class="mb-4 flex items-center gap-3">
       <NuxtLink to="/admin" class="text-sm text-text-light hover:text-primary">
         &larr; {{ nl.common.back }}
@@ -343,7 +433,10 @@ onMounted(async () => {
         {{ nl.admin.schedule.generate }}
       </h2>
       <div class="mb-4">
-        <label class="mb-1 block text-sm font-medium text-text" for="sched-start">
+        <label
+          class="mb-1 block text-sm font-medium text-text"
+          for="sched-start"
+        >
           {{ nl.admin.schedule.startDateTime }}
         </label>
         <ClientOnly>
@@ -380,7 +473,10 @@ onMounted(async () => {
           </button>
           <button
             class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
-            @click="showOverwrite = false; generateError = ''"
+            @click="
+              showOverwrite = false;
+              generateError = '';
+            "
           >
             {{ nl.common.cancel }}
           </button>
@@ -389,26 +485,43 @@ onMounted(async () => {
     </section>
 
     <!-- Phase live toggles -->
-    <section v-if="tournament && matches.length > 0" class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
-      <h2 class="mb-3 font-semibold text-text">{{ nl.admin.schedule.statusSection }}</h2>
+    <section
+      v-if="tournament && matches.length > 0"
+      class="mb-6 rounded-lg bg-surface p-4 shadow-sm"
+    >
+      <h2 class="mb-3 font-semibold text-text">
+        {{ nl.admin.schedule.statusSection }}
+      </h2>
       <div class="flex flex-wrap gap-2">
         <button
-          v-if="tournament.type === 'POOLS' || tournament.type === 'COMBINATION'"
+          v-if="
+            tournament.type === 'POOLS' || tournament.type === 'COMBINATION'
+          "
           :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
           :class="tournament.poolScheduleLive ? 'bg-success' : 'bg-warning'"
           class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
           @click="togglePhase('poolScheduleLive')"
         >
-          {{ tournament.poolScheduleLive ? nl.admin.schedule.poolScheduleLive : nl.admin.schedule.poolScheduleDraft }}
+          {{
+            tournament.poolScheduleLive
+              ? nl.admin.schedule.poolScheduleLive
+              : nl.admin.schedule.poolScheduleDraft
+          }}
         </button>
         <button
-          v-if="tournament.type === 'KNOCKOUT' || tournament.type === 'COMBINATION'"
+          v-if="
+            tournament.type === 'KNOCKOUT' || tournament.type === 'COMBINATION'
+          "
           :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
           :class="tournament.koScheduleLive ? 'bg-success' : 'bg-warning'"
           class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
           @click="togglePhase('koScheduleLive')"
         >
-          {{ tournament.koScheduleLive ? nl.admin.schedule.koScheduleLive : nl.admin.schedule.koScheduleDraft }}
+          {{
+            tournament.koScheduleLive
+              ? nl.admin.schedule.koScheduleLive
+              : nl.admin.schedule.koScheduleDraft
+          }}
         </button>
       </div>
       <p v-if="phaseToggleError" class="mt-2 text-sm text-error">
@@ -423,14 +536,18 @@ onMounted(async () => {
       </h2>
       <div class="grid gap-3 md:grid-cols-3">
         <div>
-          <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.schedule.shiftFrom }}</label>
+          <label class="mb-1 block text-sm font-medium text-text">{{
+            nl.admin.schedule.shiftFrom
+          }}</label>
           <select
             v-model="timeShiftFrom"
             class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
           >
             <option value="" disabled>—</option>
             <option
-              v-for="time in [...new Set(matches.map((m) => m.startTime))].sort()"
+              v-for="time in [
+                ...new Set(matches.map((m) => m.startTime)),
+              ].sort()"
               :key="time"
               :value="time"
             >
@@ -439,12 +556,14 @@ onMounted(async () => {
           </select>
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.schedule.shiftMinutes }}</label>
+          <label class="mb-1 block text-sm font-medium text-text">{{
+            nl.admin.schedule.shiftMinutes
+          }}</label>
           <input
             v-model.number="timeShiftMinutes"
             type="number"
             class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          >
+          />
         </div>
         <div class="flex items-end">
           <button
@@ -465,13 +584,24 @@ onMounted(async () => {
     </section>
 
     <!-- Match schedule views -->
-    <section v-if="matches.length > 0" class="rounded-lg bg-surface p-4 shadow-sm">
+    <section
+      v-if="matches.length > 0"
+      class="rounded-lg bg-surface p-4 shadow-sm"
+    >
       <!-- View mode tabs -->
       <div class="mb-4 flex gap-1 border-b border-gray-200">
         <button
-          v-for="(label, mode) in { field: nl.admin.schedule.viewPerField, team: nl.admin.schedule.viewPerTeam, slot: nl.admin.schedule.viewPerSlot }"
+          v-for="(label, mode) in {
+            slot: nl.admin.schedule.viewPerSlot,
+            field: nl.admin.schedule.viewPerField,
+            team: nl.admin.schedule.viewPerTeam,
+          }"
           :key="mode"
-          :class="viewMode === mode ? 'border-b-2 border-primary font-semibold text-primary' : 'text-text-light hover:text-text'"
+          :class="
+            viewMode === mode
+              ? 'border-b-2 border-primary font-semibold text-primary'
+              : 'text-text-light hover:text-text'
+          "
           class="-mb-px px-4 py-2 text-sm"
           @click="viewMode = mode as typeof viewMode"
         >
@@ -480,14 +610,22 @@ onMounted(async () => {
       </div>
 
       <!-- Conflict warning (persistent across all tabs) -->
-      <div v-if="conflictingMatchIds.size > 0" class="mb-3 rounded-lg border border-error bg-error/10 px-4 py-2 text-sm font-medium text-error">
+      <div
+        v-if="conflictingMatchIds.size > 0"
+        class="mb-3 rounded-lg border border-error bg-error/10 px-4 py-2 text-sm font-medium text-error"
+      >
         {{ nl.admin.schedule.swapConflictWarning }}
       </div>
 
       <!-- Switch mode status -->
-      <div v-if="switchMatchId" class="mb-3 space-y-1 rounded-lg border border-primary bg-primary/5 px-4 py-2 text-sm text-primary">
+      <div
+        v-if="switchMatchId"
+        class="mb-3 space-y-1 rounded-lg border border-primary bg-primary/5 px-4 py-2 text-sm text-primary"
+      >
         <div>{{ nl.admin.schedule.switchModeHint }}</div>
-        <div v-if="!tournament?.poolScheduleLive" class="text-orange-500">{{ nl.admin.schedule.switchHighlightHint }}</div>
+        <div v-if="!isSelectedMatchScheduleLive" class="text-orange-500">
+          {{ nl.admin.schedule.switchHighlightHint }}
+        </div>
       </div>
       <p v-if="swapError" class="mb-2 text-sm text-error">
         {{ swapError }}
@@ -504,20 +642,30 @@ onMounted(async () => {
             <thead>
               <tr class="border-b border-gray-200 text-left text-text-light">
                 <th class="pb-1 pr-4">{{ nl.admin.schedule.timeLabel }}</th>
-                <th class="pb-1 pr-4">{{ nl.admin.teams.nameLabel ?? 'Team A' }}</th>
-                <th class="pb-1">{{ nl.admin.teams.nameLabel ?? 'Team B' }}</th>
+                <th class="pb-1 pr-4">
+                  {{ nl.admin.teams.nameLabel ?? "Team A" }}
+                </th>
+                <th class="pb-1">{{ nl.admin.teams.nameLabel ?? "Team B" }}</th>
               </tr>
             </thead>
             <tbody>
               <tr
-                v-for="m in group.matches.sort((a, b) => a.startTime.localeCompare(b.startTime))"
+                v-for="m in group.matches.sort((a, b) =>
+                  a.startTime.localeCompare(b.startTime),
+                )"
                 :key="m.id"
                 :class="rowClass(m.id)"
                 @click="clickMatch(m)"
               >
-                <td class="py-2 pr-4 text-text-light">{{ formatDateTime(m.startTime) }}</td>
-                <td class="py-2 pr-4 font-medium text-text">{{ m.teamA?.name ?? '?' }}</td>
-                <td class="py-2 font-medium text-text">{{ m.teamB?.name ?? '?' }}</td>
+                <td class="py-2 pr-4 text-text-light">
+                  {{ formatDateTime(m.startTime) }}
+                </td>
+                <td class="py-2 pr-4 font-medium text-text">
+                  {{ m.teamA?.name ?? "?" }}
+                </td>
+                <td class="py-2 font-medium text-text">
+                  {{ m.teamB?.name ?? "?" }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -538,15 +686,23 @@ onMounted(async () => {
             </thead>
             <tbody>
               <tr
-                v-for="m in group.matches.sort((a, b) => a.startTime.localeCompare(b.startTime))"
+                v-for="m in group.matches.sort((a, b) =>
+                  a.startTime.localeCompare(b.startTime),
+                )"
                 :key="m.id"
                 :class="rowClass(m.id)"
                 @click="clickMatch(m)"
               >
-                <td class="py-2 pr-4 text-text-light">{{ formatDateTime(m.startTime) }}</td>
+                <td class="py-2 pr-4 text-text-light">
+                  {{ formatDateTime(m.startTime) }}
+                </td>
                 <td class="py-2 pr-4 text-text">{{ m.field.name }}</td>
                 <td class="py-2 font-medium text-text">
-                  {{ m.teamA?.name === group.teamName ? m.teamB?.name : m.teamA?.name }}
+                  {{
+                    m.teamA?.name === group.teamName
+                      ? m.teamB?.name
+                      : m.teamA?.name
+                  }}
                 </td>
               </tr>
             </tbody>
@@ -560,8 +716,14 @@ onMounted(async () => {
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-gray-200 text-left">
-                <th class="pb-1 pr-4 text-text-light">{{ nl.admin.schedule.timeLabel }}</th>
-                <th v-for="f in fields" :key="f.id" class="pb-1 pr-4 font-semibold text-text">
+                <th class="pb-1 pr-4 text-text-light">
+                  {{ nl.admin.schedule.timeLabel }}
+                </th>
+                <th
+                  v-for="f in fields"
+                  :key="f.id"
+                  class="pb-1 pr-4 font-semibold text-text"
+                >
                   {{ f.name }}
                 </th>
               </tr>
@@ -572,18 +734,17 @@ onMounted(async () => {
                 :key="slot"
                 class="border-b border-gray-100"
               >
-                <td class="py-2 pr-4 text-text-light">{{ formatDateTime(slot) }}</td>
-                <td
-                  v-for="f in fields"
-                  :key="f.id"
-                  class="py-2 pr-4"
-                >
+                <td class="py-2 pr-4 text-text-light">
+                  {{ formatDateTime(slot) }}
+                </td>
+                <td v-for="f in fields" :key="f.id" class="py-2 pr-4">
                   <template v-if="getMatchForSlot(f.id, slot)">
                     <button
                       :class="cellClass(getMatchForSlot(f.id, slot)!.id)"
                       @click="clickMatch(getMatchForSlot(f.id, slot)!)"
                     >
-                      {{ getMatchForSlot(f.id, slot)!.teamA?.name ?? '?' }} vs {{ getMatchForSlot(f.id, slot)!.teamB?.name ?? '?' }}
+                      {{ getMatchForSlot(f.id, slot)!.teamA?.name ?? "?" }} vs
+                      {{ getMatchForSlot(f.id, slot)!.teamB?.name ?? "?" }}
                     </button>
                   </template>
                   <span v-else class="text-text-light">—</span>

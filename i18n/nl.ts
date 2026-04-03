@@ -173,7 +173,9 @@ export const nl = {
       viewPerSlot: "Per tijdslot",
       switchModeHint: "Klik op een andere wedstrijd om te wisselen",
       switchHighlightHint:
-        "Oranje: een van beide teams speelt al op een ander veld in dit tijdslot",
+        "Oranje: wisselen veroorzaakt een conflict voor een van de teams",
+      draftWarning:
+        "Sommige wedstrijden zijn al begonnen of de starttijd is al verstreken. Weet je zeker dat je het schema terug naar concept wilt zetten?",
       swapSuccess: "Wedstrijden gewisseld",
       swapError: "Wisselen mislukt",
       swapConflictWarning:
