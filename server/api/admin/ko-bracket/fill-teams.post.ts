@@ -1,5 +1,6 @@
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
+import { getActiveTournament } from "~/server/utils/tournament";
 
 function buildRound1Slots(
   participants: { teamId: string }[],
@@ -31,14 +32,7 @@ function buildRound1Slots(
 }
 
 export default defineEventHandler(async (event) => {
-  const tournament = await prisma.tournament.findFirst();
-  if (!tournament) {
-    throw createApiError({
-      error: "Geen toernooi gevonden",
-      code: 404,
-      reason: "No tournament found",
-    });
-  }
+  const tournament = await getActiveTournament();
 
   const koMatches = await prisma.match.findMany({
     where: { phase: "KO" },
@@ -91,7 +85,9 @@ export default defineEventHandler(async (event) => {
     }
 
     participants = pools.flatMap((pool) =>
-      pool.standings.slice(0, pool.teamsAdvancing).map((s) => ({ teamId: s.teamId })),
+      pool.standings
+        .slice(0, pool.teamsAdvancing)
+        .map((s) => ({ teamId: s.teamId })),
     );
 
     if (participants.length < 2) {
@@ -117,6 +113,10 @@ export default defineEventHandler(async (event) => {
     filled++;
   }
 
-  logRequest(event, "success", `Filled teams into ${filled} KO round-1 matches`);
+  logRequest(
+    event,
+    "success",
+    `Filled teams into ${filled} KO round-1 matches`,
+  );
   return { filled };
 });

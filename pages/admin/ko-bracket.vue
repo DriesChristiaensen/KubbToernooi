@@ -49,14 +49,14 @@ const hasTeams = computed(() =>
   matches.value.some((m) => m.teamAId !== null || m.teamBId !== null),
 );
 
-function getRoundLabel(round: number, totalRounds: number): string {
-  const fromEnd = totalRounds - round;
+function getRoundLabel(matchCount: number): string {
   const labels = nl.admin.koBracket.roundLabels;
-  if (fromEnd === 0) return labels.final;
-  if (fromEnd === 1) return labels.semifinal;
-  if (fromEnd === 2) return labels.quarterfinal;
-  if (fromEnd === 3) return labels.r8;
-  return labels.r16;
+  if (matchCount === 1) return labels.final;
+  if (matchCount === 2) return labels.semifinal;
+  if (matchCount === 4) return labels.quarterfinal;
+  if (matchCount === 8) return labels.r8;
+  if (matchCount === 16) return labels.r16;
+  return `1/${matchCount} finale`;
 }
 
 async function fetchMatches() {
@@ -432,7 +432,7 @@ onMounted(async () => {
               class="flex flex-col rounded border border-gray-200 bg-background p-3"
             >
               <div class="mb-2 text-xs font-semibold text-primary">
-                {{ getRoundLabel(r, totalRounds) }}
+                {{ getRoundLabel(matchCount(r)) }}
               </div>
               <template v-if="getMatch(r, idx)">
                 <span class="text-sm font-medium text-text">

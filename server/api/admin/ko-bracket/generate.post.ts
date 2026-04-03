@@ -1,12 +1,16 @@
 import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
+import { getActiveTournament } from "~/server/utils/tournament";
 
 const bodySchema = z.object({
   overwrite: z.boolean().optional(),
-  startDateTime: z.string()
+  startDateTime: z
+    .string()
     .refine((s) => !isNaN(new Date(s).getTime()), { message: "Invalid date" })
-    .refine((s) => /T|:/.test(s), { message: "startDateTime must include a time component" })
+    .refine((s) => /T|:/.test(s), {
+      message: "startDateTime must include a time component",
+    })
     .optional(),
 });
 
@@ -15,14 +19,7 @@ export default defineEventHandler(async (event) => {
   const body = bodySchema.parse(raw ?? {});
   const overwrite = body.overwrite === true;
 
-  const tournament = await prisma.tournament.findFirst();
-  if (!tournament) {
-    throw createApiError({
-      error: "Geen toernooi gevonden",
-      code: 404,
-      reason: "No tournament found",
-    });
-  }
+  const tournament = await getActiveTournament();
 
   const existingCount = await prisma.match.count({ where: { phase: "KO" } });
   if (existingCount > 0 && !overwrite) {
@@ -33,7 +30,9 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const fields = await prisma.field.findMany();
+  const fields = await prisma.field.findMany({
+    where: { tournamentId: tournament.id },
+  });
   if (fields.length === 0) {
     throw createApiError({
       error: "Geen velden beschikbaar voor KO-wedstrijden",
@@ -78,7 +77,10 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    participantCount = pools.reduce((sum, pool) => sum + pool.teamsAdvancing, 0);
+    participantCount = pools.reduce(
+      (sum, pool) => sum + pool.teamsAdvancing,
+      0,
+    );
 
     if (participantCount < 2) {
       throw createApiError({
@@ -97,7 +99,9 @@ export default defineEventHandler(async (event) => {
   const round1Count = bracketSize / 2;
   const totalRounds = Math.log2(bracketSize);
 
-  const matchStartTime = body.startDateTime ? new Date(body.startDateTime) : new Date(tournament.startTime);
+  const matchStartTime = body.startDateTime
+    ? new Date(body.startDateTime)
+    : new Date(tournament.startTime);
   const slotMs = (tournament.matchDuration + tournament.breakTime) * 60 * 1000;
 
   const roundMatchIds = new Map<number, string[]>();
@@ -109,8 +113,9 @@ export default defineEventHandler(async (event) => {
     const createdIds: string[] = [];
 
     for (let i = 0; i < matchesInRound; i++) {
-      const nextMatchId = nextRoundIds.length > 0 ? nextRoundIds[Math.floor(i / 2)] : null;
-      const field = fields[i % fields.length];
+      const nextMatchId =
+        nextRoundIds.length > 0 ? nextRoundIds[Math.floor(i / 2)] : null;
+      const field = fields[i % fields.length]!;
       const slotOffset = Math.floor(i / fields.length);
 
       const created = await prisma.match.create({
