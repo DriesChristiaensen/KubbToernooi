@@ -213,6 +213,11 @@ export const nl = {
         r8: "1/8 finale",
         r16: "1/16 finale",
       },
+      statusSection: "Status",
+      koScheduleLive: "KO-schema live",
+      koScheduleDraft: "KO-schema concept",
+      draftWarning:
+        "Sommige KO-wedstrijden zijn al begonnen of de starttijd is al verstreken. Weet je zeker dat je het KO-schema terug naar concept wilt zetten?",
     },
     banner: {
       draft: "Toernooi concept nog niet gepubliceerd",

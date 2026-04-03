@@ -239,6 +239,10 @@ function cancelDraftToggle() {
   pendingDraftField.value = null;
 }
 
+const poolMatchCount = computed(
+  () => matches.value.filter((m) => m.phase === "POOL").length,
+);
+
 // Computed views
 const matchesByField = computed(() => {
   const map = new Map<string, { field: Field; matches: Match[] }>();
@@ -486,7 +490,11 @@ onMounted(async () => {
 
     <!-- Phase live toggles -->
     <section
-      v-if="tournament && matches.length > 0"
+      v-if="
+        tournament &&
+        (tournament.type === 'POOLS' || tournament.type === 'COMBINATION') &&
+        poolMatchCount > 0
+      "
       class="mb-6 rounded-lg bg-surface p-4 shadow-sm"
     >
       <h2 class="mb-3 font-semibold text-text">
@@ -494,9 +502,6 @@ onMounted(async () => {
       </h2>
       <div class="flex flex-wrap gap-2">
         <button
-          v-if="
-            tournament.type === 'POOLS' || tournament.type === 'COMBINATION'
-          "
           :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
           :class="tournament.poolScheduleLive ? 'bg-success' : 'bg-warning'"
           class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
@@ -506,21 +511,6 @@ onMounted(async () => {
             tournament.poolScheduleLive
               ? nl.admin.schedule.poolScheduleLive
               : nl.admin.schedule.poolScheduleDraft
-          }}
-        </button>
-        <button
-          v-if="
-            tournament.type === 'KNOCKOUT' || tournament.type === 'COMBINATION'
-          "
-          :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
-          :class="tournament.koScheduleLive ? 'bg-success' : 'bg-warning'"
-          class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
-          @click="togglePhase('koScheduleLive')"
-        >
-          {{
-            tournament.koScheduleLive
-              ? nl.admin.schedule.koScheduleLive
-              : nl.admin.schedule.koScheduleDraft
           }}
         </button>
       </div>

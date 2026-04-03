@@ -11,10 +11,19 @@ interface Team {
   name: string;
 }
 
+interface Tournament {
+  type: string;
+  status: string;
+  koScheduleLive: boolean;
+}
+
 interface KoMatch {
   id: string;
   round: number;
   status: string;
+  startTime: string;
+  scoreA: number | null;
+  scoreB: number | null;
   teamAId: string | null;
   teamBId: string | null;
   teamA: Team | null;
@@ -29,8 +38,13 @@ const generateError = ref("");
 const generateSuccess = ref("");
 const generateStartDateTime = ref<Date | null>(null);
 const showOverwrite = ref(false);
+const tournament = ref<Tournament | null>(null);
 const tournamentType = ref("");
 const lastPoolMatchTime = ref<string | null>(null);
+
+const phaseToggleLoading = ref(false);
+const phaseToggleError = ref("");
+const showDraftWarning = ref(false);
 
 const fillTeamsLoading = ref(false);
 const fillTeamsError = ref("");
@@ -156,6 +170,52 @@ async function saveSwap() {
   }
 }
 
+async function toggleKoPhase() {
+  if (!tournament.value) return;
+  const newVal = !tournament.value.koScheduleLive;
+  if (!newVal) {
+    const now = Date.now();
+    const hasStarted = matches.value.some(
+      (m) =>
+        m.scoreA !== null ||
+        m.scoreB !== null ||
+        new Date(m.startTime).getTime() < now,
+    );
+    if (hasStarted) {
+      showDraftWarning.value = true;
+      return;
+    }
+  }
+  await executeDraftToggle(newVal);
+}
+
+async function executeDraftToggle(newVal: boolean) {
+  if (!tournament.value) return;
+  phaseToggleError.value = "";
+  phaseToggleLoading.value = true;
+  try {
+    await $fetch("/api/admin/tournament", {
+      method: "PATCH",
+      body: { koScheduleLive: newVal },
+    });
+    tournament.value.koScheduleLive = newVal;
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    phaseToggleError.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    phaseToggleLoading.value = false;
+  }
+}
+
+function confirmDraftToggle() {
+  showDraftWarning.value = false;
+  executeDraftToggle(false);
+}
+
+function cancelDraftToggle() {
+  showDraftWarning.value = false;
+}
+
 const rounds = computed(() => {
   const map = new Map<number, KoMatch[]>();
   for (const m of matches.value) {
@@ -200,8 +260,9 @@ const swapNonKoTeams = computed(() => {
 onMounted(async () => {
   await fetchMatches();
   try {
-    const t = await $fetch<{ type: string }>("/api/admin/tournament");
+    const t = await $fetch<Tournament>("/api/admin/tournament");
     tournamentType.value = t.type;
+    tournament.value = t;
     if (t.type === "COMBINATION") {
       const poolMatches = await $fetch<{ startTime: string; phase: string }[]>(
         "/api/admin/schedule/matches",
@@ -247,6 +308,29 @@ onMounted(async () => {
 
 <template>
   <main class="mx-auto max-w-content p-4">
+    <!-- Draft warning modal -->
+    <div
+      v-if="showDraftWarning"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    >
+      <div class="mx-4 max-w-md rounded-lg bg-surface p-6 shadow-xl">
+        <p class="mb-4 text-text">{{ nl.admin.koBracket.draftWarning }}</p>
+        <div class="flex gap-3">
+          <button
+            class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            @click="confirmDraftToggle"
+          >
+            {{ nl.common.confirm }}
+          </button>
+          <button
+            class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="cancelDraftToggle"
+          >
+            {{ nl.common.cancel }}
+          </button>
+        </div>
+      </div>
+    </div>
     <div class="mb-4 flex items-center gap-3">
       <NuxtLink to="/admin" class="text-sm text-text-light hover:text-primary">
         &larr; {{ nl.common.back }}
@@ -329,6 +413,31 @@ onMounted(async () => {
       >
         {{ nl.admin.koBracket.fillTeams }}
       </button>
+    </div>
+
+    <!-- Publish KO bracket -->
+    <div
+      v-if="tournament && hasStructure"
+      class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
+    >
+      <h2 class="mb-3 font-semibold text-text">
+        {{ nl.admin.koBracket.statusSection }}
+      </h2>
+      <button
+        :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
+        :class="tournament.koScheduleLive ? 'bg-success' : 'bg-warning'"
+        class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
+        @click="toggleKoPhase"
+      >
+        {{
+          tournament.koScheduleLive
+            ? nl.admin.koBracket.koScheduleLive
+            : nl.admin.koBracket.koScheduleDraft
+        }}
+      </button>
+      <p v-if="phaseToggleError" class="mt-2 text-sm text-error">
+        {{ phaseToggleError }}
+      </p>
     </div>
 
     <!-- Swap teams panel -->
