@@ -42,6 +42,8 @@ interface Pool {
 const matches = ref<Match[]>([]);
 const standings = ref<Pool[]>([]);
 const tournamentType = ref<string | null>(null);
+const poolScheduleLive = ref(false);
+const koScheduleLive = ref(false);
 const isLoading = ref(true);
 const now = ref(Date.now());
 
@@ -65,13 +67,20 @@ async function fetchAll() {
   const [newMatches, newStandings, info] = await Promise.all([
     $fetch<Match[]>("/api/public/schedule").catch(() => []),
     $fetch<Pool[]>("/api/public/standings").catch(() => []),
-    $fetch<{ type: string | null }>("/api/public/info").catch(() => ({ type: null })),
+    $fetch<{ type: string | null; poolScheduleLive: boolean; koScheduleLive: boolean }>("/api/public/info").catch(() => ({ type: null, poolScheduleLive: false, koScheduleLive: false })),
   ]);
   matches.value = newMatches;
   standings.value = newStandings;
   tournamentType.value = info.type;
+  poolScheduleLive.value = info.poolScheduleLive;
+  koScheduleLive.value = info.koScheduleLive;
   now.value = Date.now();
   isLoading.value = false;
+  if (activeMainTab.value === "pool" && !poolScheduleLive.value && koScheduleLive.value) {
+    activeMainTab.value = "ko";
+  } else if (activeMainTab.value === "ko" && !koScheduleLive.value && poolScheduleLive.value) {
+    activeMainTab.value = "pool";
+  }
 }
 
 usePolling(fetchAll, { interval: 60_000 });
@@ -218,27 +227,45 @@ const displayKoMatches = computed(() => applyFilters(koMatches.value));
 // T8.5 – KO round grouping and labels
 const koRounds = computed(() => {
   if (!koMatches.value.length) return [];
-  const max = Math.max(...koMatches.value.map((m) => m.round));
   const rounds: number[] = [];
   for (const m of koMatches.value) {
     if (!rounds.includes(m.round)) rounds.push(m.round);
   }
-  return rounds.sort((a, b) => a - b).map((r) => ({
-    round: r,
-    label: getRoundLabel(r, max),
-    matches: koMatches.value.filter((m) => m.round === r),
-  }));
+  return rounds.sort((a, b) => a - b).map((r) => {
+    const matches = koMatches.value.filter((m) => m.round === r);
+    return { round: r, label: getRoundLabel(matches.length), matches };
+  });
 });
 
-function getRoundLabel(round: number, totalRounds: number): string {
-  const steps = totalRounds - round;
+function getRoundLabel(matchCount: number): string {
   const lb = nl.admin.koBracket.roundLabels;
-  if (steps === 0) return lb.final;
-  if (steps === 1) return lb.semifinal;
-  if (steps === 2) return lb.quarterfinal;
-  if (steps === 3) return lb.r8;
-  if (steps === 4) return lb.r16;
-  return `${s.round} ${round}`;
+  if (matchCount === 1) return lb.final;
+  if (matchCount === 2) return lb.semifinal;
+  if (matchCount === 4) return lb.quarterfinal;
+  if (matchCount === 8) return lb.r8;
+  if (matchCount === 16) return lb.r16;
+  return `1/${matchCount} finale`;
+}
+
+function isTabDisabled(tab: { key: "pool" | "ko" | "eindstand" }): boolean {
+  if (tournamentType.value !== "COMBINATION") return false;
+  if (tab.key === "pool") return !poolScheduleLive.value;
+  if (tab.key === "ko") return !koScheduleLive.value;
+  return false;
+}
+
+const currentTabScheduleIsLive = computed(() => {
+  if (!tournamentType.value) return false;
+  if (activeMainTab.value === "eindstand") return showEindstand.value;
+  if (tournamentType.value === "POOLS") return poolScheduleLive.value;
+  if (tournamentType.value === "KNOCKOUT") return koScheduleLive.value;
+  if (activeMainTab.value === "pool") return poolScheduleLive.value;
+  if (activeMainTab.value === "ko") return koScheduleLive.value;
+  return false;
+});
+
+function poolMatchTitle(match: Match): string {
+  return `${match.round}e ${s.poolMatchLabel} ${match.pool?.name ?? ''}`;
 }
 
 // T8.5 – Eindstand helpers
@@ -268,22 +295,36 @@ const koFinalMatch = computed(() => {
     <p v-if="isLoading" class="text-text-light">{{ nl.common.loading }}</p>
 
     <template v-else>
-      <!-- Row 1: Main tab button group -->
-      <div v-if="mainTabs.length > 1" class="mb-3 inline-flex overflow-hidden rounded border border-gray-300">
-        <button
-          v-for="(tab, idx) in mainTabs"
-          :key="tab.key"
-          :class="[
-            activeMainTab === tab.key ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50',
-            idx < mainTabs.length - 1 ? 'border-r border-gray-300' : '',
-          ]"
-          class="px-4 py-2 text-sm font-medium"
-          @click="activeMainTab = tab.key"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
+      <!-- No active tournament -->
+      <p v-if="!tournamentType" class="text-text-light">{{ s.noTournament }}</p>
 
+      <template v-else>
+        <!-- Row 1: Tab label (single-type) or button group (multiple tabs) -->
+        <div v-if="mainTabs.length === 1" class="mb-3">
+          <span class="inline-block rounded border border-gray-300 bg-primary px-4 py-2 text-sm font-medium text-white">
+            {{ mainTabs[0].label }}
+          </span>
+        </div>
+        <div v-else-if="mainTabs.length > 1" class="mb-3 inline-flex overflow-hidden rounded border border-gray-300">
+          <button
+            v-for="(tab, idx) in mainTabs"
+            :key="tab.key"
+            :disabled="isTabDisabled(tab)"
+            :class="[
+              activeMainTab === tab.key ? 'bg-primary text-white' : (isTabDisabled(tab) ? 'cursor-not-allowed bg-white text-gray-400' : 'bg-white text-text hover:bg-gray-50'),
+              idx < mainTabs.length - 1 ? 'border-r border-gray-300' : '',
+            ]"
+            class="px-4 py-2 text-sm font-medium"
+            @click="!isTabDisabled(tab) && (activeMainTab = tab.key)"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+
+        <!-- No schedule live for current tab -->
+        <p v-if="!currentTabScheduleIsLive" class="text-text-light">{{ s.noScheduleLive }}</p>
+
+        <template v-else>
       <!-- Row 2: Sub-tab row (Wedstrijden / Standen) -->
       <div v-if="activeMainTab !== 'eindstand'" class="mb-3 inline-flex overflow-hidden rounded border border-gray-300">
         <button
@@ -360,6 +401,7 @@ const koFinalMatch = computed(() => {
                 : 'border-gray-200 bg-surface'"
               class="rounded-lg border p-3 shadow-sm"
             >
+              <div class="mb-1 text-xs font-semibold text-primary">{{ poolMatchTitle(match) }}</div>
               <div class="mb-1 flex items-center justify-between text-sm text-text-light">
                 <span>{{ match.field.name }}</span>
                 <span>{{ formatDateTime(match.startTime) }}</span>
@@ -455,29 +497,43 @@ const koFinalMatch = computed(() => {
 
         <template v-else>
           <p v-if="koRounds.length === 0" class="text-text-light">{{ nl.common.noResults }}</p>
-          <div v-for="group in koRounds" :key="group.round" class="mb-4">
-            <h3 class="mb-2 font-semibold text-text">{{ group.label }}</h3>
-            <ul class="space-y-2">
-              <li
-                v-for="match in group.matches"
-                :key="match.id"
-                :class="isFavTeamMatch(match)
-                  ? 'border-fav-match-border bg-fav-match-bg'
-                  : 'border-gray-200 bg-surface'"
-                class="rounded-lg border p-3 shadow-sm"
+          <div v-else class="overflow-x-auto">
+            <div class="flex flex-row gap-4" style="min-width: max-content">
+              <div
+                v-for="(group, colIdx) in koRounds"
+                :key="group.round"
+                class="flex w-52 flex-col"
               >
-                <div class="flex items-center justify-between">
-                  <span>
-                    <span :class="isFavTeam(match.teamA.id) ? 'font-bold text-fav-text' : 'text-text'">{{ match.teamA.name }}</span>
-                    <span class="text-text"> vs </span>
-                    <span :class="isFavTeam(match.teamB.id) ? 'font-bold text-fav-text' : 'text-text'">{{ match.teamB.name }}</span>
-                  </span>
-                  <span v-if="match.status === 'PLAYED'" class="text-sm font-semibold text-text">
-                    {{ match.scoreA }} - {{ match.scoreB }}
-                  </span>
+                <h3 class="mb-2 text-center text-sm font-semibold text-text">{{ group.label }}</h3>
+                <div
+                  v-for="match in group.matches"
+                  :key="match.id"
+                  class="flex items-center"
+                  :style="{ height: (80 * Math.pow(2, colIdx)) + 'px' }"
+                >
+                  <div
+                    class="w-full rounded-lg border p-3 shadow-sm"
+                    :class="isFavTeamMatch(match) ? 'border-fav-match-border bg-fav-match-bg' : 'border-gray-200 bg-surface'"
+                  >
+                    <div class="mb-1 flex items-center justify-between text-sm text-text-light">
+                      <span>{{ match.field.name }}</span>
+                      <span>{{ formatDateTime(match.startTime) }}</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="min-w-0 font-semibold">
+                        <span :class="isFavTeam(match.teamA.id) ? 'text-fav-text' : 'text-text'">{{ match.teamA.name }}</span>
+                        <span class="text-text"> vs </span>
+                        <span :class="isFavTeam(match.teamB.id) ? 'text-fav-text' : 'text-text'">{{ match.teamB.name }}</span>
+                      </span>
+                      <span :class="statusClasses(match)" class="shrink-0 rounded px-2 py-0.5 text-xs font-medium">
+                        <template v-if="match.status === 'PLAYED'">{{ match.scoreA }} - {{ match.scoreB }} ({{ statusLabel(match) }})</template>
+                        <template v-else>{{ statusLabel(match) }}</template>
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </li>
-            </ul>
+              </div>
+            </div>
           </div>
         </template>
       </template>
@@ -546,8 +602,10 @@ const koFinalMatch = computed(() => {
             </table>
           </div>
         </template>
-      </template>
-    </template>
+      </template><!-- end eindstand v-if -->
+        </template><!-- end currentTabScheduleIsLive v-else -->
+      </template><!-- end tournamentType v-else -->
+    </template><!-- end isLoading v-else -->
 
     <!-- Team picker modal -->
     <div

@@ -19,16 +19,34 @@ describe("GET /api/public/info", () => {
     vi.clearAllMocks();
   });
 
-  it("returns null type when no active tournament", async () => {
+  it("returns null type and false schedules when no active tournament", async () => {
     mockTournamentFindFirst.mockResolvedValue(null);
     const result = await handler({} as any);
-    expect(result).toEqual({ type: null });
+    expect(result).toEqual({ type: null, poolScheduleLive: false, koScheduleLive: false });
   });
 
-  it("returns tournament type when active tournament exists", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: "t1", type: "POOLS", isActive: true });
+  it("returns tournament type and schedule live flags when active tournament exists", async () => {
+    mockTournamentFindFirst.mockResolvedValue({
+      id: "t1",
+      type: "COMBINATION",
+      isActive: true,
+      poolScheduleLive: true,
+      koScheduleLive: false,
+    });
     const result = await handler({} as any);
-    expect(result).toEqual({ type: "POOLS" });
+    expect(result).toEqual({ type: "COMBINATION", poolScheduleLive: true, koScheduleLive: false });
+  });
+
+  it("returns all false schedule flags when tournament has none live", async () => {
+    mockTournamentFindFirst.mockResolvedValue({
+      id: "t1",
+      type: "POOLS",
+      isActive: true,
+      poolScheduleLive: false,
+      koScheduleLive: false,
+    });
+    const result = await handler({} as any);
+    expect(result).toEqual({ type: "POOLS", poolScheduleLive: false, koScheduleLive: false });
   });
 
   it("queries only active tournaments", async () => {
