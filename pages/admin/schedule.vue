@@ -25,6 +25,7 @@ interface Match {
 
 interface Tournament {
   type: string;
+  status: string;
   matchDuration: number;
   poolScheduleLive: boolean;
   koScheduleLive: boolean;
@@ -393,7 +394,7 @@ onMounted(async () => {
       <div class="flex flex-wrap gap-2">
         <button
           v-if="tournament.type === 'POOLS' || tournament.type === 'COMBINATION'"
-          :disabled="phaseToggleLoading"
+          :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
           :class="tournament.poolScheduleLive ? 'bg-success' : 'bg-warning'"
           class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
           @click="togglePhase('poolScheduleLive')"
@@ -402,7 +403,7 @@ onMounted(async () => {
         </button>
         <button
           v-if="tournament.type === 'KNOCKOUT' || tournament.type === 'COMBINATION'"
-          :disabled="phaseToggleLoading"
+          :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
           :class="tournament.koScheduleLive ? 'bg-success' : 'bg-warning'"
           class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
           @click="togglePhase('koScheduleLive')"
