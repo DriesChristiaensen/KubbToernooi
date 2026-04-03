@@ -46,7 +46,7 @@ const restoreLoading = ref<string | null>(null);
 const deleteLoading = ref<string | null>(null);
 
 const startDateTimePicker = ref<Date | null>(null);
-const touched = ref({ name: false, startTime: false, matchDuration: false });
+const touched = ref({ name: false, startTime: false, matchDuration: false, breakTime: false });
 const fieldErrors = ref({ name: '' });
 
 const form = ref({
@@ -66,10 +66,16 @@ const typeOptions = [
   { value: "COMBINATION", label: nl.admin.tournament.typeCombination },
 ];
 
+const breakTimeValid = computed(() =>
+  Number.isInteger(form.value.breakTime) && form.value.breakTime >= 0,
+);
+
 const step1Valid = computed(() =>
   form.value.name.trim().length > 0
+  && !fieldErrors.value.name
   && startDateTimePicker.value !== null
-  && form.value.matchDuration >= 1,
+  && form.value.matchDuration >= 1
+  && breakTimeValid.value,
 );
 
 const step2Valid = computed(() => form.value.fieldCount >= 1);
@@ -103,7 +109,7 @@ function startWizard() {
   wizardStep.value = 1;
   createError.value = "";
   startDateTimePicker.value = null;
-  touched.value = { name: false, startTime: false, matchDuration: false };
+  touched.value = { name: false, startTime: false, matchDuration: false, breakTime: false };
   fieldErrors.value = { name: '' };
   showWizard.value = true;
 }
@@ -111,7 +117,7 @@ function startWizard() {
 function cancelWizard() {
   showWizard.value = false;
   createError.value = "";
-  touched.value = { name: false, startTime: false, matchDuration: false };
+  touched.value = { name: false, startTime: false, matchDuration: false, breakTime: false };
   fieldErrors.value = { name: '' };
 }
 
@@ -119,12 +125,22 @@ function goToStep2() {
   touched.value.name = true;
   touched.value.startTime = true;
   touched.value.matchDuration = true;
+  touched.value.breakTime = true;
   if (step1Valid.value) wizardStep.value = 2;
 }
 
 function touchName() {
   touched.value.name = true;
-  fieldErrors.value.name = '';
+  const trimmed = form.value.name.trim().toLowerCase();
+  const existing = [
+    ...(tournament.value ? [tournament.value.name] : []),
+    ...inactiveTournaments.value.map(t => t.name),
+  ];
+  if (trimmed && existing.some(n => n.toLowerCase() === trimmed)) {
+    fieldErrors.value.name = nl.admin.tournament.duplicateName;
+  } else {
+    fieldErrors.value.name = '';
+  }
 }
 
 async function createTournament() {
@@ -348,7 +364,9 @@ onMounted(async () => {
                 type="number"
                 min="0"
                 class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+                @blur="touched.breakTime = true"
               >
+              <p v-if="touched.breakTime && !breakTimeValid" class="mt-1 text-xs text-error">{{ nl.admin.tournament.breakTimeInvalid }}</p>
             </div>
           </div>
 

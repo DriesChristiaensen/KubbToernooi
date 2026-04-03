@@ -102,6 +102,7 @@ export const nl = {
       nameRequired: "Naam is verplicht",
       startTimeRequired: "Starttijdstip is verplicht",
       matchDurationRequired: "Speelduur is verplicht (min. 1 minuut)",
+      breakTimeInvalid: "Pauzetijd moet 0 of een positief geheel getal zijn",
       createNew: "Nieuw toernooi aanmaken",
       replaceConfirm:
         "Een nieuw toernooi aanmaken zal het huidige toernooi archiveren. Weet u het zeker?",
