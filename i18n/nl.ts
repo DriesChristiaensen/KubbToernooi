@@ -34,7 +34,8 @@ export const nl = {
     sessionExpired: "Je sessie is verlopen. Log opnieuw in.",
     showPassword: "Wachtwoord tonen",
     hidePassword: "Wachtwoord verbergen",
-    noPasswordSet: "Nog geen wachtwoord ingesteld. Wilt u het ingevoerde wachtwoord opslaan?",
+    noPasswordSet:
+      "Nog geen wachtwoord ingesteld. Wilt u het ingevoerde wachtwoord opslaan?",
     resetPassword: "Reset wachtwoord",
     passwordSetSuccess: "Wachtwoord ingesteld. U bent nu ingelogd.",
   },
@@ -102,7 +103,8 @@ export const nl = {
       startTimeRequired: "Starttijdstip is verplicht",
       matchDurationRequired: "Speelduur is verplicht (min. 1 minuut)",
       createNew: "Nieuw toernooi aanmaken",
-      replaceConfirm: "Een nieuw toernooi aanmaken zal het huidige toernooi archiveren. Weet u het zeker?",
+      replaceConfirm:
+        "Een nieuw toernooi aanmaken zal het huidige toernooi archiveren. Weet u het zeker?",
       wizardStep1: "Toernooiinstellingen",
       wizardStep2: "Velden",
       wizardNext: "Volgende",
@@ -110,9 +112,11 @@ export const nl = {
       wizardCreate: "Toernooi aanmaken",
       restoreTitle: "Gearchiveerde toernooien",
       restoreButton: "Herstellen",
-      restoreConfirm: "Weet u zeker dat u dit toernooi wilt herstellen? Het huidige actieve toernooi wordt gearchiveerd.",
+      restoreConfirm:
+        "Weet u zeker dat u dit toernooi wilt herstellen? Het huidige actieve toernooi wordt gearchiveerd.",
       deleteButton: "Verwijderen",
-      deleteConfirm: "Weet u zeker dat u dit toernooi permanent wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
+      deleteConfirm:
+        "Weet u zeker dat u dit toernooi permanent wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
       noInactive: "Geen gearchiveerde toernooien",
       currentTournament: "Huidig toernooi",
     },
@@ -133,10 +137,12 @@ export const nl = {
       overwrite: "Bestaande poules overschrijven",
       teamsMoved: "Teams opnieuw verdeeld",
       assignTeams: "Teams indelen",
-      unassignedWarning: "Let op: {n} team(s) zijn nog niet ingedeeld in een poule.",
+      unassignedWarning:
+        "Let op: {n} team(s) zijn nog niet ingedeeld in een poule.",
       saveAssignment: "Indeling opslaan",
       assignSuccess: "Indeling opgeslagen",
-      notAvailableForType: "Poule-beheer is niet beschikbaar voor dit toernooitype.",
+      notAvailableForType:
+        "Poule-beheer is niet beschikbaar voor dit toernooitype.",
     },
     referees: {
       title: "Scheidsrechters",
@@ -166,10 +172,12 @@ export const nl = {
       viewPerTeam: "Per team",
       viewPerSlot: "Per tijdslot",
       switchModeHint: "Klik op een andere wedstrijd om te wisselen",
-      switchHighlightHint: "Oranje: zelfde team of veld als de geselecteerde wedstrijd",
+      switchHighlightHint:
+        "Oranje: een van beide teams speelt al op een ander veld in dit tijdslot",
       swapSuccess: "Wedstrijden gewisseld",
       swapError: "Wisselen mislukt",
-      swapConflictWarning: "Opgelet: overlappingen gevonden — twee wedstrijden delen hetzelfde veld of team op hetzelfde tijdstip.",
+      swapConflictWarning:
+        "Opgelet: overlappingen gevonden — twee wedstrijden delen hetzelfde veld of team op hetzelfde tijdstip.",
       poolScheduleLive: "Poule-schema live",
       poolScheduleDraft: "Poule-schema concept",
       koScheduleLive: "KO-schema live",
@@ -182,7 +190,8 @@ export const nl = {
       generated: "KO-wedstrijden gegenereerd",
       startDateTime: "Starttijdstip KO-fase",
       startDateTimeRequired: "Voer een starttijdstip in voor de KO-fase",
-      koStartAfterPool: "Starttijdstip KO-fase moet na de laatste poulewedstrijd liggen",
+      koStartAfterPool:
+        "Starttijdstip KO-fase moet na de laatste poulewedstrijd liggen",
       existingWarning: "Er is al een KO-schema. Overschrijven?",
       notEnoughStandings: "Niet genoeg poule-standen om KO-schema te genereren",
       noFields: "Geen velden beschikbaar voor KO-wedstrijden",
@@ -206,8 +215,10 @@ export const nl = {
     banner: {
       draft: "Toernooi concept nog niet gepubliceerd",
       live: "Toernooi is live",
-      poolLiveKoDraft: "Poule-schema is live — KO-schema is nog niet gepubliceerd",
-      poolDraftKoLive: "KO-schema is live — Poule-schema is nog niet gepubliceerd",
+      poolLiveKoDraft:
+        "Poule-schema is live — KO-schema is nog niet gepubliceerd",
+      poolDraftKoLive:
+        "KO-schema is live — Poule-schema is nog niet gepubliceerd",
       allLive: "Alle schema's zijn live",
       noneLive: "Geen schema's gepubliceerd",
     },
@@ -237,11 +248,13 @@ export const nl = {
       scoresSaved: "Score opgeslagen",
       notFound: "Wedstrijd niet gevonden",
       invalidScore: "Score moet een niet-negatief geheel getal zijn",
-      koWinnerRequired: "Winnaar is verplicht bij gelijkspel in een knock-out wedstrijd",
+      koWinnerRequired:
+        "Winnaar is verplicht bij gelijkspel in een knock-out wedstrijd",
       invalidKoWinner: "Winnaar moet één van de spelende teams zijn",
       phasePool: "Poule",
       phaseKo: "Knock-out",
-      overwriteConfirm: "Er is al een score genoteerd. Wilt u deze overschrijven?",
+      overwriteConfirm:
+        "Er is al een score genoteerd. Wilt u deze overschrijven?",
       overwriteYes: "Zeker",
       deleteScore: "Score verwijderen",
       deleteScoreConfirm: "Weet u zeker dat u de score wilt verwijderen?",
@@ -261,7 +274,7 @@ export const nl = {
       filterPlayed: "Gespeeld",
       filterToPlay: "Te spelen",
       chooseTeam: "Kies favoriete team",
-      myTeam: "Mijn team",
+      myTeam: "Filter team",
       clearTeam: "Wis selectie",
       teamPickerTitle: "Kies een team",
       tabPool: "Poule",

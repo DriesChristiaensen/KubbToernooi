@@ -182,6 +182,10 @@ function isFavTeam(id: string): boolean {
   return !!favTeamId.value && favTeamId.value === id;
 }
 
+function isFavTeamMatch(match: Match): boolean {
+  return !!favTeamId.value && (match.teamA.id === favTeamId.value || match.teamB.id === favTeamId.value);
+}
+
 const favTeamPool = computed(() => {
   if (!favTeamId.value) return null;
   return standings.value.find((p) => p.standings.some((st) => st.teamId === favTeamId.value)) ?? null;
@@ -257,84 +261,88 @@ const koFinalMatch = computed(() => {
 
 <template>
   <main class="mx-auto max-w-content p-4">
-    <h2 class="mb-4 text-lg font-semibold text-text">
+    <h2 class="mb-3 text-lg font-semibold text-text">
       {{ s.title }}
     </h2>
 
     <p v-if="isLoading" class="text-text-light">{{ nl.common.loading }}</p>
 
     <template v-else>
-      <!-- T8.3 – Favorite team row -->
-      <div class="mb-3 flex flex-wrap items-center gap-2">
+      <!-- Row 1: Main tab button group -->
+      <div v-if="mainTabs.length > 1" class="mb-3 inline-flex overflow-hidden rounded border border-gray-300">
         <button
-          class="rounded border border-primary px-3 py-1.5 text-sm text-primary hover:bg-primary/10"
-          @click="showTeamPicker = true"
-        >
-          {{ favTeamName ? favTeamName : s.chooseTeam }}
-        </button>
-        <button
-          v-if="favTeamName"
-          :class="myTeamOnly ? 'bg-fav text-white' : 'border border-fav-border text-fav-text hover:bg-fav-light'"
-          class="rounded px-3 py-1.5 text-sm"
-          @click="myTeamOnly = !myTeamOnly"
-        >
-          {{ s.myTeam }}
-        </button>
-        <button
-          v-if="favTeamName"
-          class="text-sm text-text-light underline"
-          @click="clearFavTeam"
-        >
-          {{ s.clearTeam }}
-        </button>
-      </div>
-
-      <!-- T8.2 – Status filter -->
-      <div class="mb-4 inline-flex overflow-hidden rounded border border-gray-300">
-        <button
-          v-for="(opt, idx) in statusOpts"
-          :key="opt.key"
+          v-for="(tab, idx) in mainTabs"
+          :key="tab.key"
           :class="[
-            statusFilter === opt.key ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50',
-            idx < statusOpts.length - 1 ? 'border-r border-gray-300' : '',
+            activeMainTab === tab.key ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50',
+            idx < mainTabs.length - 1 ? 'border-r border-gray-300' : '',
           ]"
-          class="px-3 py-1.5 text-sm"
-          @click="statusFilter = opt.key"
+          class="px-4 py-2 text-sm font-medium"
+          @click="activeMainTab = tab.key"
         >
-          {{ opt.label }}
+          {{ tab.label }}
         </button>
       </div>
 
-      <!-- T8.5 – Main tabs + sub-tabs as parallel button groups -->
-      <div class="mb-4 flex flex-wrap items-center gap-3">
-        <div v-if="mainTabs.length > 1" class="inline-flex overflow-hidden rounded border border-gray-300">
+      <!-- Row 2: Sub-tab row (Wedstrijden / Standen) -->
+      <div v-if="activeMainTab !== 'eindstand'" class="mb-3 inline-flex overflow-hidden rounded border border-gray-300">
+        <button
+          :class="activeSubTab === 'matches' ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50'"
+          class="border-r border-gray-300 px-3 py-1.5 text-sm"
+          @click="activeSubTab = 'matches'"
+        >
+          {{ s.tabMatches }}
+        </button>
+        <button
+          :class="activeSubTab === 'standings' ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50'"
+          class="px-3 py-1.5 text-sm"
+          @click="activeSubTab = 'standings'"
+        >
+          {{ s.tabStandings }}
+        </button>
+      </div>
+
+      <!-- Row 3: Filter row (only when Matches sub-tab is active) -->
+      <div
+        v-if="activeMainTab !== 'eindstand' && activeSubTab === 'matches'"
+        class="mb-4 flex flex-wrap items-center justify-between gap-2"
+      >
+        <!-- Status filter button group -->
+        <div class="inline-flex overflow-hidden rounded border border-gray-300">
           <button
-            v-for="(tab, idx) in mainTabs"
-            :key="tab.key"
+            v-for="(opt, idx) in statusOpts"
+            :key="opt.key"
             :class="[
-              activeMainTab === tab.key ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50',
-              idx < mainTabs.length - 1 ? 'border-r border-gray-300' : '',
+              statusFilter === opt.key ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50',
+              idx < statusOpts.length - 1 ? 'border-r border-gray-300' : '',
             ]"
             class="px-3 py-1.5 text-sm"
-            @click="activeMainTab = tab.key"
+            @click="statusFilter = opt.key"
           >
-            {{ tab.label }}
+            {{ opt.label }}
           </button>
         </div>
-        <div v-if="activeMainTab !== 'eindstand'" class="inline-flex overflow-hidden rounded border border-gray-300">
+
+        <!-- Favourite team filter -->
+        <div class="flex items-center gap-2">
+          <template v-if="favTeamName">
+            <button
+              :class="myTeamOnly ? 'bg-fav text-white' : 'border border-fav-border text-fav-text hover:bg-fav-light'"
+              class="rounded px-3 py-1.5 text-sm"
+              @click="myTeamOnly = !myTeamOnly"
+            >
+              {{ s.myTeam }}: {{ favTeamName }}
+            </button>
+            <button class="text-sm text-text-light underline" @click="clearFavTeam">
+              {{ s.clearTeam }}
+            </button>
+          </template>
           <button
-            :class="activeSubTab === 'matches' ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50'"
-            class="border-r border-gray-300 px-3 py-1.5 text-sm"
-            @click="activeSubTab = 'matches'"
+            v-else
+            class="rounded border border-gray-300 px-3 py-1.5 text-sm text-text-light hover:bg-background"
+            @click="showTeamPicker = true"
           >
-            {{ s.tabMatches }}
-          </button>
-          <button
-            :class="activeSubTab === 'standings' ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50'"
-            class="px-3 py-1.5 text-sm"
-            @click="activeSubTab = 'standings'"
-          >
-            {{ s.tabStandings }}
+            {{ s.chooseTeam }}
           </button>
         </div>
       </div>
@@ -347,7 +355,10 @@ const koFinalMatch = computed(() => {
             <li
               v-for="match in displayPoolMatches"
               :key="match.id"
-              class="rounded-lg border border-gray-200 bg-surface p-3 shadow-sm"
+              :class="isFavTeamMatch(match)
+                ? 'border-fav-match-border bg-fav-match-bg'
+                : 'border-gray-200 bg-surface'"
+              class="rounded-lg border p-3 shadow-sm"
             >
               <div class="mb-1 flex items-center justify-between text-sm text-text-light">
                 <span>{{ match.field.name }}</span>
@@ -417,7 +428,10 @@ const koFinalMatch = computed(() => {
               <li
                 v-for="match in applyFilters(group.matches)"
                 :key="match.id"
-                class="rounded-lg border border-gray-200 bg-surface p-3 shadow-sm"
+                :class="isFavTeamMatch(match)
+                  ? 'border-fav-match-border bg-fav-match-bg'
+                  : 'border-gray-200 bg-surface'"
+                class="rounded-lg border p-3 shadow-sm"
               >
                 <div class="mb-1 flex items-center justify-between text-sm text-text-light">
                   <span>{{ match.field.name }}</span>
@@ -444,7 +458,14 @@ const koFinalMatch = computed(() => {
           <div v-for="group in koRounds" :key="group.round" class="mb-4">
             <h3 class="mb-2 font-semibold text-text">{{ group.label }}</h3>
             <ul class="space-y-2">
-              <li v-for="match in group.matches" :key="match.id" :class="(isFavTeam(match.teamA.id) || isFavTeam(match.teamB.id)) ? 'rounded-lg border border-fav-border bg-fav-light p-3 shadow-sm' : 'rounded-lg border border-gray-200 bg-surface p-3 shadow-sm'">
+              <li
+                v-for="match in group.matches"
+                :key="match.id"
+                :class="isFavTeamMatch(match)
+                  ? 'border-fav-match-border bg-fav-match-bg'
+                  : 'border-gray-200 bg-surface'"
+                class="rounded-lg border p-3 shadow-sm"
+              >
                 <div class="flex items-center justify-between">
                   <span>
                     <span :class="isFavTeam(match.teamA.id) ? 'font-bold text-fav-text' : 'text-text'">{{ match.teamA.name }}</span>
@@ -528,7 +549,7 @@ const koFinalMatch = computed(() => {
       </template>
     </template>
 
-    <!-- T8.3 – Team picker modal -->
+    <!-- Team picker modal -->
     <div
       v-if="showTeamPicker"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -543,7 +564,7 @@ const koFinalMatch = computed(() => {
           class="mb-3 w-full rounded border border-gray-300 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none"
           autofocus
         >
-        <ul class="max-h-64 overflow-y-auto divide-y divide-gray-100">
+        <ul class="max-h-64 divide-y divide-gray-100 overflow-y-auto">
           <li
             v-for="team in filteredTeamList"
             :key="team.id"

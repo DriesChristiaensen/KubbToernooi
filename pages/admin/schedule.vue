@@ -25,6 +25,7 @@ interface Match {
 
 interface Tournament {
   type: string;
+  matchDuration: number;
   poolScheduleLive: boolean;
   koScheduleLive: boolean;
 }
@@ -148,6 +149,7 @@ function clickMatch(match: Match) {
     switchMatchId.value = null;
     return;
   }
+  if (disabledSwapMatchIds.value.has(match.id)) return;
   swapMatches(switchMatchId.value, match.id);
 }
 
@@ -247,18 +249,43 @@ const switchMatch = computed(() =>
   matches.value.find((m) => m.id === switchMatchId.value) ?? null,
 );
 
+const matchDurationMs = computed(() => (tournament.value?.matchDuration ?? 15) * 60 * 1000);
+
+function hasCrossFieldTeamConflict(teamAId: string | undefined, teamBId: string | undefined, targetStartTime: string, excludeIds: Set<string>): boolean {
+  const targetMs = new Date(targetStartTime).getTime();
+  const durMs = matchDurationMs.value;
+  return matches.value.some((m) => {
+    if (excludeIds.has(m.id)) return false;
+    const involvesTeam = m.teamA?.id === teamAId || m.teamB?.id === teamAId
+      || m.teamA?.id === teamBId || m.teamB?.id === teamBId;
+    if (!involvesTeam) return false;
+    const otherMs = new Date(m.startTime).getTime();
+    return Math.abs(otherMs - targetMs) < durMs;
+  });
+}
+
 const highlightedMatchIds = computed(() => {
   const sm = switchMatch.value;
-  if (!sm) return new Set<string>();
+  if (!sm || tournament.value?.poolScheduleLive) return new Set<string>();
   const ids = new Set<string>();
-  const teamIds = [sm.teamA?.id, sm.teamB?.id].filter(Boolean);
   for (const m of matches.value) {
     if (m.id === sm.id) continue;
-    if (
-      m.field.id === sm.field.id
-      || teamIds.includes(m.teamA?.id)
-      || teamIds.includes(m.teamB?.id)
-    ) {
+    const exclude = new Set([sm.id, m.id]);
+    if (hasCrossFieldTeamConflict(sm.teamA?.id, sm.teamB?.id, m.startTime, exclude)) {
+      ids.add(m.id);
+    }
+  }
+  return ids;
+});
+
+const disabledSwapMatchIds = computed(() => {
+  const sm = switchMatch.value;
+  if (!sm || !tournament.value?.poolScheduleLive) return new Set<string>();
+  const ids = new Set<string>();
+  for (const m of matches.value) {
+    if (m.id === sm.id) continue;
+    const exclude = new Set([sm.id, m.id]);
+    if (hasCrossFieldTeamConflict(sm.teamA?.id, sm.teamB?.id, m.startTime, exclude)) {
       ids.add(m.id);
     }
   }
@@ -268,6 +295,8 @@ const highlightedMatchIds = computed(() => {
 function rowClass(matchId: string): string {
   if (switchMatchId.value === matchId)
     return "cursor-pointer border-b border-gray-100 bg-primary/10 outline outline-2 outline-primary transition-colors";
+  if (switchMatchId.value && disabledSwapMatchIds.value.has(matchId))
+    return "cursor-not-allowed border-b border-gray-100 bg-gray-100 opacity-50 transition-colors";
   if (switchMatchId.value && highlightedMatchIds.value.has(matchId))
     return "cursor-pointer border-b border-gray-100 bg-orange-50 outline outline-2 outline-orange-400 transition-colors";
   if (conflictingMatchIds.value.has(matchId))
@@ -278,6 +307,8 @@ function rowClass(matchId: string): string {
 function cellClass(matchId: string): string {
   if (switchMatchId.value === matchId)
     return "w-full rounded p-1 text-left text-xs transition-colors bg-primary text-white";
+  if (switchMatchId.value && disabledSwapMatchIds.value.has(matchId))
+    return "w-full rounded p-1 text-left text-xs transition-colors bg-gray-200 text-gray-400 cursor-not-allowed";
   if (switchMatchId.value && highlightedMatchIds.value.has(matchId))
     return "w-full rounded p-1 text-left text-xs transition-colors bg-orange-200 text-orange-900 outline outline-2 outline-orange-400";
   if (conflictingMatchIds.value.has(matchId))
@@ -455,7 +486,7 @@ onMounted(async () => {
       <!-- Switch mode status -->
       <div v-if="switchMatchId" class="mb-3 space-y-1 rounded-lg border border-primary bg-primary/5 px-4 py-2 text-sm text-primary">
         <div>{{ nl.admin.schedule.switchModeHint }}</div>
-        <div class="text-orange-500">{{ nl.admin.schedule.switchHighlightHint }}</div>
+        <div v-if="!tournament?.poolScheduleLive" class="text-orange-500">{{ nl.admin.schedule.switchHighlightHint }}</div>
       </div>
       <p v-if="swapError" class="mb-2 text-sm text-error">
         {{ swapError }}

@@ -25,7 +25,7 @@ vi.mock("~/server/utils/prisma", () => ({
 vi.mock("~/server/utils/logger", () => ({ logRequest: vi.fn() }));
 vi.mock("~/server/utils/standings", () => ({ recalculatePoolStandings: mockRecalculate }));
 
-const { default: handler } = await import("./[id].delete-score.post");
+const { default: handler } = await import("./delete-score.post");
 
 function createMockEvent() {
   return { _url: "/api/ref/matches/m1/delete-score", context: {} } as any;
