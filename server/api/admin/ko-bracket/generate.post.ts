@@ -115,6 +115,7 @@ export default defineEventHandler(async (event) => {
     for (let i = 0; i < matchesInRound; i++) {
       const nextMatchId =
         nextRoundIds.length > 0 ? nextRoundIds[Math.floor(i / 2)] : null;
+      // Safe: fields.length === 0 guard above guarantees at least one field exists
       const field = fields[i % fields.length]!;
       const slotOffset = Math.floor(i / fields.length);
 

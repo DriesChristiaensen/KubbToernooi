@@ -151,6 +151,7 @@ export default defineEventHandler(async (event) => {
   for (const m of allMatches) {
     const teamConstraint = Math.max(teamNextSlot.get(m.teamA) ?? 0, teamNextSlot.get(m.teamB) ?? 0);
 
+    // Safe: fields.length === 0 guard above guarantees at least one field exists
     let bestField = fields[0]!;
     let bestSlot = Math.max(fieldNextSlot.get(bestField.id) ?? 0, teamConstraint);
 

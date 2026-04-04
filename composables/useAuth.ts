@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { navigateTo } from '#app'
+import { nl } from '~/i18n/nl'
 
 export function useAuth() {
   const loading = ref(false)
@@ -22,7 +23,7 @@ export function useAuth() {
     }
     catch (err: unknown) {
       const fetchErr = err as { data?: { data?: { error?: string }, error?: string } }
-      error.value = fetchErr?.data?.data?.error || fetchErr?.data?.error || 'Inloggen mislukt'
+      error.value = fetchErr?.data?.data?.error || fetchErr?.data?.error || nl.auth.loginFailed
       loading.value = false
     }
   }
