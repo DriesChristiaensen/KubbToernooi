@@ -22,7 +22,7 @@ describe("GET /api/public/info", () => {
   it("returns null type and false schedules when no active tournament", async () => {
     mockTournamentFindFirst.mockResolvedValue(null);
     const result = await handler({} as any);
-    expect(result).toEqual({ type: null, poolScheduleLive: false, koScheduleLive: false });
+    expect(result).toEqual({ type: null, tournamentLive: false, poolScheduleLive: false, koScheduleLive: false });
   });
 
   it("returns tournament type and schedule live flags when active tournament exists", async () => {
@@ -34,7 +34,7 @@ describe("GET /api/public/info", () => {
       koScheduleLive: false,
     });
     const result = await handler({} as any);
-    expect(result).toEqual({ type: "COMBINATION", poolScheduleLive: true, koScheduleLive: false });
+    expect(result).toEqual({ type: "COMBINATION", tournamentLive: false, poolScheduleLive: true, koScheduleLive: false });
   });
 
   it("returns all false schedule flags when tournament has none live", async () => {
@@ -46,7 +46,7 @@ describe("GET /api/public/info", () => {
       koScheduleLive: false,
     });
     const result = await handler({} as any);
-    expect(result).toEqual({ type: "POOLS", poolScheduleLive: false, koScheduleLive: false });
+    expect(result).toEqual({ type: "POOLS", tournamentLive: false, poolScheduleLive: false, koScheduleLive: false });
   });
 
   it("queries only active tournaments", async () => {

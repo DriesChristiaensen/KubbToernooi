@@ -52,6 +52,7 @@ describe("GET /api/public/schedule", () => {
   it("returns pool matches when poolScheduleLive is true", async () => {
     mockTournamentFindFirst.mockResolvedValue({
       id: "t1",
+      status: "LIVE",
       poolScheduleLive: true,
       koScheduleLive: false,
     });
@@ -88,6 +89,7 @@ describe("GET /api/public/schedule", () => {
   it("returns both phases when both are live", async () => {
     mockTournamentFindFirst.mockResolvedValue({
       id: "t1",
+      status: "LIVE",
       poolScheduleLive: true,
       koScheduleLive: true,
     });
@@ -107,6 +109,7 @@ describe("GET /api/public/schedule", () => {
   it("returns matches ordered by startTime", async () => {
     mockTournamentFindFirst.mockResolvedValue({
       id: "t1",
+      status: "LIVE",
       poolScheduleLive: true,
       koScheduleLive: false,
     });
