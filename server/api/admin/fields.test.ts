@@ -183,8 +183,16 @@ describe("DELETE /api/admin/fields/:id", () => {
     );
   });
 
+  it("returns 404 when field does not exist", async () => {
+    vi.mocked(getRouterParam).mockReturnValue("f999");
+    mockFieldFindFirst.mockResolvedValue(null);
+
+    await expect(deleteFieldHandler(createMockEvent())).rejects.toThrow("Field not found");
+  });
+
   it("deletes a field successfully", async () => {
     vi.mocked(getRouterParam).mockReturnValue("f3");
+    mockFieldFindFirst.mockResolvedValue({ id: "f3", name: "Veld 3" });
     mockFieldDelete.mockResolvedValue({ id: "f3" });
 
     const result = await deleteFieldHandler(createMockEvent());

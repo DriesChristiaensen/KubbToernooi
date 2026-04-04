@@ -267,8 +267,18 @@ describe("DELETE /api/admin/pools/:id", () => {
     );
   });
 
+  it("returns 404 when pool does not exist", async () => {
+    vi.mocked(getRouterParam).mockReturnValue("p999");
+    mockPoolFindFirst.mockResolvedValue(null);
+
+    await expect(deletePoolHandler(createMockEvent())).rejects.toThrow(
+      "Pool not found",
+    );
+  });
+
   it("deletes pool successfully", async () => {
     vi.mocked(getRouterParam).mockReturnValue("p1");
+    mockPoolFindFirst.mockResolvedValue({ id: "p1", name: "Poule A" });
     mockPoolDelete.mockResolvedValue({ id: "p1" });
 
     const result = await deletePoolHandler(createMockEvent());

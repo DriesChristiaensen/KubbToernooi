@@ -11,6 +11,11 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  const pool = await prisma.pool.findFirst({ where: { id } });
+  if (!pool) {
+    throw createApiError({ error: "Poule niet gevonden", code: 404, reason: "Pool not found" });
+  }
+
   await prisma.pool.delete({ where: { id } });
   logRequest(event, "success", `Pool ${id} deleted`);
   return { success: true };

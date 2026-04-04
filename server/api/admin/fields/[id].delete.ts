@@ -12,6 +12,11 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  const field = await prisma.field.findFirst({ where: { id } });
+  if (!field) {
+    throw createApiError({ error: "Veld niet gevonden", code: 404, reason: "Field not found" });
+  }
+
   await prisma.field.delete({ where: { id } });
 
   logRequest(event, "success", `Field deleted: id=${id}`);

@@ -12,6 +12,11 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  const team = await prisma.team.findFirst({ where: { id } });
+  if (!team) {
+    throw createApiError({ error: "Team niet gevonden", code: 404, reason: "Team not found" });
+  }
+
   await prisma.team.delete({ where: { id } });
 
   logRequest(event, "success", `Team deleted: id=${id}`);

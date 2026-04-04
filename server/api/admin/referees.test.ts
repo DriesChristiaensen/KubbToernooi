@@ -135,13 +135,25 @@ describe('DELETE /api/admin/referees/:id', () => {
 
   it('deletes a referee by id', async () => {
     vi.mocked(getRouterParam).mockReturnValue('u2')
+    mockPrismaUserFindFirst.mockResolvedValue({ id: 'u2', name: 'Jan', role: 'REFEREE' })
     mockPrismaUserDelete.mockResolvedValue({ id: 'u2' })
     const event = createMockEvent()
 
     const result = await deleteRefereeHandler(event)
 
-    expect(mockPrismaUserDelete).toHaveBeenCalledWith({ where: { id: 'u2', role: 'REFEREE' } })
+    expect(mockPrismaUserFindFirst).toHaveBeenCalledWith({ where: { id: 'u2', role: 'REFEREE' } })
+    expect(mockPrismaUserDelete).toHaveBeenCalledWith({ where: { id: 'u2' } })
     expect(result).toEqual({ success: true })
+  })
+
+  it('returns 404 when referee does not exist', async () => {
+    vi.mocked(getRouterParam).mockReturnValue('u999')
+    mockPrismaUserFindFirst.mockResolvedValue(null)
+    const event = createMockEvent()
+
+    await expect(deleteRefereeHandler(event)).rejects.toMatchObject({
+      statusCode: 404,
+    })
   })
 
   it('rejects empty id', async () => {

@@ -185,8 +185,18 @@ describe("DELETE /api/admin/teams/:id", () => {
     );
   });
 
+  it("returns 404 when team does not exist", async () => {
+    vi.mocked(getRouterParam).mockReturnValue("999");
+    mockTeamFindFirst.mockResolvedValue(null);
+
+    await expect(deleteTeamHandler(createMockEvent())).rejects.toThrow(
+      "Team not found",
+    );
+  });
+
   it("deletes a team successfully", async () => {
     vi.mocked(getRouterParam).mockReturnValue("5");
+    mockTeamFindFirst.mockResolvedValue({ id: "5", name: "Team A" });
     mockTeamDelete.mockResolvedValue({ id: "5" });
 
     const result = await deleteTeamHandler(createMockEvent());

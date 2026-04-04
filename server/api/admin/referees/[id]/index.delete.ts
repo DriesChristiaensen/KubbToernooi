@@ -12,7 +12,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await prisma.user.delete({ where: { id, role: 'REFEREE' } })
+  const referee = await prisma.user.findFirst({ where: { id, role: 'REFEREE' } })
+  if (!referee) {
+    throw createApiError({ error: 'Scheidsrechter niet gevonden', code: 404, reason: 'Referee not found' })
+  }
+
+  await prisma.user.delete({ where: { id } })
 
   logRequest(event, 'success', `Referee deleted: id=${id}`)
   return { success: true }
