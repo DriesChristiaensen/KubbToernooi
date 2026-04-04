@@ -547,10 +547,17 @@ onMounted(async () => {
                 <span class="text-sm font-medium text-text">
                   {{ getMatch(r, idx)!.teamA?.name ?? nl.admin.koBracket.tbd }}
                 </span>
-                <span class="my-1 text-center text-xs text-text-light">vs</span>
-                <span class="text-sm font-medium text-text">
-                  {{ getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd }}
-                </span>
+                <template v-if="getMatch(r, idx)!.teamAId !== null && getMatch(r, idx)!.teamBId === null">
+                  <span class="my-1 rounded bg-primary/10 px-2 py-0.5 text-center text-xs font-medium text-primary">
+                    {{ nl.admin.koBracket.bye }}
+                  </span>
+                </template>
+                <template v-else>
+                  <span class="my-1 text-center text-xs text-text-light">vs</span>
+                  <span class="text-sm font-medium text-text">
+                    {{ getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd }}
+                  </span>
+                </template>
                 <div class="mt-2 text-xs text-text-light">
                   {{ getMatch(r, idx)!.field.name }}
                 </div>

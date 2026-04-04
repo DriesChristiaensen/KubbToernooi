@@ -203,6 +203,7 @@ export const nl = {
       winningTeams: "Winning teams",
       otherTeams: "Overige teams",
       tbd: "Nog te bepalen",
+      bye: "Bye",
       fillTeams: "Teams invullen",
       fillTeamsSuccess: "Teams ingevuld",
       fillTeamsStep: "Stap 2: Teams invullen",

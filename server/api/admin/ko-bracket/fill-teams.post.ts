@@ -113,6 +113,28 @@ export default defineEventHandler(async (event) => {
     filled++;
   }
 
+  // Auto-advance bye teams (teamAId set, teamBId null) to their next-round match
+  for (let i = 0; i < round1Matches.length; i++) {
+    const slot = slots[i] ?? { teamAId: null, teamBId: null };
+    const match = round1Matches[i]!;
+
+    if (slot.teamAId && !slot.teamBId && match.nextMatchId) {
+      const siblings = await prisma.match.findMany({
+        where: { nextMatchId: match.nextMatchId },
+        orderBy: { id: "asc" },
+      });
+      const isFirst = siblings.length === 0 || siblings[0]?.id === match.id;
+      await prisma.match.update({
+        where: { id: match.nextMatchId },
+        data: isFirst ? { teamAId: slot.teamAId } : { teamBId: slot.teamAId },
+      });
+      await prisma.match.update({
+        where: { id: match.id },
+        data: { status: "PLAYED" },
+      });
+    }
+  }
+
   logRequest(
     event,
     "success",

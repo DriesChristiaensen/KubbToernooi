@@ -113,9 +113,9 @@ describe("POST /api/admin/ko-bracket/fill-teams", () => {
   it("fills round-1 matches with teams for KNOCKOUT tournament", async () => {
     mockTournamentFindFirst.mockResolvedValue(knockoutTournament);
     mockMatchFindMany.mockResolvedValue([
-      { id: "m1", round: 1 },
-      { id: "m2", round: 1 },
-      { id: "m3", round: 2 },
+      { id: "m1", round: 1, nextMatchId: "m3" },
+      { id: "m2", round: 1, nextMatchId: "m3" },
+      { id: "m3", round: 2, nextMatchId: null },
     ]);
     mockTeamFindMany.mockResolvedValue([
       { id: "t1" }, { id: "t2" }, { id: "t3" }, { id: "t4" },
@@ -123,8 +123,39 @@ describe("POST /api/admin/ko-bracket/fill-teams", () => {
 
     await handler(createMockEvent());
 
+    // 4 teams → bracketSize=4 → no byes → only 2 round-1 updates, no bye propagation
     expect(mockMatchUpdate).toHaveBeenCalledTimes(2);
     const ids = mockMatchUpdate.mock.calls.map((c) => c[0].where.id);
     expect(ids).not.toContain("m3");
+  });
+
+  it("auto-advances bye team to next round when participants < bracketSize", async () => {
+    // 3 teams → bracketSize=4 → 1 bye (m1 gets only teamA), 1 real match (m2)
+    mockTournamentFindFirst.mockResolvedValue(knockoutTournament);
+    const round1a = { id: "m1", round: 1, nextMatchId: "m3" };
+    const round1b = { id: "m2", round: 1, nextMatchId: "m3" };
+    const final = { id: "m3", round: 2, nextMatchId: null };
+    // First findMany: all KO matches; second: siblings for bye propagation
+    mockMatchFindMany
+      .mockResolvedValueOnce([round1a, round1b, final])
+      .mockResolvedValueOnce([round1a, round1b]);
+    mockTeamFindMany.mockResolvedValue([{ id: "t1" }, { id: "t2" }, { id: "t3" }]);
+
+    await handler(createMockEvent());
+
+    const updateCalls = mockMatchUpdate.mock.calls.map((c) => c[0]);
+
+    // Bye match (m1) must be marked PLAYED
+    const byePlayedUpdate = updateCalls.find(
+      (c) => c.where.id === "m1" && c.data.status === "PLAYED",
+    );
+    expect(byePlayedUpdate).toBeDefined();
+
+    // Next-round match (m3) must receive the bye team (t1)
+    const nextRoundUpdate = updateCalls.find((c) => c.where.id === "m3");
+    expect(nextRoundUpdate).toBeDefined();
+    const advancedTeam =
+      nextRoundUpdate!.data.teamAId ?? nextRoundUpdate!.data.teamBId;
+    expect(advancedTeam).toBe("t1");
   });
 });
