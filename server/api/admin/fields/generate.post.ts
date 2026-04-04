@@ -1,16 +1,24 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
 
+const bodySchema = z.object({
+  count: z.number().int().positive(),
+  overwrite: z.boolean().optional(),
+});
+
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
-  const body = await readBody(event);
+  const raw = await readBody(event);
 
-  const count = Number(body?.count);
-  if (!Number.isInteger(count) || count <= 0) {
+  let body;
+  try {
+    body = bodySchema.parse(raw ?? {});
+  } catch {
     throw createApiError({
       error: "Aantal is verplicht en moet een positief getal zijn",
-      code: 400,
+      code: "invalid_input",
       reason: "Invalid count",
     });
   }
@@ -19,22 +27,22 @@ export default defineEventHandler(async (event) => {
     where: { tournamentId: tournament.id },
   });
 
-  if (existing.length > 0 && !body?.overwrite) {
+  if (existing.length > 0 && !body.overwrite) {
     throw createApiError({
       error: "Er bestaan al velden. Wil je doorgaan?",
-      code: 409,
+      code: "invalid_input",
       reason: "Fields already exist",
     });
   }
 
-  const data = Array.from({ length: count }, (_, i) => ({
+  const data = Array.from({ length: body.count }, (_, i) => ({
     name: `Veld ${i + 1}`,
     tournamentId: tournament.id,
   }));
 
   const result = await prisma.$transaction(async (tx) => {
     // Atomically delete old fields and create new ones
-    if (body?.overwrite) {
+    if (body.overwrite) {
       await tx.field.deleteMany({ where: { tournamentId: tournament.id } });
     }
     return tx.field.createMany({ data });
