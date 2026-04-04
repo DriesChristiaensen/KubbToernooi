@@ -95,7 +95,7 @@ These routes read `await readBody(event)` without a Zod schema — raw user inpu
 | 9   | `server/api/admin/pools/[id].put.ts`                | ✅ DONE | Zod validation added             |
 | 10  | `server/api/admin/pools/generate.post.ts`           | TODO | `Number()` cast                  |
 | 11  | `server/api/admin/schedule/matches/[id].patch.ts`   | ✅ DONE | Zod validation added             |
-| 12  | `server/api/admin/schedule/time-shift.post.ts`      | TODO | Manual checks                    |
+| 12  | `server/api/admin/schedule/time-shift.post.ts`      | ✅ DONE | Zod validation added             |
 | 13  | `server/api/admin/ko-bracket/matches/[id].patch.ts` | TODO | `Record<string, unknown>`        |
 | 14  | `server/api/ref/matches/[id].patch.ts`              | ✅ DONE | Zod validation added             |
 
