@@ -3,12 +3,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockMatchFindFirst = vi.hoisted(() => vi.fn());
 const mockMatchUpdate = vi.hoisted(() => vi.fn());
 
+// Map error codes to HTTP status codes (must match server/utils/errors.ts)
+const codeToStatusCode: Record<string, number> = {
+  invalid_match_id: 400,
+  match_not_found: 404,
+  invalid_input: 400,
+  unexpected_error: 500,
+};
+
 vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("readBody", vi.fn());
 vi.stubGlobal("getRouterParam", vi.fn());
 vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
+  const statusCode = codeToStatusCode[code] ?? 500;
   const err = new Error(reason) as any;
-  err.statusCode = code;
+  err.statusCode = statusCode;
   err.data = { error, code, reason, stacktrace: {} };
   return err;
 });
