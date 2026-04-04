@@ -632,10 +632,8 @@ onMounted(async () => {
             <thead>
               <tr class="border-b border-gray-200 text-left text-text-light">
                 <th class="pb-1 pr-4">{{ nl.admin.schedule.timeLabel }}</th>
-                <th class="pb-1 pr-4">
-                  {{ nl.admin.teams.nameLabel ?? "Team A" }}
-                </th>
-                <th class="pb-1">{{ nl.admin.teams.nameLabel ?? "Team B" }}</th>
+                <th class="pb-1 pr-4">{{ nl.admin.schedule.teamAHeader }}</th>
+                <th class="pb-1">{{ nl.admin.schedule.teamBHeader }}</th>
               </tr>
             </thead>
             <tbody>

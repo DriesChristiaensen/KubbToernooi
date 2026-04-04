@@ -186,6 +186,8 @@ export const nl = {
       koScheduleLive: "KO-schema live",
       koScheduleDraft: "KO-schema concept",
       opponent: "Tegenstander",
+      teamAHeader: "Team A",
+      teamBHeader: "Team B",
     },
     koBracket: {
       title: "Knock-out Schema",
@@ -200,7 +202,7 @@ export const nl = {
       noFields: "Geen velden beschikbaar voor KO-wedstrijden",
       round: "Ronde",
       swapTeams: "Teams wisselen",
-      winningTeams: "Winning teams",
+      winningTeams: "Winnende teams",
       otherTeams: "Overige teams",
       tbd: "Nog te bepalen",
       bye: "Bye",

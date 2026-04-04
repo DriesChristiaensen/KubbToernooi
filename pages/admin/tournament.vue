@@ -451,7 +451,7 @@ onMounted(async () => {
         </h2>
         <dl class="mb-4 grid gap-2 text-sm md:grid-cols-2">
           <div><dt class="text-text-light">{{ nl.admin.tournament.name }}</dt><dd class="font-medium text-text">{{ tournament.name }}</dd></div>
-          <div><dt class="text-text-light">{{ nl.admin.tournament.type }}</dt><dd class="font-medium text-text">{{ typeOptions.find(o => o.value === tournament!.type)?.label }}</dd></div>
+          <div><dt class="text-text-light">{{ nl.admin.tournament.type }}</dt><dd class="font-medium text-text">{{ typeOptions.find(o => o.value === tournament?.type)?.label }}</dd></div>
           <div><dt class="text-text-light">{{ nl.admin.tournament.matchDuration }}</dt><dd class="font-medium text-text">{{ tournament.matchDuration }} min</dd></div>
           <div><dt class="text-text-light">{{ nl.admin.tournament.breakTime }}</dt><dd class="font-medium text-text">{{ tournament.breakTime }} min</dd></div>
           <div><dt class="text-text-light">{{ nl.admin.tournament.pointsWin }} / {{ nl.admin.tournament.pointsDraw }} / {{ nl.admin.tournament.pointsLoss }}</dt><dd class="font-medium text-text">{{ tournament.pointsWin }} / {{ tournament.pointsDraw }} / {{ tournament.pointsLoss }}</dd></div>
