@@ -104,37 +104,41 @@ export default defineEventHandler(async (event) => {
   const slots = buildRound1Slots(participants, bracketSize);
 
   let filled = 0;
-  for (let i = 0; i < round1Matches.length; i++) {
-    const slot = slots[i] ?? { teamAId: null, teamBId: null };
-    await prisma.match.update({
-      where: { id: round1Matches[i].id },
-      data: { teamAId: slot.teamAId, teamBId: slot.teamBId },
-    });
-    filled++;
-  }
 
-  // Auto-advance bye teams (teamAId set, teamBId null) to their next-round match
-  for (let i = 0; i < round1Matches.length; i++) {
-    const slot = slots[i] ?? { teamAId: null, teamBId: null };
-    // Safe: loop bound (i < round1Matches.length) guarantees this element exists
-    const match = round1Matches[i]!;
-
-    if (slot.teamAId && !slot.teamBId && match.nextMatchId) {
-      const siblings = await prisma.match.findMany({
-        where: { nextMatchId: match.nextMatchId },
-        orderBy: { id: "asc" },
+  await prisma.$transaction(async (tx) => {
+    // Atomically fill round-1 teams and auto-advance byes
+    for (let i = 0; i < round1Matches.length; i++) {
+      const slot = slots[i] ?? { teamAId: null, teamBId: null };
+      await tx.match.update({
+        where: { id: round1Matches[i].id },
+        data: { teamAId: slot.teamAId, teamBId: slot.teamBId },
       });
-      const isFirst = siblings.length === 0 || siblings[0]?.id === match.id;
-      await prisma.match.update({
-        where: { id: match.nextMatchId },
-        data: isFirst ? { teamAId: slot.teamAId } : { teamBId: slot.teamAId },
-      });
-      await prisma.match.update({
-        where: { id: match.id },
-        data: { status: "PLAYED" },
-      });
+      filled++;
     }
-  }
+
+    // Auto-advance bye teams (teamAId set, teamBId null) to their next-round match
+    for (let i = 0; i < round1Matches.length; i++) {
+      const slot = slots[i] ?? { teamAId: null, teamBId: null };
+      // Safe: loop bound (i < round1Matches.length) guarantees this element exists
+      const match = round1Matches[i]!;
+
+      if (slot.teamAId && !slot.teamBId && match.nextMatchId) {
+        const siblings = await tx.match.findMany({
+          where: { nextMatchId: match.nextMatchId },
+          orderBy: { id: "asc" },
+        });
+        const isFirst = siblings.length === 0 || siblings[0]?.id === match.id;
+        await tx.match.update({
+          where: { id: match.nextMatchId },
+          data: isFirst ? { teamAId: slot.teamAId } : { teamBId: slot.teamAId },
+        });
+        await tx.match.update({
+          where: { id: match.id },
+          data: { status: "PLAYED" },
+        });
+      }
+    }
+  });
 
   logRequest(
     event,
