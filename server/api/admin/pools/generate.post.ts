@@ -1,16 +1,24 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
 
+const bodySchema = z.object({
+  poolCount: z.number().int().positive(),
+  overwrite: z.boolean().optional(),
+});
+
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
-  const body = await readBody(event);
+  const raw = await readBody(event);
 
-  const poolCount = Number(body?.poolCount);
-  if (!Number.isInteger(poolCount) || poolCount <= 0) {
+  let body;
+  try {
+    body = bodySchema.parse(raw ?? {});
+  } catch {
     throw createApiError({
       error: "Aantal poules moet een positief getal zijn",
-      code: 400,
+      code: "invalid_input",
       reason: "Invalid pool count",
     });
   }
@@ -19,10 +27,10 @@ export default defineEventHandler(async (event) => {
     where: { tournamentId: tournament.id },
   });
 
-  if (teams.length < poolCount) {
+  if (teams.length < body.poolCount) {
     throw createApiError({
       error: "Niet genoeg teams om poules te genereren",
-      code: 400,
+      code: "invalid_input",
       reason: "Not enough teams",
     });
   }
@@ -31,26 +39,26 @@ export default defineEventHandler(async (event) => {
     where: { tournamentId: tournament.id },
   });
 
-  if (existing.length > 0 && !body?.overwrite) {
+  if (existing.length > 0 && !body.overwrite) {
     throw createApiError({
       error: "Er bestaan al poules. Wil je doorgaan?",
-      code: 409,
+      code: "invalid_input",
       reason: "Pools already exist",
     });
   }
 
   const shuffled = [...teams].sort(() => Math.random() - 0.5);
   const poolData: { name: string; teamIds: string[] }[] = Array.from(
-    { length: poolCount },
+    { length: body.poolCount },
     (_, i) => ({ name: `Poule ${String.fromCharCode(65 + i)}`, teamIds: [] }),
   );
   shuffled.forEach((team, i) => {
-    poolData[i % poolCount].teamIds.push(team.id);
+    poolData[i % body.poolCount].teamIds.push(team.id);
   });
 
   await prisma.$transaction(async (tx) => {
     // Atomically delete old pools and create new ones
-    if (body?.overwrite) {
+    if (body.overwrite) {
       await tx.pool.deleteMany({ where: { tournamentId: tournament.id } });
     }
 
@@ -66,6 +74,6 @@ export default defineEventHandler(async (event) => {
     }
   });
 
-  logRequest(event, "success", `Generated ${poolCount} pools`);
-  return { generated: poolCount };
+  logRequest(event, "success", `Generated ${body.poolCount} pools`);
+  return { generated: body.poolCount };
 });
