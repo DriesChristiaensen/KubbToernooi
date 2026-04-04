@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     const isDutchName = field === "name";
     throw createApiError({
       error: isDutchName ? "Naam is verplicht" : "Ongeldige invoer",
-      code: 400,
+      code: "invalid_input",
       reason: parsed.error.issues.map((i) => i.message).join("; "),
     });
   }
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   if (duplicate) {
     throw createApiError({
       error: 'Er bestaat al een toernooi met deze naam',
-      code: 409,
+      code: "tournament_name_exists",
       reason: 'Tournament name already exists',
       field: 'name',
     });

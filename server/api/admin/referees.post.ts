@@ -1,32 +1,40 @@
+import { z } from 'zod'
 import { prisma } from '~/server/utils/prisma'
 import { logRequest } from '~/server/utils/logger'
 
-export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
+const bodySchema = z.object({
+  name: z.string().trim().min(1, 'Referee name is required'),
+})
 
-  if (!body?.name?.trim()) {
+export default defineEventHandler(async (event) => {
+  const raw = await readBody(event)
+
+  let body
+  try {
+    body = bodySchema.parse(raw ?? {})
+  } catch {
     throw createApiError({
       error: 'Naam is verplicht',
-      code: 400,
+      code: 'referee_name_empty',
       reason: 'Missing name field',
     })
   }
 
   const existing = await prisma.user.findFirst({
-    where: { name: body.name.trim(), role: 'REFEREE' },
+    where: { name: body.name, role: 'REFEREE' },
   })
 
   if (existing) {
     throw createApiError({
       error: 'Er bestaat al een scheidsrechter met deze naam',
-      code: 409,
+      code: 'referee_name_exists',
       reason: 'Duplicate referee name',
     })
   }
 
   const referee = await prisma.user.create({
     data: {
-      name: body.name.trim(),
+      name: body.name,
       password: null,
       role: 'REFEREE',
     },

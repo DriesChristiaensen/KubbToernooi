@@ -7,14 +7,14 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createApiError({
       error: 'Ongeldig ID',
-      code: 400,
+      code: 'invalid_referee_id',
       reason: 'Invalid referee ID',
     })
   }
 
   const referee = await prisma.user.findFirst({ where: { id, role: 'REFEREE' } })
   if (!referee) {
-    throw createApiError({ error: 'Scheidsrechter niet gevonden', code: 404, reason: 'Referee not found' })
+    throw createApiError({ error: 'Scheidsrechter niet gevonden', code: 'referee_not_found', reason: 'Referee not found' })
   }
 
   await prisma.user.delete({ where: { id } })
