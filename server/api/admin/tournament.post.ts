@@ -44,34 +44,40 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const existing = await prisma.tournament.findFirst({ where: { isActive: true } });
-  if (existing) {
-    await prisma.tournament.updateMany({
-      where: { isActive: true },
-      data: { isActive: false },
+  const { tournament } = await prisma.$transaction(async (tx) => {
+    // Atomically deactivate old tournament and create new one
+    const existing = await tx.tournament.findFirst({ where: { isActive: true } });
+    if (existing) {
+      await tx.tournament.updateMany({
+        where: { isActive: true },
+        data: { isActive: false },
+      });
+    }
+
+    const newTournament = await tx.tournament.create({
+      data: {
+        name: body.name,
+        type: body.type,
+        startTime: new Date(body.startTime),
+        matchDuration: body.matchDuration,
+        breakTime: body.breakTime,
+        pointsWin: body.pointsWin,
+        pointsDraw: body.pointsDraw,
+        pointsLoss: body.pointsLoss,
+        isActive: true,
+        status: "DRAFT",
+      },
     });
-  }
 
-  const tournament = await prisma.tournament.create({
-    data: {
-      name: body.name,
-      type: body.type,
-      startTime: new Date(body.startTime),
-      matchDuration: body.matchDuration,
-      breakTime: body.breakTime,
-      pointsWin: body.pointsWin,
-      pointsDraw: body.pointsDraw,
-      pointsLoss: body.pointsLoss,
-      isActive: true,
-      status: "DRAFT",
-    },
-  });
+    // Create initial fields in same transaction
+    await tx.field.createMany({
+      data: Array.from({ length: body.fieldCount }, (_, i) => ({
+        name: `Veld ${i + 1}`,
+        tournamentId: newTournament.id,
+      })),
+    });
 
-  await prisma.field.createMany({
-    data: Array.from({ length: body.fieldCount }, (_, i) => ({
-      name: `Veld ${i + 1}`,
-      tournamentId: tournament.id,
-    })),
+    return { tournament: newTournament };
   });
 
   logRequest(event, "success", `Tournament created: ${tournament.name}`);

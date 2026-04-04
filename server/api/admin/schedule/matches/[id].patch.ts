@@ -54,9 +54,12 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const updated = await prisma.match.update({
-    where: { id },
-    data: { fieldId: newFieldId, startTime: newStartTime },
+  const updated = await prisma.$transaction(async (tx) => {
+    // Atomically update field and time to avoid partial state
+    return tx.match.update({
+      where: { id },
+      data: { fieldId: newFieldId, startTime: newStartTime },
+    });
   });
 
   logRequest(event, "success", `Match ${id} updated: field=${newFieldId}, time=${newStartTime}`);

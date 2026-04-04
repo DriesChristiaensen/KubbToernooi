@@ -7,4 +7,10 @@ beforeEach(() => {
 })
 
 const prismaMock = mockDeep<PrismaClient>()
+
+// Mock $transaction to pass through the callback with the mock proxy
+prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => Promise<unknown>) => {
+  return callback(prismaMock)
+})
+
 export { prismaMock as prisma }

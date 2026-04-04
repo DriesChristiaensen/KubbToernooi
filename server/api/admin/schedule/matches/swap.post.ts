@@ -35,14 +35,17 @@ export default defineEventHandler(async (event) => {
   const matchA = matches.find((m) => m.id === body.matchAId)!;
   const matchB = matches.find((m) => m.id === body.matchBId)!;
 
-  await prisma.match.update({
-    where: { id: matchA.id },
-    data: { fieldId: matchB.fieldId, startTime: matchB.startTime },
-  });
+  await prisma.$transaction(async (tx) => {
+    // Atomically swap both matches to avoid half-swapped state
+    await tx.match.update({
+      where: { id: matchA.id },
+      data: { fieldId: matchB.fieldId, startTime: matchB.startTime },
+    });
 
-  await prisma.match.update({
-    where: { id: matchB.id },
-    data: { fieldId: matchA.fieldId, startTime: matchA.startTime },
+    await tx.match.update({
+      where: { id: matchB.id },
+      data: { fieldId: matchA.fieldId, startTime: matchA.startTime },
+    });
   });
 
   logRequest(event, "success", `Swapped matches ${matchA.id} and ${matchB.id}`);

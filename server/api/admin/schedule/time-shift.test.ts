@@ -13,15 +13,23 @@ vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
   return err;
 });
 
-vi.mock("~/server/utils/prisma", () => ({
-  prisma: {
+vi.mock("~/server/utils/prisma", () => {
+  const mockPrisma: any = {
     tournament: { findFirst: mockTournamentFindFirst },
     match: {
       findMany: mockMatchFindMany,
       update: mockMatchUpdate,
     },
-  },
-}));
+  };
+  mockPrisma.$transaction = vi.fn((callbackOrArray: any) => {
+    // Handle both callback form and array form of $transaction
+    if (Array.isArray(callbackOrArray)) {
+      return Promise.all(callbackOrArray);
+    }
+    return callbackOrArray(mockPrisma);
+  });
+  return { prisma: mockPrisma };
+});
 
 vi.mock("~/server/utils/logger", () => ({ logRequest: vi.fn() }));
 

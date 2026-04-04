@@ -19,14 +19,17 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  await prisma.tournament.updateMany({
-    where: { isActive: true },
-    data: { isActive: false },
-  });
+  const restored = await prisma.$transaction(async (tx) => {
+    // Atomically deactivate current tournament and activate the target
+    await tx.tournament.updateMany({
+      where: { isActive: true },
+      data: { isActive: false },
+    });
 
-  const restored = await prisma.tournament.update({
-    where: { id },
-    data: { isActive: true },
+    return tx.tournament.update({
+      where: { id },
+      data: { isActive: true },
+    });
   });
 
   logRequest(event, "success", `Tournament restored: ${tournament.name}`);

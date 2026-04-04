@@ -39,10 +39,6 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (body?.overwrite) {
-    await prisma.pool.deleteMany({ where: { tournamentId: tournament.id } });
-  }
-
   const shuffled = [...teams].sort(() => Math.random() - 0.5);
   const poolData: { name: string; teamIds: string[] }[] = Array.from(
     { length: poolCount },
@@ -52,16 +48,23 @@ export default defineEventHandler(async (event) => {
     poolData[i % poolCount].teamIds.push(team.id);
   });
 
-  for (const pool of poolData) {
-    const created = await prisma.pool.create({
-      data: { name: pool.name, tournamentId: tournament.id },
-    });
-    if (pool.teamIds.length > 0) {
-      await prisma.poolTeam.createMany({
-        data: pool.teamIds.map((teamId) => ({ poolId: created.id, teamId })),
-      });
+  await prisma.$transaction(async (tx) => {
+    // Atomically delete old pools and create new ones
+    if (body?.overwrite) {
+      await tx.pool.deleteMany({ where: { tournamentId: tournament.id } });
     }
-  }
+
+    for (const pool of poolData) {
+      const created = await tx.pool.create({
+        data: { name: pool.name, tournamentId: tournament.id },
+      });
+      if (pool.teamIds.length > 0) {
+        await tx.poolTeam.createMany({
+          data: pool.teamIds.map((teamId) => ({ poolId: created.id, teamId })),
+        });
+      }
+    }
+  });
 
   logRequest(event, "success", `Generated ${poolCount} pools`);
   return { generated: poolCount };

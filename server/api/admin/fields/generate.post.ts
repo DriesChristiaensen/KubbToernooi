@@ -27,16 +27,18 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (body?.overwrite) {
-    await prisma.field.deleteMany({ where: { tournamentId: tournament.id } });
-  }
-
   const data = Array.from({ length: count }, (_, i) => ({
     name: `Veld ${i + 1}`,
     tournamentId: tournament.id,
   }));
 
-  const result = await prisma.field.createMany({ data });
+  const result = await prisma.$transaction(async (tx) => {
+    // Atomically delete old fields and create new ones
+    if (body?.overwrite) {
+      await tx.field.deleteMany({ where: { tournamentId: tournament.id } });
+    }
+    return tx.field.createMany({ data });
+  });
 
   logRequest(event, "success", `Generated ${result.count} fields`);
   return { generated: result.count };

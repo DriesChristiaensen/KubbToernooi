@@ -48,33 +48,38 @@ export default defineEventHandler(async (event) => {
     updateData.koWinnerId = koWinnerId;
   }
 
-  const updated = await prisma.match.update({ where: { id }, data: updateData });
+  const updated = await prisma.$transaction(async (tx) => {
+    // Save match score atomically with KO advancement
+    const matchResult = await tx.match.update({ where: { id }, data: updateData });
+
+    if (match.phase === "KO" && match.nextMatchId) {
+      const winnerId = scoreA > scoreB
+        ? match.teamAId
+        : scoreB > scoreA
+        ? match.teamBId
+        : typeof updateData.koWinnerId === "string"
+        ? updateData.koWinnerId
+        : match.teamAId;
+
+      if (winnerId) {
+        // Determine slot: first sibling → teamA, second sibling → teamB
+        const siblings = await tx.match.findMany({
+          where: { nextMatchId: match.nextMatchId },
+          orderBy: { id: "asc" },
+        });
+        const isFirst = siblings.length === 0 || siblings[0]?.id === match.id;
+        await tx.match.update({
+          where: { id: match.nextMatchId },
+          data: isFirst ? { teamAId: winnerId } : { teamBId: winnerId },
+        });
+      }
+    }
+
+    return matchResult;
+  });
 
   if (match.phase === "POOL" && match.poolId != null) {
     await recalculatePoolStandings(match.poolId);
-  }
-
-  if (match.phase === "KO" && match.nextMatchId) {
-    const winnerId = scoreA > scoreB
-      ? match.teamAId
-      : scoreB > scoreA
-      ? match.teamBId
-      : typeof updateData.koWinnerId === "string"
-      ? updateData.koWinnerId
-      : match.teamAId;
-
-    if (winnerId) {
-      // Determine slot: first sibling → teamA, second sibling → teamB
-      const siblings = await prisma.match.findMany({
-        where: { nextMatchId: match.nextMatchId },
-        orderBy: { id: "asc" },
-      });
-      const isFirst = siblings.length === 0 || siblings[0]?.id === match.id;
-      await prisma.match.update({
-        where: { id: match.nextMatchId },
-        data: isFirst ? { teamAId: winnerId } : { teamBId: winnerId },
-      });
-    }
   }
 
   logRequest(event, "success", `Match ${id} score saved: ${scoreA}-${scoreB}`);

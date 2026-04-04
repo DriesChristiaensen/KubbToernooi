@@ -15,8 +15,8 @@ vi.stubGlobal("createApiError", ({ error, code, reason, field }: any) => {
   return err;
 });
 
-vi.mock("~/server/utils/prisma", () => ({
-  prisma: {
+vi.mock("~/server/utils/prisma", () => {
+  const mockPrisma: any = {
     tournament: {
       findFirst: mockTournamentFindFirst,
       update: mockTournamentUpdate,
@@ -26,8 +26,10 @@ vi.mock("~/server/utils/prisma", () => ({
     field: {
       createMany: mockFieldCreateMany,
     },
-  },
-}));
+  };
+  mockPrisma.$transaction = vi.fn((callback: any) => callback(mockPrisma));
+  return { prisma: mockPrisma };
+});
 
 vi.mock("~/server/utils/logger", () => ({
   logRequest: vi.fn(),

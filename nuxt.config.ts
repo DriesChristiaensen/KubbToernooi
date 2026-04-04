@@ -2,7 +2,7 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
 
-  devtools: { enabled: true },
+  devtools: { enabled: import.meta.dev },
 
   modules: [
     '@nuxtjs/tailwindcss',
@@ -15,7 +15,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    sessionPassword: process.env.NUXT_SESSION_PASSWORD || '',
+    sessionPassword: process.env.NUXT_SESSION_PASSWORD,
     databaseUrl: process.env.DATABASE_URL || '',
   },
 })

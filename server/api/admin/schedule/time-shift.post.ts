@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     },
   });
 
-  await Promise.all(
+  await prisma.$transaction(
     matches.map((m) =>
       prisma.match.update({
         where: { id: m.id },
