@@ -1,47 +1,54 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { recalculatePoolStandings } from "~/server/utils/standings";
 
+const bodySchema = z.object({
+  scoreA: z.number().int().nonnegative(),
+  scoreB: z.number().int().nonnegative(),
+  koWinnerId: z.string().optional(),
+});
+
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) {
-    throw createApiError({ error: "Ongeldig wedstrijd-ID", code: 400, reason: "Invalid match ID" });
+    throw createApiError({ error: "Ongeldig wedstrijd-ID", code: "invalid_match_id", reason: "Invalid match ID" });
   }
 
-  const body = await readBody(event);
-  const scoreA = Number(body?.scoreA);
-  const scoreB = Number(body?.scoreB);
+  const raw = await readBody(event);
 
-  if (!Number.isInteger(scoreA) || scoreA < 0 || !Number.isInteger(scoreB) || scoreB < 0) {
+  let body;
+  try {
+    body = bodySchema.parse(raw ?? {});
+  } catch {
     throw createApiError({
       error: "Score moet een niet-negatief geheel getal zijn",
-      code: 400,
+      code: "invalid_input",
       reason: "Invalid score",
     });
   }
 
   const match = await prisma.match.findFirst({ where: { id } });
   if (!match) {
-    throw createApiError({ error: "Wedstrijd niet gevonden", code: 404, reason: "Match not found" });
+    throw createApiError({ error: "Wedstrijd niet gevonden", code: "match_not_found", reason: "Match not found" });
   }
 
-  const isDraw = scoreA === scoreB;
-  const updateData: Record<string, unknown> = { scoreA, scoreB, status: "PLAYED" };
+  const isDraw = body.scoreA === body.scoreB;
+  const updateData: Record<string, unknown> = { scoreA: body.scoreA, scoreB: body.scoreB, status: "PLAYED" };
 
   if (match.phase === "KO" && isDraw) {
-    // Safe: ternary guard ensures koWinnerId is truthy before casting
-    const koWinnerId = body?.koWinnerId ? (body.koWinnerId as string) : null;
+    const koWinnerId = body.koWinnerId;
     if (!koWinnerId) {
       throw createApiError({
         error: "Winnaar is verplicht bij gelijkspel in een knock-out wedstrijd",
-        code: 400,
+        code: "invalid_input",
         reason: "KO winner required on draw",
       });
     }
     if (koWinnerId !== match.teamAId && koWinnerId !== match.teamBId) {
       throw createApiError({
         error: "Winnaar moet één van de spelende teams zijn",
-        code: 400,
+        code: "invalid_input",
         reason: "Invalid KO winner",
       });
     }
@@ -53,9 +60,9 @@ export default defineEventHandler(async (event) => {
     const matchResult = await tx.match.update({ where: { id }, data: updateData });
 
     if (match.phase === "KO" && match.nextMatchId) {
-      const winnerId = scoreA > scoreB
+      const winnerId = body.scoreA > body.scoreB
         ? match.teamAId
-        : scoreB > scoreA
+        : body.scoreB > body.scoreA
         ? match.teamBId
         : typeof updateData.koWinnerId === "string"
         ? updateData.koWinnerId
@@ -82,6 +89,6 @@ export default defineEventHandler(async (event) => {
     await recalculatePoolStandings(match.poolId);
   }
 
-  logRequest(event, "success", `Match ${id} score saved: ${scoreA}-${scoreB}`);
+  logRequest(event, "success", `Match ${id} score saved: ${body.scoreA}-${body.scoreB}`);
   return updated;
 });
