@@ -6,12 +6,23 @@ const mockPrismaUserDelete = vi.hoisted(() => vi.fn())
 const mockPrismaUserFindFirst = vi.hoisted(() => vi.fn())
 const mockPrismaUserUpdate = vi.hoisted(() => vi.fn())
 
+// Map error codes to HTTP status codes (must match server/utils/errors.ts)
+const codeToStatusCode: Record<string, number> = {
+  referee_name_empty: 400,
+  referee_name_exists: 409,
+  referee_not_found: 404,
+  invalid_referee_id: 400,
+  invalid_input: 400,
+  unexpected_error: 500,
+}
+
 vi.stubGlobal('defineEventHandler', (handler: any) => handler)
 vi.stubGlobal('readBody', vi.fn())
 vi.stubGlobal('getRouterParam', vi.fn())
 vi.stubGlobal('createApiError', ({ error, code, reason }: any) => {
+  const statusCode = codeToStatusCode[code] ?? 500
   const err = new Error(reason) as any
-  err.statusCode = code
+  err.statusCode = statusCode
   err.data = { error, code, reason, stacktrace: {} }
   return err
 })
