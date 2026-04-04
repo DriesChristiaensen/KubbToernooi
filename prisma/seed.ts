@@ -243,6 +243,268 @@ async function seedEmpty() {
   console.log("Done: EMPTY tournament seeded.");
 }
 
+// ─── SEED: COMBINED POOLS PLAYED ──────────────────────────────────────────────
+
+async function seedCombinedPoolsPlayed() {
+  console.log("\nSeeding COMBINED tournament with pool matches played...");
+  await clearData();
+  await ensureAdmin();
+
+  const { tournament, teams, fields } = await createBase(
+    "COMBINATION",
+    "Kubb Combinatietoernooi 2025",
+    3,
+  );
+
+  await createPools(tournament.id, teams, fields, 2, 0);
+
+  // Fill in scores for all pool matches
+  const poolMatches = await prisma.match.findMany({
+    where: { phase: "POOL" },
+    orderBy: [{ startTime: "asc" }],
+  });
+
+  const scores = [
+    [6, 2], [5, 3], [6, 1], [4, 4], [6, 0], [5, 2],
+    [6, 3], [4, 5], [6, 2], [3, 6], [5, 4], [6, 1],
+    [5, 5], [6, 2], [4, 6], [6, 3], [5, 2], [6, 4],
+  ];
+
+  for (let i = 0; i < poolMatches.length; i++) {
+    const match = poolMatches[i];
+    const score = scores[i % scores.length];
+    if (match && score) {
+      await prisma.match.update({
+        where: { id: match.id },
+        data: {
+          scoreA: score[0],
+          scoreB: score[1],
+          status: "PLAYED",
+        },
+      });
+    }
+  }
+
+  // Recalculate standings
+  const pools = await prisma.pool.findMany({
+    where: { tournamentId: tournament.id },
+  });
+
+  for (const pool of pools) {
+    await recalculateStandings(pool.id, tournament);
+  }
+
+  console.log("  Created: 8 teams, 3 velden, 2 poules met alle wedstrijden gespeeld");
+  console.log("  Gebruik admin > KO-schema om het KO-bracket te genereren.");
+  console.log("Done: COMBINED tournament with pools played seeded.");
+}
+
+// ─── SEED: COMBINED FINISHED ──────────────────────────────────────────────────
+
+async function seedCombinedFinished() {
+  console.log("\nSeeding COMBINED tournament fully finished...");
+  await clearData();
+  await ensureAdmin();
+
+  const { tournament, teams, fields } = await createBase(
+    "COMBINATION",
+    "Kubb Combinatietoernooi 2025",
+    3,
+  );
+
+  const poolSlotsUsed = await createPools(tournament.id, teams, fields, 2, 0);
+
+  // Fill in scores for all pool matches
+  const poolMatches = await prisma.match.findMany({
+    where: { phase: "POOL" },
+    orderBy: [{ startTime: "asc" }],
+  });
+
+  const poolScores = [
+    [6, 2], [5, 3], [6, 1], [4, 4], [6, 0], [5, 2],
+    [6, 3], [4, 5], [6, 2], [3, 6], [5, 4], [6, 1],
+    [5, 5], [6, 2], [4, 6], [6, 3], [5, 2], [6, 4],
+  ];
+
+  for (let i = 0; i < poolMatches.length; i++) {
+    const match = poolMatches[i];
+    const score = poolScores[i % poolScores.length];
+    if (match && score) {
+      await prisma.match.update({
+        where: { id: match.id },
+        data: {
+          scoreA: score[0],
+          scoreB: score[1],
+          status: "PLAYED",
+        },
+      });
+    }
+  }
+
+  // Recalculate standings
+  const pools = await prisma.pool.findMany({
+    where: { tournamentId: tournament.id },
+    include: {
+      standings: {
+        orderBy: [
+          { points: "desc" },
+          { goalDifference: "desc" },
+          { goalsFor: "desc" },
+        ],
+      },
+    },
+  });
+
+  for (const pool of pools) {
+    await recalculateStandings(pool.id, tournament);
+  }
+
+  // Get updated standings for KO bracket
+  const poolsWithStandings = await prisma.pool.findMany({
+    where: { tournamentId: tournament.id },
+    include: {
+      standings: {
+        orderBy: [
+          { points: "desc" },
+          { goalDifference: "desc" },
+          { goalsFor: "desc" },
+        ],
+      },
+    },
+  });
+
+  // Generate KO bracket (4 teams: top 2 from each pool)
+  const qualifiedTeams: string[] = [];
+  for (const pool of poolsWithStandings) {
+    const top2 = pool.standings.slice(0, 2);
+    qualifiedTeams.push(...top2.map(s => s.teamId));
+  }
+
+  // Create KO bracket: Semi-finals and final
+  // Semi 1: Pool A #1 vs Pool B #2
+  // Semi 2: Pool B #1 vs Pool A #2
+  const koStartSlot = poolSlotsUsed;
+  
+  const finalMatch = await prisma.match.create({
+    data: {
+      phase: "KO",
+      round: 2,
+      startTime: slotTime(koStartSlot + 1),
+      fieldId: fields[0]!.id,
+      status: "PLAYED",
+      scoreA: 6,
+      scoreB: 4,
+    },
+  });
+
+  await prisma.match.create({
+    data: {
+      phase: "KO",
+      round: 1,
+      startTime: slotTime(koStartSlot),
+      fieldId: fields[0]!.id,
+      teamAId: qualifiedTeams[0], // Pool A #1
+      teamBId: qualifiedTeams[3], // Pool B #2
+      status: "PLAYED",
+      scoreA: 6,
+      scoreB: 3,
+      koWinnerId: qualifiedTeams[0],
+      nextMatchId: finalMatch.id,
+    },
+  });
+
+  await prisma.match.create({
+    data: {
+      phase: "KO",
+      round: 1,
+      startTime: slotTime(koStartSlot),
+      fieldId: fields[1]!.id,
+      teamAId: qualifiedTeams[2], // Pool B #1
+      teamBId: qualifiedTeams[1], // Pool A #2
+      status: "PLAYED",
+      scoreA: 5,
+      scoreB: 4,
+      koWinnerId: qualifiedTeams[2],
+      nextMatchId: finalMatch.id,
+    },
+  });
+
+  // Update final with teams
+  await prisma.match.update({
+    where: { id: finalMatch.id },
+    data: {
+      teamAId: qualifiedTeams[0],
+      teamBId: qualifiedTeams[2],
+      koWinnerId: qualifiedTeams[0],
+    },
+  });
+
+  console.log("  Created: 8 teams, 3 velden, 2 poules (volledig gespeeld)");
+  console.log("  KO-bracket: 2 halve finales + finale (volledig gespeeld)");
+  console.log(`  Winnaar: ${teams.find(t => t.id === qualifiedTeams[0])?.name}`);
+  console.log("Done: COMBINED tournament fully finished seeded.");
+}
+
+// ─── UTILITY: RECALCULATE STANDINGS ───────────────────────────────────────────
+
+async function recalculateStandings(poolId: string, tournament: { pointsWin: number; pointsDraw: number; pointsLoss: number }) {
+  const [poolTeams, playedMatches] = await Promise.all([
+    prisma.poolTeam.findMany({ where: { poolId } }),
+    prisma.match.findMany({ where: { poolId, status: "PLAYED" } }),
+  ]);
+
+  for (const pt of poolTeams) {
+    const teamMatches = playedMatches.filter(
+      (m) => m.teamAId === pt.teamId || m.teamBId === pt.teamId,
+    );
+
+    let won = 0;
+    let drawn = 0;
+    let lost = 0;
+    let goalsFor = 0;
+    let goalsAgainst = 0;
+
+    for (const m of teamMatches) {
+      const isTeamA = m.teamAId === pt.teamId;
+      const gf = (isTeamA ? m.scoreA : m.scoreB) ?? 0;
+      const ga = (isTeamA ? m.scoreB : m.scoreA) ?? 0;
+      goalsFor += gf;
+      goalsAgainst += ga;
+      if (gf === ga) drawn++;
+      else if (gf > ga) won++;
+      else lost++;
+    }
+
+    const points = won * tournament.pointsWin + drawn * tournament.pointsDraw + lost * tournament.pointsLoss;
+
+    await prisma.standing.upsert({
+      where: { poolId_teamId: { poolId, teamId: pt.teamId } },
+      update: {
+        played: teamMatches.length,
+        won,
+        drawn,
+        lost,
+        goalsFor,
+        goalsAgainst,
+        goalDifference: goalsFor - goalsAgainst,
+        points,
+      },
+      create: {
+        poolId,
+        teamId: pt.teamId,
+        played: teamMatches.length,
+        won,
+        drawn,
+        lost,
+        goalsFor,
+        goalsAgainst,
+        goalDifference: goalsFor - goalsAgainst,
+        points,
+      },
+    });
+  }
+}
+
 // ─── ENTRY POINT ───────────────────────────────────────────────────────────────
 
 const type = process.argv[2] ?? "combined";
@@ -257,13 +519,15 @@ const runners: Record<string, () => Promise<void>> = {
   pool: seedPool,
   ko: seedKo,
   combined: seedCombined,
+  "combined-pools-played": seedCombinedPoolsPlayed,
+  "combined-finished": seedCombinedFinished,
   empty: seedEmpty,
   clear: seedClear,
 };
 
 const run = runners[type];
 if (!run) {
-  console.error(`Unknown seed type: "${type}". Use: pool | ko | combined | clear`);
+  console.error(`Unknown seed type: "${type}". Use: pool | ko | combined | combined-pools-played | combined-finished | empty | clear`);
   process.exit(1);
 }
 

@@ -16,6 +16,8 @@
     "seed:pool": "npx tsx prisma/seed.ts pool",
     "seed:ko": "npx tsx prisma/seed.ts ko",
     "seed:combined": "npx tsx prisma/seed.ts combined",
+    "seed:combined-pools-played": "npx tsx prisma/seed.ts combined-pools-played",
+    "seed:combined-finished": "npx tsx prisma/seed.ts combined-finished",
     "seed:empty": "npx tsx prisma/seed.ts empty",
     "seed:clear": "npx tsx prisma/seed.ts clear",
     "reset-rate-limit": "npx tsx scripts/reset-rate-limit.ts"
