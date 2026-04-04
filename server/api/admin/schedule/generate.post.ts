@@ -93,12 +93,6 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (overwrite) {
-    await prisma.match.deleteMany({
-      where: { pool: { tournamentId: tournament.id }, phase: "POOL" },
-    });
-  }
-
   const poolRounds = new Map<string, Array<Array<[string, string]>>>();
   for (const pool of pools) {
     const teamIds = pool.poolTeams.map((pt: { teamId: string }) => pt.teamId);
@@ -179,7 +173,15 @@ export default defineEventHandler(async (event) => {
     teamNextSlot.set(m.teamB, bestSlot + 1);
   }
 
-  await prisma.match.createMany({ data: matchData });
+  await prisma.$transaction(async (tx) => {
+    // Atomically delete old matches and create new ones
+    if (overwrite) {
+      await tx.match.deleteMany({
+        where: { pool: { tournamentId: tournament.id }, phase: "POOL" },
+      });
+    }
+    await tx.match.createMany({ data: matchData });
+  });
 
   logRequest(event, "success", `Generated ${matchData.length} pool matches`);
   return { generated: matchData.length };

@@ -34,17 +34,22 @@ export default defineEventHandler(async (event) => {
     data.teamsAdvancing = n;
   }
 
-  const updated = await prisma.pool.update({ where: { id }, data });
+  const updated = await prisma.$transaction(async (tx) => {
+    // Atomically update pool and reassign teams
+    const poolResult = await tx.pool.update({ where: { id }, data });
 
-  if (Array.isArray(body?.teamIds)) {
-    await prisma.poolTeam.deleteMany({ where: { poolId: id } });
-    if (body.teamIds.length > 0) {
-      await prisma.poolTeam.createMany({
-        // Safe: Array.isArray guard above confirms body.teamIds is an array
-      data: (body.teamIds as string[]).map((teamId) => ({ poolId: id, teamId })),
-      });
+    if (Array.isArray(body?.teamIds)) {
+      await tx.poolTeam.deleteMany({ where: { poolId: id } });
+      if (body.teamIds.length > 0) {
+        await tx.poolTeam.createMany({
+          // Safe: Array.isArray guard above confirms body.teamIds is an array
+          data: (body.teamIds as string[]).map((teamId) => ({ poolId: id, teamId })),
+        });
+      }
     }
-  }
+
+    return poolResult;
+  });
 
   logRequest(event, "success", `Pool ${id} updated`);
   return updated;
