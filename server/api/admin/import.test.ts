@@ -22,8 +22,8 @@ vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
   return err;
 });
 
-vi.mock("~/server/utils/prisma", () => ({
-  prisma: {
+vi.mock("~/server/utils/prisma", () => {
+  const mockPrisma: any = {
     tournament: {
       findFirst: mockTournamentFindFirst,
       updateMany: mockTournamentUpdateMany,
@@ -36,8 +36,10 @@ vi.mock("~/server/utils/prisma", () => ({
     match: { create: mockMatchCreate, update: mockMatchUpdate },
     standing: { create: mockStandingCreate },
     user: { findFirst: mockUserFindFirst },
-  },
-}));
+  };
+  mockPrisma.$transaction = vi.fn((callback: any) => callback(mockPrisma));
+  return { prisma: mockPrisma };
+});
 
 vi.mock("bcrypt", () => ({ default: { compare: mockBcryptCompare } }));
 vi.mock("~/server/utils/logger", () => ({ logRequest: vi.fn() }));

@@ -91,10 +91,6 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  if (existingCount > 0) {
-    await prisma.match.deleteMany({ where: { phase: "KO" } });
-  }
-
   const bracketSize = Math.pow(2, Math.ceil(Math.log2(participantCount)));
   const round1Count = bracketSize / 2;
   const totalRounds = Math.log2(bracketSize);
@@ -104,41 +100,49 @@ export default defineEventHandler(async (event) => {
     : new Date(tournament.startTime);
   const slotMs = (tournament.matchDuration + tournament.breakTime) * 60 * 1000;
 
-  const roundMatchIds = new Map<number, string[]>();
   let totalCreated = 0;
 
-  for (let r = totalRounds; r >= 1; r--) {
-    const matchesInRound = Math.ceil(round1Count / Math.pow(2, r - 1));
-    const nextRoundIds = roundMatchIds.get(r + 1) ?? [];
-    const createdIds: string[] = [];
-
-    for (let i = 0; i < matchesInRound; i++) {
-      const nextMatchId =
-        nextRoundIds.length > 0 ? nextRoundIds[Math.floor(i / 2)] : null;
-      // Safe: fields.length === 0 guard above guarantees at least one field exists
-      const field = fields[i % fields.length]!;
-      const slotOffset = Math.floor(i / fields.length);
-
-      const created = await prisma.match.create({
-        data: {
-          phase: "KO",
-          round: r,
-          fieldId: field.id,
-          teamAId: null,
-          teamBId: null,
-          poolId: null,
-          startTime: new Date(matchStartTime.getTime() + slotOffset * slotMs),
-          status: "SCHEDULED",
-          ...(nextMatchId !== null ? { nextMatchId } : {}),
-        },
-      });
-
-      createdIds.push(created.id);
-      totalCreated++;
+  await prisma.$transaction(async (tx) => {
+    // Atomically delete old KO matches and create new bracket
+    if (existingCount > 0) {
+      await tx.match.deleteMany({ where: { phase: "KO" } });
     }
 
-    roundMatchIds.set(r, createdIds);
-  }
+    const roundMatchIds = new Map<number, string[]>();
+
+    for (let r = totalRounds; r >= 1; r--) {
+      const matchesInRound = Math.ceil(round1Count / Math.pow(2, r - 1));
+      const nextRoundIds = roundMatchIds.get(r + 1) ?? [];
+      const createdIds: string[] = [];
+
+      for (let i = 0; i < matchesInRound; i++) {
+        const nextMatchId =
+          nextRoundIds.length > 0 ? nextRoundIds[Math.floor(i / 2)] : null;
+        // Safe: fields.length === 0 guard above guarantees at least one field exists
+        const field = fields[i % fields.length]!;
+        const slotOffset = Math.floor(i / fields.length);
+
+        const created = await tx.match.create({
+          data: {
+            phase: "KO",
+            round: r,
+            fieldId: field.id,
+            teamAId: null,
+            teamBId: null,
+            poolId: null,
+            startTime: new Date(matchStartTime.getTime() + slotOffset * slotMs),
+            status: "SCHEDULED",
+            ...(nextMatchId !== null ? { nextMatchId } : {}),
+          },
+        });
+
+        createdIds.push(created.id);
+        totalCreated++;
+      }
+
+      roundMatchIds.set(r, createdIds);
+    }
+  });
 
   logRequest(event, "success", `Generated ${totalCreated} KO match slots`);
   return { generated: totalCreated };
