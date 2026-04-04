@@ -6,11 +6,31 @@ const mockTournamentUpdateMany = vi.hoisted(() => vi.fn());
 const mockTournamentCreate = vi.hoisted(() => vi.fn());
 const mockFieldCreateMany = vi.hoisted(() => vi.fn());
 
+// Map error codes to HTTP status codes (must match server/utils/errors.ts)
+const codeToStatusCode: Record<string, number> = {
+  invalid_input: 400,
+  invalid_tournament_type: 400,
+  invalid_tournament_id: 400,
+  invalid_input: 400,
+  tournament_name_exists: 409,
+  not_enough_fields: 400,
+  tournament_not_found: 404,
+  field_not_found: 404,
+  team_not_found: 404,
+  pool_not_found: 404,
+  referee_not_found: 404,
+  user_not_found: 404,
+  tournament_exists: 409,
+  unexpected_error: 500,
+  admin_no_password: 500,
+};
+
 vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("readBody", vi.fn());
 vi.stubGlobal("createApiError", ({ error, code, reason, field }: any) => {
+  const statusCode = codeToStatusCode[code] ?? 500;
   const err = new Error(reason) as any;
-  err.statusCode = code;
+  err.statusCode = statusCode;
   err.data = { error, code, reason, ...(field !== undefined ? { field } : {}), stacktrace: {} };
   return err;
 });
