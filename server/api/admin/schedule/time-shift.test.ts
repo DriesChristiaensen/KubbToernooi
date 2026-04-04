@@ -57,14 +57,14 @@ describe("POST /api/admin/schedule/time-shift", () => {
     mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ offsetMinutes: 10 });
 
-    await expect(handler(createMockEvent())).rejects.toThrow("fromTime is required");
+    await expect(handler(createMockEvent())).rejects.toThrow("Invalid input");
   });
 
   it("returns 400 when offsetMinutes is missing", async () => {
     mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ fromTime: t1.toISOString() });
 
-    await expect(handler(createMockEvent())).rejects.toThrow("offsetMinutes is required");
+    await expect(handler(createMockEvent())).rejects.toThrow("Invalid input");
   });
 
   it("shifts matches at or after fromTime by the offset", async () => {

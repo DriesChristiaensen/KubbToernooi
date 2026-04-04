@@ -1,44 +1,30 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
 
+const bodySchema = z.object({
+  fromTime: z.string().refine((s) => !isNaN(new Date(s).getTime()), { message: "Invalid date" }),
+  offsetMinutes: z.number().int(),
+});
+
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
-  const body = await readBody(event);
+  const raw = await readBody(event);
 
-  if (!body?.fromTime) {
+  let body;
+  try {
+    body = bodySchema.parse(raw ?? {});
+  } catch {
     throw createApiError({
-      error: "Begintijdstip is verplicht",
-      code: 400,
-      reason: "fromTime is required",
+      error: "Ongeldige invoer",
+      code: "invalid_input",
+      reason: "Invalid input - fromTime and offsetMinutes required",
     });
   }
 
   const fromTime = new Date(body.fromTime);
-  if (isNaN(fromTime.getTime())) {
-    throw createApiError({
-      error: "Ongeldig tijdstip",
-      code: 400,
-      reason: "fromTime is not a valid date",
-    });
-  }
-
-  if (body?.offsetMinutes === undefined || body?.offsetMinutes === null) {
-    throw createApiError({
-      error: "Aantal minuten is verplicht",
-      code: 400,
-      reason: "offsetMinutes is required",
-    });
-  }
-
-  const offsetMs = Number(body.offsetMinutes) * 60 * 1000;
-  if (isNaN(offsetMs)) {
-    throw createApiError({
-      error: "Ongeldig aantal minuten",
-      code: 400,
-      reason: "offsetMinutes must be a number",
-    });
-  }
+  const offsetMs = body.offsetMinutes * 60 * 1000;
 
   const matches = await prisma.match.findMany({
     where: {
