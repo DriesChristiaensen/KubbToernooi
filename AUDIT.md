@@ -41,22 +41,22 @@ Priority groups ordered by risk and dependency. Each group can be done in one it
 | `server/api/admin/tournament.post.ts`               | 49-68   | Deactivate old + create new tournament — two could be active   | ✅ DONE |
 | `server/api/admin/tournaments/[id]/restore.post.ts` | 22-30   | Deactivate all + restore one — same                            | ✅ DONE |
 | `server/api/admin/pools/generate.post.ts`           | 43-62   | Delete + loop-create pools — partial state on mid-loop failure | ✅ DONE |
-| `server/api/admin/pools/[id].put.ts`                | 40-46   | deleteMany poolTeams + createMany — orphan risk                | TODO |
+| `server/api/admin/pools/[id].put.ts`                | 40-46   | deleteMany poolTeams + createMany — orphan risk                | ✅ DONE |
 | `server/api/admin/fields/generate.post.ts`          | 31-39   | Delete + create fields — partial state                         | ✅ DONE |
-| `server/api/admin/schedule/generate.post.ts`        | 97-181  | Delete + createMany matches — partial schedule                 | TODO |
+| `server/api/admin/schedule/generate.post.ts`        | 97-181  | Delete + createMany matches — partial schedule                 | ✅ DONE |
 | `server/api/admin/schedule/matches/swap.post.ts`    | 38-46   | Two separate match updates — half-swapped state                | ✅ DONE |
 | `server/api/admin/schedule/matches/[id].patch.ts`   | 57-60   | Two updates for field+time change                              | ✅ DONE |
 | `server/api/admin/schedule/time-shift.post.ts`      | 50-57   | Promise.all with multiple match updates                        | ✅ DONE |
-| `server/api/admin/ko-bracket/generate.post.ts`      | 95-136  | Delete + loop-create KO matches                                | TODO |
-| `server/api/admin/ko-bracket/fill-teams.post.ts`    | 109-137 | Multiple match updates in loops                                | TODO |
-| `server/api/admin/import.post.ts`                   | 70-184  | Full multi-table import — partial state on any failure         | TODO |
+| `server/api/admin/ko-bracket/generate.post.ts`      | 95-136  | Delete + loop-create KO matches                                | ✅ DONE |
+| `server/api/admin/ko-bracket/fill-teams.post.ts`    | 109-137 | Multiple match updates in loops                                | ✅ DONE |
+| `server/api/admin/import.post.ts`                   | 70-184  | Full multi-table import — partial state on any failure         | ✅ DONE |
 | `server/api/ref/matches/[id].patch.ts`              | 57-78   | Score + KO advancement chain — broken bracket                  | ✅ DONE |
 
 **Fix:** Wrap each multi-step operation in `prisma.$transaction(async (tx) => { ... })`, passing `tx` to all queries inside.
 
 ---
 
-### C2. Session password empty-string fallback — **DONE** ✅
+### C2. Session password empty-string fallback — **✅ DONE**
 
 **AC violated:** #10.3 Sensitive Data  
 **File:** `nuxt.config.ts:18`
@@ -65,7 +65,7 @@ Removed empty-string fallback. Now uses `process.env.NUXT_SESSION_PASSWORD` dire
 
 ---
 
-### C3. Devtools enabled unconditionally — **DONE** ✅
+### C3. Devtools enabled unconditionally — **✅ DONE**
 
 **AC violated:** #10.3 Sensitive Data  
 **File:** `nuxt.config.ts:5`
