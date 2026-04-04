@@ -82,22 +82,22 @@ Changed to `devtools: { enabled: import.meta.dev }` — enabled only in developm
 
 These routes read `await readBody(event)` without a Zod schema — raw user input flows into Prisma:
 
-| #   | Route                                               | Current pattern                  |
-| --- | --------------------------------------------------- | -------------------------------- |
-| 1   | `server/api/admin/tournament.patch.ts`              | Manual `Record<string, unknown>` |
-| 2   | `server/api/admin/fields.post.ts`                   | Manual string trim check         |
-| 3   | `server/api/admin/fields/[id].put.ts`               | Manual string check              |
-| 4   | `server/api/admin/fields/generate.post.ts`          | `Number()` cast                  |
-| 5   | `server/api/admin/teams.post.ts`                    | Manual string check              |
-| 6   | `server/api/admin/teams/[id].put.ts`                | Manual string check              |
-| 7   | `server/api/admin/teams/bulk-import.post.ts`        | Custom array parsing             |
-| 8   | `server/api/admin/referees.post.ts`                 | Manual name check                |
-| 9   | `server/api/admin/pools/[id].put.ts`                | `Record<string, unknown>`        |
-| 10  | `server/api/admin/pools/generate.post.ts`           | `Number()` cast                  |
-| 11  | `server/api/admin/schedule/matches/[id].patch.ts`   | Manual field checks              |
-| 12  | `server/api/admin/schedule/time-shift.post.ts`      | Manual checks                    |
-| 13  | `server/api/admin/ko-bracket/matches/[id].patch.ts` | `Record<string, unknown>`        |
-| 14  | `server/api/ref/matches/[id].patch.ts`              | `Number()` casts                 |
+| #   | Route                                               | Status | Notes                            |
+| --- | --------------------------------------------------- | ------ | -------------------------------- |
+| 1   | `server/api/admin/tournament.patch.ts`              | ✅ DONE | Zod validation added             |
+| 2   | `server/api/admin/fields.post.ts`                   | ✅ DONE | Zod validation added             |
+| 3   | `server/api/admin/fields/[id].put.ts`               | ✅ DONE | Zod validation added             |
+| 4   | `server/api/admin/fields/generate.post.ts`          | TODO | `Number()` cast                  |
+| 5   | `server/api/admin/teams.post.ts`                    | ✅ DONE | Zod validation added             |
+| 6   | `server/api/admin/teams/[id].put.ts`                | ✅ DONE | Zod validation added             |
+| 7   | `server/api/admin/teams/bulk-import.post.ts`        | TODO | Custom array parsing             |
+| 8   | `server/api/admin/referees.post.ts`                 | ✅ DONE | Zod validation added             |
+| 9   | `server/api/admin/pools/[id].put.ts`                | ✅ DONE | Zod validation added             |
+| 10  | `server/api/admin/pools/generate.post.ts`           | TODO | `Number()` cast                  |
+| 11  | `server/api/admin/schedule/matches/[id].patch.ts`   | ✅ DONE | Zod validation added             |
+| 12  | `server/api/admin/schedule/time-shift.post.ts`      | TODO | Manual checks                    |
+| 13  | `server/api/admin/ko-bracket/matches/[id].patch.ts` | TODO | `Record<string, unknown>`        |
+| 14  | `server/api/ref/matches/[id].patch.ts`              | ✅ DONE | Zod validation added             |
 
 Additionally, `server/api/admin/import.post.ts` uses a custom `isValidImport()` type guard instead of Zod.
 
@@ -105,26 +105,22 @@ Additionally, `server/api/admin/import.post.ts` uses a custom `isValidImport()` 
 
 ---
 
-### H2. Error code format: numeric instead of snake_case strings
+### H2. Error code format: numeric instead of snake_case strings — **WIP** 🔄
 
 **AC violated:** #5.2 Error Responses, #2.4 API Routes
 
-The `ApiErrorOptions` interface in `server/utils/errors.ts:3` defines `code: number`. Every `createApiError()` call uses HTTP-like numeric codes (400, 404, 409). The acceptance criteria require:
+**Progress:** Infrastructure complete. Error code mapping added to `server/utils/errors.ts`. String codes applied to ~20 endpoints (tournament, fields, teams, referees, pools, schedule). Remaining ~16 endpoints need code conversion (auth, import, ko-bracket, ref endpoints).
+
+The `ApiErrorOptions` interface in `server/utils/errors.ts:3` now defines `code: string` with automatic HTTP status code mapping. Acceptance criteria require:
 
 ```ts
 // Spec requires:
 { error: "Dutch message", code: "tournament_not_found", reason: "English reason" }
-// Current:
-{ error: "Dutch message", code: 404, reason: "English reason" }
+// DONE:
+{ error: "Dutch message", code: "tournament_not_found", reason: "English reason" }
 ```
 
-This affects **all 36+ API endpoints** that throw errors. The `code` field is returned in the response body alongside the HTTP status code, creating redundancy and violating the spec.
-
-**Fix:**
-
-1. Change `errors.ts` interface: `code: number` → `code: string`
-2. Add a separate `statusCode` param or derive it from the string code
-3. Update every `createApiError()` call to use snake_case string codes
+**Fix:** Update remaining ~16 endpoints to use string error codes from the mapping in `errors.ts`.
 
 ---
 
@@ -236,11 +232,14 @@ All `createApiError({ error: "Dutch text" })` calls use hardcoded strings. While
 
 ---
 
-### H9. Missing null check before update in reset-password
+### H9. Missing null check before update in reset-password — **✅ DONE**
 
 **AC violated:** #5.4 Null Safety, Top-10 #2  
 **File:** `server/api/admin/referees/[id]/reset-password.post.ts:15`
 
+**Status:** COMPLETED. Added `findFirst` + null guard before update. Now returns proper 404 via `createApiError` when referee doesn't exist, instead of 500 Prisma error.
+
+**Before:**
 ```ts
 await prisma.user.update({
   where: { id, role: "REFEREE" },
@@ -248,9 +247,7 @@ await prisma.user.update({
 });
 ```
 
-If no user with this ID and REFEREE role exists, Prisma throws P2025 which surfaces as a 500 instead of a clean 404.
-
-**Fix:** Add `findFirst` + null guard before the update, returning 404 via `createApiError`.
+**After:** Added null check that throws 404 before attempting update.
 
 ---
 
