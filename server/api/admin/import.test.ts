@@ -8,6 +8,7 @@ const mockFieldCreate = vi.hoisted(() => vi.fn());
 const mockPoolCreate = vi.hoisted(() => vi.fn());
 const mockPoolTeamCreate = vi.hoisted(() => vi.fn());
 const mockMatchCreate = vi.hoisted(() => vi.fn());
+const mockMatchUpdate = vi.hoisted(() => vi.fn());
 const mockStandingCreate = vi.hoisted(() => vi.fn());
 const mockUserFindFirst = vi.hoisted(() => vi.fn());
 const mockBcryptCompare = vi.hoisted(() => vi.fn());
@@ -32,7 +33,7 @@ vi.mock("~/server/utils/prisma", () => ({
     field: { create: mockFieldCreate },
     pool: { create: mockPoolCreate },
     poolTeam: { create: mockPoolTeamCreate },
-    match: { create: mockMatchCreate },
+    match: { create: mockMatchCreate, update: mockMatchUpdate },
     standing: { create: mockStandingCreate },
     user: { findFirst: mockUserFindFirst },
   },
@@ -99,6 +100,37 @@ describe("POST /api/admin/import", () => {
       expect.objectContaining({ data: expect.objectContaining({ name: "Kubb 2025" }) }),
     );
     expect(result).toMatchObject({ imported: true });
+  });
+
+  it("imports KO bye match (null teamBId) and restores nextMatchId", async () => {
+    const koMatches = [
+      { id: "old-m1", phase: "KO", round: 1, startTime: "2025-06-01T14:00:00Z", fieldId: "f1", teamAId: "team1", teamBId: null, scoreA: null, scoreB: null, status: "PLAYED", koWinnerId: null, nextMatchId: "old-m2", poolId: null },
+      { id: "old-m2", phase: "KO", round: 2, startTime: "2025-06-01T15:00:00Z", fieldId: "f1", teamAId: null, teamBId: null, scoreA: null, scoreB: null, status: "SCHEDULED", koWinnerId: null, nextMatchId: null, poolId: null },
+    ];
+    const dataWithKo = { ...validData, matches: koMatches, teams: [{ id: "team1", name: "Team A" }], fields: [{ id: "f1", name: "Veld 1" }] };
+
+    vi.mocked(readBody).mockResolvedValue({ data: dataWithKo });
+    mockTournamentFindFirst.mockResolvedValue(null);
+    mockTournamentCreate.mockResolvedValue({ id: "t10" });
+    mockTeamCreate.mockResolvedValue({ id: "new-team1" });
+    mockFieldCreate.mockResolvedValue({ id: "new-f1" });
+    mockMatchCreate
+      .mockResolvedValueOnce({ id: "new-m1" })
+      .mockResolvedValueOnce({ id: "new-m2" });
+    mockMatchUpdate.mockResolvedValue({});
+
+    await handler(createMockEvent());
+
+    // Bye match (null teamBId) must be created
+    expect(mockMatchCreate).toHaveBeenCalledTimes(2);
+    const byeCall = mockMatchCreate.mock.calls.find((c) => c[0].data.status === "PLAYED");
+    expect(byeCall).toBeDefined();
+    expect(byeCall![0].data.teamBId).toBeNull();
+
+    // nextMatchId must be restored in a second pass
+    expect(mockMatchUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "new-m1" }, data: { nextMatchId: "new-m2" } }),
+    );
   });
 
   it("replaces existing data with correct password", async () => {

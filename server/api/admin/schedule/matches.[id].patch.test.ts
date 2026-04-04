@@ -75,6 +75,23 @@ describe("PATCH /api/admin/schedule/matches/:id", () => {
     await expect(handler(createMockEvent())).rejects.toThrow("Conflict detected");
   });
 
+  it("does not flag team conflict when both null teamBIds match (bye slots)", async () => {
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
+    vi.mocked(getRouterParam).mockReturnValue("m1");
+    vi.mocked(readBody).mockResolvedValue({ startTime: slotTime.toISOString() });
+    // Bye match: teamBId is null
+    mockMatchFindUnique.mockResolvedValue({
+      id: "m1", fieldId: "f1", startTime: slotTime, teamAId: "t10", teamBId: null,
+    });
+    // Another bye/empty KO slot at same time with null teamBId
+    mockMatchFindMany.mockResolvedValue([{ id: "m5", fieldId: "f2", teamAId: null, teamBId: null }]);
+    mockMatchUpdate.mockResolvedValue({ id: "m1" });
+
+    const result = await handler(createMockEvent());
+
+    expect(result).toMatchObject({ id: "m1" });
+  });
+
   it("updates match field and time when no conflicts", async () => {
     mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(getRouterParam).mockReturnValue("m1");

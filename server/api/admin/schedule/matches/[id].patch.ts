@@ -39,12 +39,11 @@ export default defineEventHandler(async (event) => {
   });
 
   const fieldConflict = conflicting.find((m) => m.fieldId === newFieldId);
+  // Null guards prevent null === null false positives from bye/empty KO slots
   const teamConflict = conflicting.find(
     (m) =>
-      m.teamAId === match.teamAId ||
-      m.teamBId === match.teamAId ||
-      m.teamAId === match.teamBId ||
-      m.teamBId === match.teamBId,
+      (match.teamAId !== null && (m.teamAId === match.teamAId || m.teamBId === match.teamAId)) ||
+      (match.teamBId !== null && (m.teamAId === match.teamBId || m.teamBId === match.teamBId)),
   );
 
   if (fieldConflict || teamConflict) {

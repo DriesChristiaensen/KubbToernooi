@@ -121,13 +121,19 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Two-pass match import: first create all matches, then restore nextMatchId links
+  const matchIdMap = new Map<string, string>();
   for (const match of matches as Array<Record<string, unknown>>) {
     const mappedFieldId = fieldMap.get(String(match.fieldId));
-    const mappedTeamAId = teamMap.get(String(match.teamAId));
-    const mappedTeamBId = teamMap.get(String(match.teamBId));
+    // Allow null teamA/teamB for KO bye/empty slots
+    const mappedTeamAId = match.teamAId ? teamMap.get(String(match.teamAId)) ?? null : null;
+    const mappedTeamBId = match.teamBId ? teamMap.get(String(match.teamBId)) ?? null : null;
     const mappedPoolId = match.poolId ? poolMap.get(String(match.poolId)) : null;
-    if (mappedFieldId && mappedTeamAId && mappedTeamBId) {
-      await prisma.match.create({
+    // Skip only if fieldId can't be resolved or a non-null teamId can't be mapped
+    const teamAOk = match.teamAId == null || mappedTeamAId !== null;
+    const teamBOk = match.teamBId == null || mappedTeamBId !== null;
+    if (mappedFieldId && teamAOk && teamBOk) {
+      const created = await prisma.match.create({
         data: {
           phase: ((match.phase as string) || "POOL") as MatchPhase,
           round: Number(match.round) || 1,
@@ -142,6 +148,17 @@ export default defineEventHandler(async (event) => {
           koWinnerId: match.koWinnerId ? teamMap.get(String(match.koWinnerId)) ?? null : null,
         },
       });
+      if (match.id) matchIdMap.set(String(match.id), created.id);
+    }
+  }
+  // Restore KO advancement links using remapped IDs
+  for (const match of matches as Array<Record<string, unknown>>) {
+    if (match.nextMatchId && match.id) {
+      const newId = matchIdMap.get(String(match.id));
+      const newNextId = matchIdMap.get(String(match.nextMatchId));
+      if (newId && newNextId) {
+        await prisma.match.update({ where: { id: newId }, data: { nextMatchId: newNextId } });
+      }
     }
   }
 

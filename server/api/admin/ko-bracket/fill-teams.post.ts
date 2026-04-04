@@ -116,6 +116,7 @@ export default defineEventHandler(async (event) => {
   // Auto-advance bye teams (teamAId set, teamBId null) to their next-round match
   for (let i = 0; i < round1Matches.length; i++) {
     const slot = slots[i] ?? { teamAId: null, teamBId: null };
+    // Safe: loop bound (i < round1Matches.length) guarantees this element exists
     const match = round1Matches[i]!;
 
     if (slot.teamAId && !slot.teamBId && match.nextMatchId) {

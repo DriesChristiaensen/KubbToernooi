@@ -94,6 +94,24 @@ describe("GET /api/admin/schedule/conflict-check", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("does not flag team conflict when both null teamBIds would match (bye slots)", async () => {
+    mockTournamentFindFirst.mockResolvedValue(baseTournament);
+    vi.mocked(getQuery).mockReturnValue({ matchId: "m1", startTime: slotTime });
+    // Bye match: teamBId is null
+    mockMatchFindUnique.mockResolvedValue({
+      id: "m1", fieldId: "f1", startTime: new Date(slotTime), teamAId: "t10", teamBId: null,
+      teamA: { name: "Team A" }, teamB: null,
+    });
+    // Another empty KO slot at same time with both null teams
+    mockMatchFindMany.mockResolvedValue([
+      { id: "m5", fieldId: "f2", teamAId: null, teamBId: null, field: { name: "f2" }, teamA: null, teamB: null },
+    ]);
+
+    const result = await handler(createMockEvent());
+
+    expect(result.ok).toBe(true);
+  });
+
   it("excludes the match itself from conflict checks", async () => {
     mockTournamentFindFirst.mockResolvedValue(baseTournament);
     vi.mocked(getQuery).mockReturnValue({ matchId: "m1", fieldId: "f2", startTime: slotTime });

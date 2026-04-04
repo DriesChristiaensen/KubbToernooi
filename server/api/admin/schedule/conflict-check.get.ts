@@ -56,12 +56,11 @@ export default defineEventHandler(async (event) => {
     conflicts.push(`Veld ${fieldName} is al bezet: ${tA} vs ${tB}`);
   }
 
+  // Null guards prevent null === null false positives from bye/empty KO slots
   const teamConflict = conflictingMatches.find(
     (m) =>
-      m.teamAId === match.teamAId
-      || m.teamBId === match.teamAId
-      || m.teamAId === match.teamBId
-      || m.teamBId === match.teamBId,
+      (match.teamAId !== null && (m.teamAId === match.teamAId || m.teamBId === match.teamAId)) ||
+      (match.teamBId !== null && (m.teamAId === match.teamBId || m.teamBId === match.teamBId)),
   );
   if (teamConflict) {
     const tA = match.teamA?.name ?? "?";
