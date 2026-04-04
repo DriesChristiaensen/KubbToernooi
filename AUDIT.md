@@ -87,16 +87,16 @@ These routes read `await readBody(event)` without a Zod schema — raw user inpu
 | 1   | `server/api/admin/tournament.patch.ts`              | ✅ DONE | Zod validation added             |
 | 2   | `server/api/admin/fields.post.ts`                   | ✅ DONE | Zod validation added             |
 | 3   | `server/api/admin/fields/[id].put.ts`               | ✅ DONE | Zod validation added             |
-| 4   | `server/api/admin/fields/generate.post.ts`          | TODO | `Number()` cast                  |
+| 4   | `server/api/admin/fields/generate.post.ts`          | ✅ DONE | Zod validation added             |
 | 5   | `server/api/admin/teams.post.ts`                    | ✅ DONE | Zod validation added             |
 | 6   | `server/api/admin/teams/[id].put.ts`                | ✅ DONE | Zod validation added             |
-| 7   | `server/api/admin/teams/bulk-import.post.ts`        | TODO | Custom array parsing             |
+| 7   | `server/api/admin/teams/bulk-import.post.ts`        | TODO | Complex: array of teams parsing  |
 | 8   | `server/api/admin/referees.post.ts`                 | ✅ DONE | Zod validation added             |
 | 9   | `server/api/admin/pools/[id].put.ts`                | ✅ DONE | Zod validation added             |
-| 10  | `server/api/admin/pools/generate.post.ts`           | TODO | `Number()` cast                  |
+| 10  | `server/api/admin/pools/generate.post.ts`           | ✅ DONE | Zod validation added             |
 | 11  | `server/api/admin/schedule/matches/[id].patch.ts`   | ✅ DONE | Zod validation added             |
 | 12  | `server/api/admin/schedule/time-shift.post.ts`      | ✅ DONE | Zod validation added             |
-| 13  | `server/api/admin/ko-bracket/matches/[id].patch.ts` | TODO | `Record<string, unknown>`        |
+| 13  | `server/api/admin/ko-bracket/matches/[id].patch.ts` | ✅ DONE | Zod validation added             |
 | 14  | `server/api/ref/matches/[id].patch.ts`              | ✅ DONE | Zod validation added             |
 
 Additionally, `server/api/admin/import.post.ts` uses a custom `isValidImport()` type guard instead of Zod.
