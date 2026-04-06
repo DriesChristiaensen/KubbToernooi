@@ -118,38 +118,30 @@ All API endpoints (~14 files) updated with string codes. Test mocks updated to p
 
 ---
 
-### H3. N+1 query in standings recalculation
+### H3. N+1 query in standings recalculation — ✅ DONE
 
 **AC violated:** #11.1 Database Queries  
-**File:** `server/utils/standings.ts:38-62`
+**File:** `server/utils/standings.ts`
 
-Calls `prisma.standing.upsert()` once per team in a loop. A pool with 8 teams = 8 sequential DB round-trips. This runs after every score save.
-
-**Fix:** Compute all standings in memory, then batch via `prisma.$transaction()` with all upserts, or delete-then-`createMany`.
+**Status:** COMPLETED. Changed from individual `upsert()` calls to batch `delete + createMany` in a single transaction. Computes all standings in memory, then applies atomically. Test mocks updated accordingly.
 
 ---
 
-### H4. Missing database indexes on frequently queried columns
+### H4. Missing database indexes on frequently queried columns — ✅ DONE
 
 **AC violated:** #8.1 Schema & Constraints, #11.1 Database Queries  
 **File:** `prisma/schema.prisma`
 
-| Column            | Used in                            | Pattern              |
-| ----------------- | ---------------------------------- | -------------------- |
-| `Match.poolId`    | Schedule queries, standings        | `WHERE poolId = ?`   |
-| `Match.fieldId`   | Conflict checks, schedule views    | `WHERE fieldId = ?`  |
-| `Match.startTime` | Schedule ordering, conflict checks | `ORDER BY startTime` |
-| `Match.status`    | All filtered match queries         | `WHERE status = ?`   |
-| `Standing.poolId` | Standings page                     | `WHERE poolId = ?`   |
+**Status:** COMPLETED. Added indexes to Match model:
+- `@@index([poolId])`
+- `@@index([fieldId])`
+- `@@index([startTime])`
+- `@@index([poolId, status])`
 
-**Fix:** Add to Match model in schema.prisma:
+Added index to Standing model:
+- `@@index([poolId])`
 
-```prisma
-@@index([poolId])
-@@index([fieldId])
-@@index([startTime])
-@@index([poolId, status])
-```
+Database schema synchronized with Prisma migration.
 
 ---
 
@@ -326,25 +318,21 @@ Comments like `// T8.2 – status filter`, `// T9.3: edit mode per match` refere
 
 ---
 
-### M6. Match.pool `onDelete: SetNull` leaves orphan matches
+### M6. Match.pool `onDelete: SetNull` leaves orphan matches — ✅ DONE
 
 **AC violated:** #8.4 Cascading & Cleanup  
-**File:** `prisma/schema.prisma:144`
+**File:** `prisma/schema.prisma`
 
-When a pool is deleted, its matches get `poolId = NULL` instead of being cascade-deleted. These orphan POOL-phase matches remain in the schedule but belong to no pool.
-
-**Fix:** Change to `onDelete: Cascade` on the Match-Pool relation, or add application-level cleanup.
+**Status:** COMPLETED. Changed `onDelete: SetNull` to `onDelete: Cascade` on the Match-Pool relation. When a pool is deleted, its matches are now cascade-deleted instead of leaving orphans with NULL poolId.
 
 ---
 
-### M7. Missing User(name) unique constraint
+### M7. Missing User(name) unique constraint — ✅ DONE
 
 **AC violated:** #8.1 Schema & Constraints  
-**File:** `prisma/schema.prisma:38-45`
+**File:** `prisma/schema.prisma`
 
-The User model has no unique constraint on `name`. Multiple referees could be created with the same name, causing login confusion.
-
-**Fix:** Add `@@unique([name])` or `@@unique([name, role])` to the User model.
+**Status:** COMPLETED. Added `@@unique([name])` to the User model. Prevents multiple users (referees/admins) from being created with the same name, ensuring login uniqueness.
 
 ---
 
