@@ -11,8 +11,21 @@ const bodySchema = z.object({
     .optional(),
 });
 
+/**
+ * Generate pool phase matches for all pools using round-robin scheduling.
+ * Uses greedy packing algorithm to assign matches to field time slots.
+ * Matches are ordered using a priority queue to balance workload across pools.
+ * @param {Object} body - Request body
+ * @param {boolean} [body.overwrite=false] - If true, delete existing pool matches before regenerating
+ * @param {string} [body.startDateTime] - Match start date/time (ISO 8601). Defaults to tournament.startTime
+ * @returns {Object} Generated match count: { generated: number }
+ * @throws {400} If startDateTime is invalid or overwrite without existing matches
+ * @throws {400} If no pools or fields exist
+ * @throws {409} If pool matches already exist and overwrite is false
+ */
 const BYE = "";
 
+export default defineEventHandler(async (event) => {
 interface RoundQueue {
   poolId: string;
   rounds: Array<Array<[string, string]>>;

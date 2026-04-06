@@ -14,6 +14,18 @@ const bodySchema = z.object({
     .optional(),
 });
 
+/**
+ * Generate KO bracket matches with automatic bye advancement to next round.
+ * Bracket size is computed as next power of 2 ≥ participant count.
+ * Bye teams (only teamA, no teamB) are automatically advanced to their nextMatch.
+ * @param {Object} body - Request body
+ * @param {boolean} [body.overwrite=false] - If true, delete existing KO matches before regenerating
+ * @param {string} [body.startDateTime] - KO phase start date/time (ISO 8601). Defaults to tournament.startTime
+ * @returns {Object} Generated match count: { generated: number }
+ * @throws {400} If startDateTime invalid, or insufficient teams/standings to fill bracket
+ * @throws {400} If tournament type is POOLS but not enough pools have standings
+ * @throws {409} If KO matches already exist and overwrite is false
+ */
 export default defineEventHandler(async (event) => {
   const raw = await readBody(event);
   const body = bodySchema.parse(raw ?? {});
