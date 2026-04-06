@@ -181,25 +181,32 @@ All 36 API endpoints, all 5 server utilities, both composables, and the datetime
 
 ---
 
-### H7. Hardcoded strings violating i18n
+### H7. Hardcoded strings violating i18n — ✅ PARTIALLY DONE
 
 **AC violated:** #7.1 User-Facing Text, Top-10 #3
 
-#### Client-side (visible to users):
+**Status:** Client-side strings fixed; server-side strings remain.
+
+#### Client-side (visible to users) — ✅ DONE:
 
 | File                           | Line | String                                           | Fix                                                 |
 | ------------------------------ | ---- | ------------------------------------------------ | --------------------------------------------------- |
-| `components/HamburgerMenu.vue` | 18   | `'Menu sluiten'` / `'Menu openen'` in aria-label | Use `nl.nav.closeMenu` / `nl.nav.openMenu`          |
-| `pages/index.vue`              | 300  | `` `1/${matchCount} finale` ``                   | Add i18n key with interpolation                     |
-| `pages/admin/ko-bracket.vue`   | 73   | `` `1/${matchCount} finale` ``                   | Same                                                |
-| `pages/index.vue`              | 322  | `"e"` ordinal suffix in `` `${match.round}e` ``  | Add i18n key                                        |
-| `composables/useAuth.ts`       | 25   | `'Inloggen mislukt'` fallback                    | Use `nl.auth.loginFailed`                           |
-| `i18n/nl.ts`                   | 203  | `"Winning teams"` (English in Dutch file)        | Change to `"Winnende teams"`                        |
-| `i18n/nl.ts`                   | 206  | `"Bye"` (English)                                | Change to `"Vrij lot"` or keep as tournament jargon |
+| `components/HamburgerMenu.vue` | 18   | ✅ Fixed: Now uses `nl.nav.closeMenu` / `nl.nav.openMenu`          |
+| `pages/index.vue`              | 300  | ✅ Fixed: Now uses `nl.public.schedule.finaleFormat`               |
+| `pages/admin/ko-bracket.vue`   | 73   | ✅ Fixed: Now uses `nl.public.schedule.finaleFormat`               |
+| `pages/index.vue`              | 323  | ✅ Fixed: Now uses `nl.public.schedule.roundOrdinal`               |
+| `composables/useAuth.ts`       | 25   | ✅ Already using `nl.auth.loginFailed` as fallback                 |
+| `i18n/nl.ts`                   | 205  | ✅ Fixed: Already has `"Winnende teams"` (was correct)             |
+| `i18n/nl.ts`                   | 208  | ✅ Fixed: Changed from `"Bye"` to `"Vrij lot"`                     |
 
-#### Server-side (87 occurrences):
+#### Server-side (87 occurrences) — ⏳ PENDING:
 
-All `createApiError({ error: "Dutch text" })` calls use hardcoded strings. While server errors are harder to i18n, they should at minimum be constants to prevent inconsistency.
+All `createApiError({ error: "Dutch text" })` calls use hardcoded strings. While server errors are harder to i18n, they should at minimum be constants to prevent inconsistency. This requires:
+1. Create error string constants module
+2. Extract all hardcoded error messages to constants
+3. Update all createApiError calls to reference constants
+
+**Recommended approach:** Create `server/utils/error-messages.ts` with Dutch error strings organized by endpoint/concern.
 
 ---
 
