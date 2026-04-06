@@ -2,7 +2,10 @@
 import { ref, onMounted } from "vue";
 import { nl } from "~/i18n/nl";
 
-definePageMeta({ middleware: ["auth", "admin-tournament-guard"], layout: "admin" });
+definePageMeta({
+  middleware: ["auth", "admin-tournament-guard"],
+  layout: "admin",
+});
 
 interface Field {
   id: string;
@@ -114,9 +117,11 @@ async function generateFields(overwrite = false) {
     generateSuccess.value = `${result.generated} ${nl.admin.fields.generated}`;
     await fetchFields();
   } catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string; code?: number } } };
+    const fetchErr = err as {
+      data?: { data?: { error?: string; code?: number } };
+    };
+    showOverwriteConfirm.value = true;
     if (fetchErr?.data?.data?.code === 409) {
-      showOverwriteConfirm.value = true;
       generateError.value = nl.admin.fields.existingWarning;
     } else {
       generateError.value = fetchErr?.data?.data?.error || nl.common.error;
@@ -139,146 +144,147 @@ onMounted(fetchFields);
         {{ nl.admin.fields.title }}
       </h1>
     </div>
-      <form
-        class="mb-6 flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-sm md:flex-row md:items-end"
-        @submit.prevent="addField"
+    <form
+      class="mb-6 flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-sm md:flex-row md:items-end"
+      @submit.prevent="addField"
+    >
+      <div class="flex-1">
+        <label
+          class="mb-1 block text-sm font-medium text-text"
+          for="field-name"
+          >{{ nl.admin.fields.nameLabel }}</label
+        >
+        <input
+          id="field-name"
+          v-model="newName"
+          type="text"
+          required
+          :placeholder="nl.admin.fields.namePlaceholder"
+          class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+        />
+      </div>
+      <button
+        type="submit"
+        :disabled="loading"
+        class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
       >
+        {{ nl.admin.fields.addButton }}
+      </button>
+    </form>
+
+    <p v-if="error" class="mb-4 text-sm text-error">
+      {{ error }}
+    </p>
+
+    <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+      <h2 class="mb-3 font-semibold text-text">
+        {{ nl.admin.fields.generateTitle }}
+      </h2>
+      <div class="flex flex-col gap-3 md:flex-row md:items-end">
         <div class="flex-1">
           <label
             class="mb-1 block text-sm font-medium text-text"
-            for="field-name"
-            >{{ nl.admin.fields.nameLabel }}</label
+            for="field-count"
+            >{{ nl.admin.fields.countLabel }}</label
           >
           <input
-            id="field-name"
-            v-model="newName"
-            type="text"
-            required
-            :placeholder="nl.admin.fields.namePlaceholder"
+            id="field-count"
+            v-model.number="generateCount"
+            type="number"
+            min="1"
             class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          >
+          />
         </div>
         <button
-          type="submit"
-          :disabled="loading"
+          :disabled="generateLoading"
           class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+          @click="generateFields(false)"
         >
-          {{ nl.admin.fields.addButton }}
+          {{ nl.admin.fields.generateButton }}
         </button>
-      </form>
-
-      <p v-if="error" class="mb-4 text-sm text-error">
-        {{ error }}
+      </div>
+      <p v-if="generateError" class="mt-2 text-sm text-error">
+        {{ generateError }}
       </p>
-
-      <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
-        <h2 class="mb-3 font-semibold text-text">
-          {{ nl.admin.fields.generateTitle }}
-        </h2>
-        <div
-          class="flex flex-col gap-3 md:flex-row md:items-end"
+      <p v-if="generateSuccess" class="mt-2 text-sm text-success">
+        {{ generateSuccess }}
+      </p>
+      <div v-if="showOverwriteConfirm" class="mt-3 flex gap-2">
+        <button
+          class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+          @click="generateFields(true)"
         >
-          <div class="flex-1">
-            <label
-              class="mb-1 block text-sm font-medium text-text"
-              for="field-count"
-              >{{ nl.admin.fields.countLabel }}</label
-            >
+          {{ nl.common.confirm }}
+        </button>
+        <button
+          class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+          @click="
+            showOverwriteConfirm = false;
+            generateError = '';
+          "
+        >
+          {{ nl.common.cancel }}
+        </button>
+      </div>
+    </section>
+
+    <p v-if="isLoading" class="text-text">
+      {{ nl.common.loading }}
+    </p>
+    <ul v-else class="space-y-2">
+      <li
+        v-for="field in fields"
+        :key="field.id"
+        class="flex items-center justify-between rounded-lg bg-surface p-4 shadow-sm"
+      >
+        <template v-if="editingId === field.id">
+          <form
+            class="flex flex-1 items-center gap-2"
+            @submit.prevent="saveEdit"
+          >
             <input
-              id="field-count"
-              v-model.number="generateCount"
-              type="number"
-              min="1"
-              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+              v-model="editingName"
+              type="text"
+              required
+              class="flex-1 rounded border border-gray-300 px-3 py-1 text-text focus:border-primary focus:outline-none"
+            />
+            <button
+              type="submit"
+              :disabled="loading"
+              class="rounded bg-success px-3 py-1 text-sm text-white hover:opacity-80 disabled:opacity-50"
             >
+              {{ nl.common.save }}
+            </button>
+            <button
+              type="button"
+              class="rounded bg-secondary px-3 py-1 text-sm text-white hover:opacity-80"
+              @click="cancelEdit"
+            >
+              {{ nl.common.cancel }}
+            </button>
+          </form>
+        </template>
+        <template v-else>
+          <span class="font-medium text-text">{{ field.name }}</span>
+          <div class="flex gap-2">
+            <button
+              class="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary-dark"
+              @click="startEdit(field)"
+            >
+              {{ nl.common.edit }}
+            </button>
+            <button
+              class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700"
+              @click="deleteField(field)"
+            >
+              {{ nl.common.delete }}
+            </button>
           </div>
-          <button
-            :disabled="generateLoading"
-            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-            @click="generateFields(false)"
-          >
-            {{ nl.admin.fields.generateButton }}
-          </button>
-        </div>
-        <p v-if="generateError" class="mt-2 text-sm text-error">
-          {{ generateError }}
-        </p>
-        <p v-if="generateSuccess" class="mt-2 text-sm text-success">
-          {{ generateSuccess }}
-        </p>
-        <div v-if="showOverwriteConfirm" class="mt-3 flex gap-2">
-          <button
-            class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-            @click="generateFields(true)"
-          >
-            {{ nl.common.confirm }}
-          </button>
-          <button
-            class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
-            @click="showOverwriteConfirm = false; generateError = ''"
-          >
-            {{ nl.common.cancel }}
-          </button>
-        </div>
-      </section>
-
-      <p v-if="isLoading" class="text-text">
-        {{ nl.common.loading }}
-      </p>
-      <ul v-else class="space-y-2">
-        <li
-          v-for="field in fields"
-          :key="field.id"
-          class="flex items-center justify-between rounded-lg bg-surface p-4 shadow-sm"
-        >
-          <template v-if="editingId === field.id">
-            <form
-              class="flex flex-1 items-center gap-2"
-              @submit.prevent="saveEdit"
-            >
-              <input
-                v-model="editingName"
-                type="text"
-                required
-                class="flex-1 rounded border border-gray-300 px-3 py-1 text-text focus:border-primary focus:outline-none"
-              >
-              <button
-                type="submit"
-                :disabled="loading"
-                class="rounded bg-success px-3 py-1 text-sm text-white hover:opacity-80 disabled:opacity-50"
-              >
-                {{ nl.common.save }}
-              </button>
-              <button
-                type="button"
-                class="rounded bg-secondary px-3 py-1 text-sm text-white hover:opacity-80"
-                @click="cancelEdit"
-              >
-                {{ nl.common.cancel }}
-              </button>
-            </form>
-          </template>
-          <template v-else>
-            <span class="font-medium text-text">{{ field.name }}</span>
-            <div class="flex gap-2">
-              <button
-                class="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary-dark"
-                @click="startEdit(field)"
-              >
-                {{ nl.common.edit }}
-              </button>
-              <button
-                class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700"
-                @click="deleteField(field)"
-              >
-                {{ nl.common.delete }}
-              </button>
-            </div>
-          </template>
-        </li>
-        <li v-if="fields.length === 0" class="text-text-light">
-          {{ nl.common.noResults }}
-        </li>
-      </ul>
+        </template>
+      </li>
+      <li v-if="fields.length === 0" class="text-text-light">
+        {{ nl.common.noResults }}
+      </li>
+    </ul>
   </main>
 </template>

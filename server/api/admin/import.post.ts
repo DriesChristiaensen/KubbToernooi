@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   if (!isValidImport(body?.data)) {
     throw createApiError({
       error: "Ongeldig importformaat. Controleer het JSON-bestand.",
-      code: 400,
+      code: "invalid_import_format",
       reason: "Invalid import format",
     });
   }
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
     if (!password) {
       throw createApiError({
         error: "Er zijn al gegevens aanwezig. Voer het admin-wachtwoord in om te bevestigen.",
-        code: 409,
+        code: "existing_data_overwrite_required",
         reason: "Password required to overwrite existing data",
       });
     }
@@ -52,18 +52,18 @@ export default defineEventHandler(async (event) => {
     if (!admin) {
       throw createApiError({
         error: "Admin-account niet gevonden",
-        code: 404,
+        code: "admin_user_not_found",
         reason: "Admin user not found",
       });
     }
     if (!admin.password) {
-      throw createApiError({ error: "Admin-account heeft geen wachtwoord ingesteld", code: 500, reason: "Admin has no password" });
+      throw createApiError({ error: "Admin-account heeft geen wachtwoord ingesteld", code: "admin_no_password", reason: "Admin has no password" });
     }
     const valid = await bcrypt.compare(password, admin.password);
     if (!valid) {
       throw createApiError({
         error: "Onjuist wachtwoord",
-        code: 401,
+        code: "admin_password_invalid",
         reason: "Invalid password",
       });
     }

@@ -7,13 +7,20 @@ const mockReplaceUserSession = vi.hoisted(() => vi.fn())
 const mockCheckRateLimit = vi.hoisted(() => vi.fn())
 const mockResetRateLimitForIp = vi.hoisted(() => vi.fn())
 
+const codeToStatusCode: Record<string, number> = {
+  invalid_input: 400,
+  password_required: 409,
+  invalid_password: 401,
+  rate_limit_exceeded: 429,
+};
+
 vi.stubGlobal('defineEventHandler', (handler: any) => handler)
 vi.stubGlobal('readBody', vi.fn())
 vi.stubGlobal('getRequestIP', vi.fn().mockReturnValue('127.0.0.1'))
 vi.stubGlobal('replaceUserSession', mockReplaceUserSession)
 vi.stubGlobal('createApiError', ({ error, code, reason }: any) => {
   const err = new Error(reason) as any
-  err.statusCode = code
+  err.statusCode = typeof code === 'string' ? (codeToStatusCode[code] ?? 500) : code
   err.data = { error, code, reason, stacktrace: {} }
   return err
 })

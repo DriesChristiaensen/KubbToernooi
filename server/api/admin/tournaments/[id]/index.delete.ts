@@ -4,7 +4,7 @@ import { logRequest } from "~/server/utils/logger";
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) {
-    throw createApiError({ error: "Ongeldig toernooi-ID", code: 400, reason: "Invalid tournament ID" });
+    throw createApiError({ error: "Ongeldig toernooi-ID", code: "invalid_tournament_id", reason: "Invalid tournament ID" });
   }
 
   const tournament = await prisma.tournament.findFirst({ where: { id } });
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (!tournament) {
     throw createApiError({
       error: "Toernooi niet gevonden",
-      code: 404,
+      code: "tournament_not_found",
       reason: "Tournament not found",
     });
   }
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   if (tournament.isActive) {
     throw createApiError({
       error: "Actief toernooi kan niet verwijderd worden",
-      code: 400,
+      code: "invalid_input",
       reason: "Cannot delete active tournament",
     });
   }

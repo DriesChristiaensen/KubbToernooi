@@ -52,12 +52,18 @@ async function ensureAdmin() {
   const adminPassword = await bcrypt.hash("admin!", 12);
   const existing = await prisma.user.findFirst({ where: { role: "ADMIN" } });
   if (!existing) {
-    await prisma.user.create({ data: { name: "Admin", password: adminPassword, role: "ADMIN" } });
+    await prisma.user.create({
+      data: { name: "Admin", password: adminPassword, role: "ADMIN" },
+    });
   }
   console.log("  Admin account ready (password: admin!)");
 }
 
-async function createBase(type: "POOLS" | "KNOCKOUT" | "COMBINATION", name: string, fieldCount: number) {
+async function createBase(
+  type: "POOLS" | "KNOCKOUT" | "COMBINATION",
+  name: string,
+  fieldCount: number,
+) {
   const tournament = await prisma.tournament.create({
     data: {
       name,
@@ -73,12 +79,16 @@ async function createBase(type: "POOLS" | "KNOCKOUT" | "COMBINATION", name: stri
   });
 
   const teams = await Promise.all(
-    TEAM_NAMES.map((n) => prisma.team.create({ data: { name: n, tournamentId: tournament.id } })),
+    TEAM_NAMES.map((n) =>
+      prisma.team.create({ data: { name: n, tournamentId: tournament.id } }),
+    ),
   );
 
   const fields = await Promise.all(
     Array.from({ length: fieldCount }, (_, i) =>
-      prisma.field.create({ data: { name: `Veld ${i + 1}`, tournamentId: tournament.id } }),
+      prisma.field.create({
+        data: { name: `Veld ${i + 1}`, tournamentId: tournament.id },
+      }),
     ),
   );
 
@@ -106,10 +116,14 @@ async function createPools(
     });
 
     await Promise.all(
-      teamSlice.map((t) => prisma.poolTeam.create({ data: { poolId: pool.id, teamId: t.id } })),
+      teamSlice.map((t) =>
+        prisma.poolTeam.create({ data: { poolId: pool.id, teamId: t.id } }),
+      ),
     );
     await Promise.all(
-      teamSlice.map((t) => prisma.standing.create({ data: { poolId: pool.id, teamId: t.id } })),
+      teamSlice.map((t) =>
+        prisma.standing.create({ data: { poolId: pool.id, teamId: t.id } }),
+      ),
     );
 
     const rounds = generateRoundRobin(teamSlice.map((t) => t.id));
@@ -151,7 +165,9 @@ async function seedPool() {
 
   const totalSlots = await createPools(tournament.id, teams, fields, 2, 0);
 
-  console.log(`  Created: 8 teams, 3 velden, 2 poules, ${totalSlots} tijdslots`);
+  console.log(
+    `  Created: 8 teams, 3 velden, 2 poules, ${totalSlots} tijdslots`,
+  );
   console.log("Done: POOL tournament seeded.");
 }
 
@@ -194,7 +210,9 @@ async function seedKo() {
   // Round 2 placeholders: winners of match 1v2 and 3v4 (teams TBD after round 1)
   // Use first two teams as placeholder — admin will generate these after round 1
   console.log("  Created: 8 teams, 4 velden, 4 KO wedstrijden (ronde 1)");
-  console.log("  Ronde 2 en finale worden automatisch aangemaakt na invoer uitslagen.");
+  console.log(
+    "  Ronde 2 en finale worden automatisch aangemaakt na invoer uitslagen.",
+  );
   console.log("Done: KO tournament seeded.");
 }
 
@@ -213,8 +231,12 @@ async function seedCombined() {
 
   const totalSlots = await createPools(tournament.id, teams, fields, 2, 0);
 
-  console.log(`  Created: 8 teams, 3 velden, 2 poules (top 2 door), ${totalSlots} poolwedstrijden`);
-  console.log("  Na de poule-fase: gebruik admin > KO-schema om het KO-bracket te genereren.");
+  console.log(
+    `  Created: 8 teams, 3 velden, 2 poules (top 2 door), ${totalSlots} poolwedstrijden`,
+  );
+  console.log(
+    "  Na de poule-fase: gebruik admin > KO-schema om het KO-bracket te genereren.",
+  );
   console.log("Done: COMBINED tournament seeded.");
 }
 
@@ -265,9 +287,24 @@ async function seedCombinedPoolsPlayed() {
   });
 
   const scores = [
-    [6, 2], [5, 3], [6, 1], [4, 4], [6, 0], [5, 2],
-    [6, 3], [4, 5], [6, 2], [3, 6], [5, 4], [6, 1],
-    [5, 5], [6, 2], [4, 6], [6, 3], [5, 2], [6, 4],
+    [0, 2],
+    [0, 3],
+    [0, 1],
+    [4, 0],
+    [6, 0],
+    [0, 2],
+    [0, 3],
+    [4, 0],
+    [0, 2],
+    [3, 0],
+    [0, 4],
+    [0, 1],
+    [5, 0],
+    [0, 2],
+    [4, 0],
+    [0, 3],
+    [0, 2],
+    [0, 4],
   ];
 
   for (let i = 0; i < poolMatches.length; i++) {
@@ -294,7 +331,9 @@ async function seedCombinedPoolsPlayed() {
     await recalculateStandings(pool.id, tournament);
   }
 
-  console.log("  Created: 8 teams, 3 velden, 2 poules met alle wedstrijden gespeeld");
+  console.log(
+    "  Created: 8 teams, 3 velden, 2 poules met alle wedstrijden gespeeld",
+  );
   console.log("  Gebruik admin > KO-schema om het KO-bracket te genereren.");
   console.log("Done: COMBINED tournament with pools played seeded.");
 }
@@ -321,9 +360,24 @@ async function seedCombinedFinished() {
   });
 
   const poolScores = [
-    [6, 2], [5, 3], [6, 1], [4, 4], [6, 0], [5, 2],
-    [6, 3], [4, 5], [6, 2], [3, 6], [5, 4], [6, 1],
-    [5, 5], [6, 2], [4, 6], [6, 3], [5, 2], [6, 4],
+    [0, 2],
+    [0, 3],
+    [0, 1],
+    [4, 0],
+    [6, 0],
+    [0, 2],
+    [0, 3],
+    [4, 0],
+    [0, 2],
+    [3, 0],
+    [0, 4],
+    [0, 1],
+    [5, 0],
+    [0, 2],
+    [4, 0],
+    [0, 3],
+    [0, 2],
+    [0, 4],
   ];
 
   for (let i = 0; i < poolMatches.length; i++) {
@@ -377,14 +431,14 @@ async function seedCombinedFinished() {
   const qualifiedTeams: string[] = [];
   for (const pool of poolsWithStandings) {
     const top2 = pool.standings.slice(0, 2);
-    qualifiedTeams.push(...top2.map(s => s.teamId));
+    qualifiedTeams.push(...top2.map((s) => s.teamId));
   }
 
   // Create KO bracket: Semi-finals and final
   // Semi 1: Pool A #1 vs Pool B #2
   // Semi 2: Pool B #1 vs Pool A #2
   const koStartSlot = poolSlotsUsed;
-  
+
   const finalMatch = await prisma.match.create({
     data: {
       phase: "KO",
@@ -441,13 +495,18 @@ async function seedCombinedFinished() {
 
   console.log("  Created: 8 teams, 3 velden, 2 poules (volledig gespeeld)");
   console.log("  KO-bracket: 2 halve finales + finale (volledig gespeeld)");
-  console.log(`  Winnaar: ${teams.find(t => t.id === qualifiedTeams[0])?.name}`);
+  console.log(
+    `  Winnaar: ${teams.find((t) => t.id === qualifiedTeams[0])?.name}`,
+  );
   console.log("Done: COMBINED tournament fully finished seeded.");
 }
 
 // ─── UTILITY: RECALCULATE STANDINGS ───────────────────────────────────────────
 
-async function recalculateStandings(poolId: string, tournament: { pointsWin: number; pointsDraw: number; pointsLoss: number }) {
+async function recalculateStandings(
+  poolId: string,
+  tournament: { pointsWin: number; pointsDraw: number; pointsLoss: number },
+) {
   const [poolTeams, playedMatches] = await Promise.all([
     prisma.poolTeam.findMany({ where: { poolId } }),
     prisma.match.findMany({ where: { poolId, status: "PLAYED" } }),
@@ -475,7 +534,10 @@ async function recalculateStandings(poolId: string, tournament: { pointsWin: num
       else lost++;
     }
 
-    const points = won * tournament.pointsWin + drawn * tournament.pointsDraw + lost * tournament.pointsLoss;
+    const points =
+      won * tournament.pointsWin +
+      drawn * tournament.pointsDraw +
+      lost * tournament.pointsLoss;
 
     await prisma.standing.upsert({
       where: { poolId_teamId: { poolId, teamId: pt.teamId } },
@@ -527,7 +589,9 @@ const runners: Record<string, () => Promise<void>> = {
 
 const run = runners[type];
 if (!run) {
-  console.error(`Unknown seed type: "${type}". Use: pool | ko | combined | combined-pools-played | combined-finished | empty | clear`);
+  console.error(
+    `Unknown seed type: "${type}". Use: pool | ko | combined | combined-pools-played | combined-finished | empty | clear`,
+  );
   process.exit(1);
 }
 

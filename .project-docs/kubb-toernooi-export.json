@@ -1,0 +1,434 @@
+{
+  "tournament": {
+    "id": 2,
+    "name": "Kubb Toernooi",
+    "status": "LIVE",
+    "type": "COMBINATION",
+    "startTime": "2025-08-15T09:00:00.000Z",
+    "matchDuration": 20,
+    "breakTime": 5,
+    "pointsWin": 3,
+    "pointsDraw": 1,
+    "pointsLoss": 0,
+    "createdAt": "2026-03-30T21:19:09.506Z",
+    "updatedAt": "2026-04-02T19:13:06.733Z"
+  },
+  "teams": [
+    {
+      "id": 10,
+      "name": "A",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:05.270Z",
+      "updatedAt": "2026-04-02T19:11:05.270Z"
+    },
+    {
+      "id": 11,
+      "name": "B",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:05.270Z",
+      "updatedAt": "2026-04-02T19:11:05.270Z"
+    },
+    {
+      "id": 12,
+      "name": "C",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:05.270Z",
+      "updatedAt": "2026-04-02T19:11:05.270Z"
+    },
+    {
+      "id": 13,
+      "name": "D",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:05.270Z",
+      "updatedAt": "2026-04-02T19:11:05.270Z"
+    },
+    {
+      "id": 14,
+      "name": "E",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:05.270Z",
+      "updatedAt": "2026-04-02T19:11:05.270Z"
+    },
+    {
+      "id": 15,
+      "name": "F",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:05.270Z",
+      "updatedAt": "2026-04-02T19:11:05.270Z"
+    },
+    {
+      "id": 16,
+      "name": "G",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:05.270Z",
+      "updatedAt": "2026-04-02T19:11:05.270Z"
+    },
+    {
+      "id": 17,
+      "name": "H",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:05.270Z",
+      "updatedAt": "2026-04-02T19:11:05.270Z"
+    }
+  ],
+  "fields": [
+    {
+      "id": 5,
+      "name": "Veld 1",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:14.698Z",
+      "updatedAt": "2026-04-02T19:11:14.698Z"
+    },
+    {
+      "id": 6,
+      "name": "Veld 2",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:14.698Z",
+      "updatedAt": "2026-04-02T19:11:14.698Z"
+    },
+    {
+      "id": 7,
+      "name": "Veld 3",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:14.698Z",
+      "updatedAt": "2026-04-02T19:11:14.698Z"
+    },
+    {
+      "id": 8,
+      "name": "Veld 4",
+      "tournamentId": 2,
+      "createdAt": "2026-04-02T19:11:14.698Z",
+      "updatedAt": "2026-04-02T19:11:14.698Z"
+    }
+  ],
+  "pools": [
+    {
+      "id": 16,
+      "name": "Poule B",
+      "tournamentId": 2,
+      "teamsAdvancing": 2,
+      "createdAt": "2026-04-02T19:11:20.101Z",
+      "updatedAt": "2026-04-02T19:11:20.101Z",
+      "poolTeams": [
+        {
+          "id": 40,
+          "poolId": 16,
+          "teamId": 11
+        },
+        {
+          "id": 41,
+          "poolId": 16,
+          "teamId": 14
+        },
+        {
+          "id": 42,
+          "poolId": 16,
+          "teamId": 13
+        },
+        {
+          "id": 43,
+          "poolId": 16,
+          "teamId": 16
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Poule A",
+      "tournamentId": 2,
+      "teamsAdvancing": 2,
+      "createdAt": "2026-04-02T19:11:20.097Z",
+      "updatedAt": "2026-04-02T19:11:24.177Z",
+      "poolTeams": [
+        {
+          "id": 36,
+          "poolId": 15,
+          "teamId": 10
+        },
+        {
+          "id": 37,
+          "poolId": 15,
+          "teamId": 15
+        },
+        {
+          "id": 38,
+          "poolId": 15,
+          "teamId": 12
+        },
+        {
+          "id": 39,
+          "poolId": 15,
+          "teamId": 17
+        }
+      ]
+    }
+  ],
+  "matches": [
+    {
+      "id": 15,
+      "phase": "POOL",
+      "round": 1,
+      "startTime": "2026-04-23T13:10:00.000Z",
+      "fieldId": 5,
+      "poolId": 16,
+      "teamAId": 11,
+      "teamBId": 16,
+      "scoreA": 2,
+      "scoreB": 0,
+      "status": "PLAYED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:12:45.032Z"
+    },
+    {
+      "id": 16,
+      "phase": "POOL",
+      "round": 1,
+      "startTime": "2026-04-23T13:10:00.000Z",
+      "fieldId": 6,
+      "poolId": 16,
+      "teamAId": 14,
+      "teamBId": 13,
+      "scoreA": null,
+      "scoreB": null,
+      "status": "SCHEDULED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:11:49.834Z"
+    },
+    {
+      "id": 17,
+      "phase": "POOL",
+      "round": 1,
+      "startTime": "2026-04-23T13:10:00.000Z",
+      "fieldId": 7,
+      "poolId": 15,
+      "teamAId": 10,
+      "teamBId": 17,
+      "scoreA": null,
+      "scoreB": null,
+      "status": "SCHEDULED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:11:49.834Z"
+    },
+    {
+      "id": 18,
+      "phase": "POOL",
+      "round": 1,
+      "startTime": "2026-04-23T13:10:00.000Z",
+      "fieldId": 8,
+      "poolId": 15,
+      "teamAId": 15,
+      "teamBId": 12,
+      "scoreA": null,
+      "scoreB": null,
+      "status": "SCHEDULED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:11:49.834Z"
+    },
+    {
+      "id": 19,
+      "phase": "POOL",
+      "round": 2,
+      "startTime": "2026-04-23T13:35:00.000Z",
+      "fieldId": 5,
+      "poolId": 16,
+      "teamAId": 11,
+      "teamBId": 13,
+      "scoreA": null,
+      "scoreB": null,
+      "status": "SCHEDULED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:11:49.834Z"
+    },
+    {
+      "id": 20,
+      "phase": "POOL",
+      "round": 2,
+      "startTime": "2026-04-23T13:35:00.000Z",
+      "fieldId": 6,
+      "poolId": 16,
+      "teamAId": 16,
+      "teamBId": 14,
+      "scoreA": null,
+      "scoreB": null,
+      "status": "SCHEDULED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:11:49.834Z"
+    },
+    {
+      "id": 21,
+      "phase": "POOL",
+      "round": 2,
+      "startTime": "2026-04-23T13:35:00.000Z",
+      "fieldId": 7,
+      "poolId": 15,
+      "teamAId": 10,
+      "teamBId": 12,
+      "scoreA": null,
+      "scoreB": null,
+      "status": "SCHEDULED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:11:49.834Z"
+    },
+    {
+      "id": 22,
+      "phase": "POOL",
+      "round": 2,
+      "startTime": "2026-04-23T13:35:00.000Z",
+      "fieldId": 8,
+      "poolId": 15,
+      "teamAId": 17,
+      "teamBId": 15,
+      "scoreA": null,
+      "scoreB": null,
+      "status": "SCHEDULED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:11:49.834Z"
+    },
+    {
+      "id": 23,
+      "phase": "POOL",
+      "round": 3,
+      "startTime": "2026-04-23T14:00:00.000Z",
+      "fieldId": 5,
+      "poolId": 16,
+      "teamAId": 11,
+      "teamBId": 14,
+      "scoreA": null,
+      "scoreB": null,
+      "status": "SCHEDULED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:11:49.834Z"
+    },
+    {
+      "id": 24,
+      "phase": "POOL",
+      "round": 3,
+      "startTime": "2026-04-23T14:00:00.000Z",
+      "fieldId": 6,
+      "poolId": 16,
+      "teamAId": 13,
+      "teamBId": 16,
+      "scoreA": null,
+      "scoreB": null,
+      "status": "SCHEDULED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:11:49.834Z"
+    },
+    {
+      "id": 25,
+      "phase": "POOL",
+      "round": 3,
+      "startTime": "2026-04-23T14:00:00.000Z",
+      "fieldId": 7,
+      "poolId": 15,
+      "teamAId": 10,
+      "teamBId": 15,
+      "scoreA": null,
+      "scoreB": null,
+      "status": "SCHEDULED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:11:49.834Z"
+    },
+    {
+      "id": 26,
+      "phase": "POOL",
+      "round": 3,
+      "startTime": "2026-04-23T14:00:00.000Z",
+      "fieldId": 8,
+      "poolId": 15,
+      "teamAId": 12,
+      "teamBId": 17,
+      "scoreA": null,
+      "scoreB": null,
+      "status": "SCHEDULED",
+      "koWinnerId": null,
+      "nextMatchId": null,
+      "createdAt": "2026-04-02T19:11:49.834Z",
+      "updatedAt": "2026-04-02T19:11:49.834Z"
+    }
+  ],
+  "standings": [
+    {
+      "id": 9,
+      "poolId": 16,
+      "teamId": 11,
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 2,
+      "goalsAgainst": 0,
+      "goalDifference": 2,
+      "points": 3,
+      "createdAt": "2026-04-02T19:12:40.614Z",
+      "updatedAt": "2026-04-02T19:12:45.037Z"
+    },
+    {
+      "id": 10,
+      "poolId": 16,
+      "teamId": 14,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0,
+      "createdAt": "2026-04-02T19:12:40.617Z",
+      "updatedAt": "2026-04-02T19:12:45.039Z"
+    },
+    {
+      "id": 11,
+      "poolId": 16,
+      "teamId": 13,
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 0,
+      "goalsAgainst": 0,
+      "goalDifference": 0,
+      "points": 0,
+      "createdAt": "2026-04-02T19:12:40.619Z",
+      "updatedAt": "2026-04-02T19:12:45.041Z"
+    },
+    {
+      "id": 12,
+      "poolId": 16,
+      "teamId": 16,
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "goalsFor": 0,
+      "goalsAgainst": 2,
+      "goalDifference": -2,
+      "points": 0,
+      "createdAt": "2026-04-02T19:12:40.621Z",
+      "updatedAt": "2026-04-02T19:12:45.043Z"
+    }
+  ]
+}

@@ -11,7 +11,6 @@ const codeToStatusCode: Record<string, number> = {
   invalid_input: 400,
   invalid_tournament_type: 400,
   invalid_tournament_id: 400,
-  invalid_input: 400,
   tournament_name_exists: 409,
   not_enough_fields: 400,
   tournament_not_found: 404,

@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   if (!query.matchId) {
     throw createApiError({
       error: "matchId is verplicht",
-      code: 400,
+      code: "invalid_match_id",
       reason: "matchId is required",
     });
   }
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   if (query.startTime) {
     const parsed = new Date(query.startTime as string);
     if (isNaN(parsed.getTime())) {
-      throw createApiError({ error: "Ongeldig tijdstip", code: 400, reason: "startTime is not a valid date" });
+      throw createApiError({ error: "Ongeldig tijdstip", code: "invalid_date", reason: "startTime is not a valid date" });
     }
     proposedStartTime = parsed;
   }
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   if (!match) {
     throw createApiError({
       error: "Wedstrijd niet gevonden",
-      code: 404,
+      code: "match_not_found",
       reason: "Match not found",
     });
   }

@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   if (!checkRateLimit(ip)) {
     throw createApiError({
       error: 'Te veel inlogpogingen. Probeer het later opnieuw.',
-      code: 429,
+      code: 'rate_limit_exceeded',
       reason: 'Too many login attempts',
     })
   }
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   if (!body?.password) {
     throw createApiError({
       error: 'Wachtwoord is verplicht',
-      code: 400,
+      code: 'invalid_input',
       reason: 'Missing password field',
     })
   }
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     logRequest(event, 'error', 'User not found')
     throw createApiError({
       error: 'Inloggen mislukt. Controleer je gegevens.',
-      code: 401,
+      code: 'invalid_password',
       reason: 'Invalid credentials',
     })
   }
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
     if (body.setPassword) {
       throw createApiError({
         error: 'Wachtwoord is al ingesteld.',
-        code: 409,
+        code: 'password_required',
         reason: 'Password already set',
       })
     }
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
       logRequest(event, 'error', 'Invalid password')
       throw createApiError({
         error: 'Inloggen mislukt. Controleer je gegevens.',
-        code: 401,
+        code: 'invalid_password',
         reason: 'Invalid credentials',
       })
     }

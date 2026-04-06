@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   if (!body?.password) {
     throw createApiError({
       error: 'Wachtwoord is verplicht',
-      code: 400,
+      code: 'invalid_input',
       reason: 'Missing password',
     })
   }
@@ -20,26 +20,26 @@ export default defineEventHandler(async (event) => {
   catch {
     throw createApiError({
       error: 'Database niet bereikbaar',
-      code: 503,
+      code: 'database_unavailable',
       reason: 'Database unavailable',
     })
   }
   if (!admin) {
     throw createApiError({
       error: 'Admin-account niet gevonden',
-      code: 404,
+      code: 'admin_user_not_found',
       reason: 'Admin not found',
     })
   }
 
   if (!admin.password) {
-    throw createApiError({ error: 'Admin-account heeft geen wachtwoord ingesteld', code: 500, reason: 'Admin has no password' })
+    throw createApiError({ error: 'Admin-account heeft geen wachtwoord ingesteld', code: 'admin_no_password', reason: 'Admin has no password' })
   }
   const valid = await bcrypt.compare(body.password, admin.password)
   if (!valid) {
     throw createApiError({
       error: 'Ongeldig wachtwoord',
-      code: 401,
+      code: 'admin_password_invalid',
       reason: 'Invalid password',
     })
   }

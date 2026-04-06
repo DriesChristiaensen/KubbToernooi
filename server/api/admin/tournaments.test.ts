@@ -6,11 +6,17 @@ const mockTournamentUpdateMany = vi.hoisted(() => vi.fn());
 const mockTournamentUpdate = vi.hoisted(() => vi.fn());
 const mockTournamentDelete = vi.hoisted(() => vi.fn());
 
+const codeToStatusCode: Record<string, number> = {
+  invalid_tournament_id: 400,
+  tournament_not_found: 404,
+  invalid_input: 400,
+};
+
 vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("getRouterParam", vi.fn());
 vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
   const err = new Error(reason) as any;
-  err.statusCode = code;
+  err.statusCode = typeof code === "string" ? (codeToStatusCode[code] ?? 500) : code;
   err.data = { error, code, reason, stacktrace: {} };
   return err;
 });

@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   if (existingCount > 0 && !overwrite) {
     throw createApiError({
       error: "Er is al een KO-schema. Gebruik overwrite om te vervangen.",
-      code: 409,
+      code: "ko_matches_exist",
       reason: "KO matches already exist",
     });
   }
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   if (fields.length === 0) {
     throw createApiError({
       error: "Geen velden beschikbaar voor KO-wedstrijden",
-      code: 400,
+      code: "no_fields_available",
       reason: "No fields available for KO matches",
     });
   }
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
     if (teams.length < 2) {
       throw createApiError({
         error: "Niet genoeg teams om KO-schema te genereren",
-        code: 400,
+        code: "not_enough_teams_ko",
         reason: "Not enough teams to generate KO bracket",
       });
     }
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
     if (pools.length === 0) {
       throw createApiError({
         error: "Niet genoeg poule-standen om KO-schema te genereren",
-        code: 400,
+        code: "not_enough_standings_ko",
         reason: "Not enough standings to generate KO bracket",
       });
     }
@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
     if (participantCount < 2) {
       throw createApiError({
         error: "Niet genoeg poule-standen om KO-schema te genereren",
-        code: 400,
+        code: "not_enough_standings_ko",
         reason: "Not enough standings to generate KO bracket",
       });
     }

@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   if (!body?.matchAId || !body?.matchBId) {
     throw createApiError({
       error: "matchAId en matchBId zijn verplicht",
-      code: 400,
+      code: "invalid_match_id",
       reason: "matchAId and matchBId are required",
     });
   }
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   if (matches.length < 2) {
     throw createApiError({
       error: "Een of beide wedstrijden niet gevonden",
-      code: 404,
+      code: "match_not_found",
       reason: "One or both matches not found",
     });
   }

@@ -42,6 +42,12 @@ const codeToStatusCode: Record<string, number> = {
   // 401 Unauthorized
   admin_password_invalid: 401,
 
+  // 403 Forbidden
+  unauthorized: 403,
+
+  // 429 Too Many Requests
+  rate_limit_exceeded: 429,
+
   // 404 Not Found
   tournament_not_found: 404,
   pool_not_found: 404,
@@ -63,6 +69,9 @@ const codeToStatusCode: Record<string, number> = {
   // 500 Internal Server Error
   admin_no_password: 500,
   unexpected_error: 500,
+
+  // 503 Service Unavailable
+  database_unavailable: 503,
 }
 
 interface ApiErrorOptions {

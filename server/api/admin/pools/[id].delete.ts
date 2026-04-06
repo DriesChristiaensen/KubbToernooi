@@ -6,14 +6,14 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createApiError({
       error: "Ongeldig poule-ID",
-      code: 400,
+      code: "invalid_pool_id",
       reason: "Invalid pool ID",
     });
   }
 
   const pool = await prisma.pool.findFirst({ where: { id } });
   if (!pool) {
-    throw createApiError({ error: "Poule niet gevonden", code: 404, reason: "Pool not found" });
+    throw createApiError({ error: "Poule niet gevonden", code: "pool_not_found", reason: "Pool not found" });
   }
 
   await prisma.pool.delete({ where: { id } });

@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
   if (koMatches.length === 0) {
     throw createApiError({
       error: "Genereer eerst het KO-schema (stap 1) voor je teams invult",
-      code: 400,
+      code: "no_ko_matches",
       reason: "No KO matches exist to fill teams into",
     });
   }
@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
     if (teams.length < 2) {
       throw createApiError({
         error: "Niet genoeg teams",
-        code: 400,
+        code: "not_enough_teams_ko",
         reason: "Not enough teams",
       });
     }
@@ -79,7 +79,7 @@ export default defineEventHandler(async (event) => {
     if (pools.length === 0) {
       throw createApiError({
         error: "Niet genoeg poule-standen",
-        code: 400,
+        code: "not_enough_standings_ko",
         reason: "Not enough standings to fill teams",
       });
     }
@@ -93,7 +93,7 @@ export default defineEventHandler(async (event) => {
     if (participants.length < 2) {
       throw createApiError({
         error: "Niet genoeg poule-standen",
-        code: 400,
+        code: "not_enough_standings_ko",
         reason: "Not enough standings to fill teams",
       });
     }

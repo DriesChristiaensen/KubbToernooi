@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
   if (existingCount > 0 && !overwrite) {
     throw createApiError({
       error: "Er zijn al wedstrijden gegenereerd. Gebruik overwrite om opnieuw te genereren.",
-      code: 409,
+      code: "matches_exist",
       reason: "Matches already exist. Use overwrite:true to regenerate.",
     });
   }
@@ -80,7 +80,7 @@ export default defineEventHandler(async (event) => {
   if (pools.length === 0) {
     throw createApiError({
       error: "Geen poules gevonden om een schema te genereren",
-      code: 400,
+      code: "no_pools",
       reason: "No pools exist to generate schedule from",
     });
   }
@@ -88,7 +88,7 @@ export default defineEventHandler(async (event) => {
   if (fields.length === 0) {
     throw createApiError({
       error: "Geen velden gevonden om wedstrijden aan toe te wijzen",
-      code: 400,
+      code: "no_fields",
       reason: "No fields exist to assign matches to",
     });
   }

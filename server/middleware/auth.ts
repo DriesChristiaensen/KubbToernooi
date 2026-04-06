@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
     if (!session.user || session.user.role !== 'ADMIN') {
       throw createApiError({
         error: 'Toegang geweigerd',
-        code: 403,
+        code: 'unauthorized',
         reason: 'Admin role required',
       })
     }
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     if (!session.user || !['ADMIN', 'REFEREE'].includes(session.user.role)) {
       throw createApiError({
         error: 'Toegang geweigerd',
-        code: 403,
+        code: 'unauthorized',
         reason: 'Referee or Admin role required',
       })
     }

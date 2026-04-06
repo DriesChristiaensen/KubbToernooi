@@ -5,9 +5,14 @@ const mockMatchUpdate = vi.hoisted(() => vi.fn());
 
 vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("readBody", vi.fn());
+const codeToStatusCode: Record<string, number> = {
+  invalid_match_id: 400,
+  match_not_found: 404,
+};
+
 vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
   const err = new Error(reason) as any;
-  err.statusCode = code;
+  err.statusCode = typeof code === "string" ? (codeToStatusCode[code] ?? 500) : code;
   err.data = { error, code, reason, stacktrace: {} };
   return err;
 });

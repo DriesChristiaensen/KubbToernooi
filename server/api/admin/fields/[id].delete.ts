@@ -7,14 +7,14 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createApiError({
       error: "Ongeldig ID",
-      code: 400,
+      code: "invalid_field_id",
       reason: "Invalid field ID",
     });
   }
 
   const field = await prisma.field.findFirst({ where: { id } });
   if (!field) {
-    throw createApiError({ error: "Veld niet gevonden", code: 404, reason: "Field not found" });
+    throw createApiError({ error: "Veld niet gevonden", code: "field_not_found", reason: "Field not found" });
   }
 
   await prisma.field.delete({ where: { id } });

@@ -9,7 +9,7 @@ export async function getActiveTournament() {
   if (!tournament) {
     throw createApiError({
       error: "Geen toernooi gevonden. Maak eerst een toernooi aan.",
-      code: 404,
+      code: "tournament_not_found",
       reason: "No tournament found",
     });
   }

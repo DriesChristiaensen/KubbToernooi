@@ -2,11 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockGetUserSession = vi.hoisted(() => vi.fn())
 
+const codeToStatusCode: Record<string, number> = {
+  unauthorized: 403,
+};
+
 vi.stubGlobal('getUserSession', mockGetUserSession)
 vi.stubGlobal('getRequestURL', (event: any) => new URL(event._url))
 vi.stubGlobal('createApiError', ({ error, code, reason }: any) => {
   const err = new Error(reason) as any
-  err.statusCode = code
+  err.statusCode = typeof code === 'string' ? (codeToStatusCode[code] ?? 500) : code
   err.data = { error, code, reason, stacktrace: {} }
   return err
 })

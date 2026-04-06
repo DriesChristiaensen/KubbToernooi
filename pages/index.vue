@@ -184,7 +184,8 @@ const showKoTab = computed(
 
 const mainTabs = computed(() => {
   const tabs: { key: "pool" | "ko" | "eindstand"; label: string }[] = [];
-  if (showEindstand.value) tabs.push({ key: "eindstand", label: s.tabEindstand });
+  if (showEindstand.value)
+    tabs.push({ key: "eindstand", label: s.tabEindstand });
   if (showPoolTab.value) tabs.push({ key: "pool", label: s.tabPool });
   if (showKoTab.value) tabs.push({ key: "ko", label: s.tabKo });
   return tabs;
@@ -327,14 +328,20 @@ function headToHeadSort(group: Standing[], h2hMatches: Match[]): Standing[] {
   const ids = new Set(group.map((s) => s.teamId));
   const pts: Record<string, number> = {};
   const gd: Record<string, number> = {};
-  for (const st of group) { pts[st.teamId] = 0; gd[st.teamId] = 0; }
+  for (const st of group) {
+    pts[st.teamId] = 0;
+    gd[st.teamId] = 0;
+  }
   for (const m of h2hMatches) {
-    if (m.status !== "PLAYED" || m.scoreA === null || m.scoreB === null) continue;
+    if (m.status !== "PLAYED" || m.scoreA === null || m.scoreB === null)
+      continue;
     if (!ids.has(m.teamA.id) || !ids.has(m.teamB.id)) continue;
     const diff = m.scoreA - m.scoreB;
     if (diff > 0) pts[m.teamA.id] += 3;
-    else if (diff === 0) { pts[m.teamA.id] += 1; pts[m.teamB.id] += 1; }
-    else pts[m.teamB.id] += 3;
+    else if (diff === 0) {
+      pts[m.teamA.id] += 1;
+      pts[m.teamB.id] += 1;
+    } else pts[m.teamB.id] += 3;
     gd[m.teamA.id] += diff;
     gd[m.teamB.id] -= diff;
   }
@@ -362,9 +369,12 @@ const overallRanking = computed(() => {
       base[j].points === base[i].points &&
       base[j].goalDifference === base[i].goalDifference &&
       base[j].won === base[i].won
-    ) j++;
+    )
+      j++;
     const group = base.slice(i, j);
-    result.push(...(group.length > 1 ? headToHeadSort(group, poolMatches.value) : group));
+    result.push(
+      ...(group.length > 1 ? headToHeadSort(group, poolMatches.value) : group),
+    );
     i = j;
   }
   return result;
@@ -400,7 +410,7 @@ const koFinalMatch = computed(() => {
         </div>
         <div
           v-else-if="mainTabs.length > 1"
-          class="mb-3 inline-flex overflow-hidden rounded border border-gray-300"
+          class="mb-3 inline-flex overflow-hidden rounded border border-gray-300 mr-2"
         >
           <button
             v-for="(tab, idx) in mainTabs"
@@ -456,6 +466,38 @@ const koFinalMatch = computed(() => {
             </button>
           </div>
 
+          <!-- Favourite team filter -->
+          <div
+            class="inline-flex items-center justify-self-end gap-2 float-end"
+          >
+            <template v-if="favTeamName">
+              <button
+                :class="
+                  myTeamOnly
+                    ? 'bg-fav text-white'
+                    : 'border border-fav-border text-fav-text hover:bg-fav-light'
+                "
+                class="rounded px-3 py-1.5 text-sm"
+                @click="myTeamOnly = !myTeamOnly"
+              >
+                {{ s.myTeam }}: {{ favTeamName }}
+              </button>
+              <button
+                class="text-sm text-text-light underline"
+                @click="clearFavTeam"
+              >
+                {{ s.clearTeam }}
+              </button>
+            </template>
+            <button
+              v-else
+              class="rounded border border-gray-300 px-3 py-1.5 text-sm text-text-light hover:bg-background"
+              @click="showTeamPicker = true"
+            >
+              {{ s.chooseTeam }}
+            </button>
+          </div>
+
           <!-- Row 3: Filter row (only when Matches sub-tab is active) -->
           <div
             v-if="activeMainTab !== 'eindstand' && activeSubTab === 'matches'"
@@ -478,36 +520,6 @@ const koFinalMatch = computed(() => {
                 @click="statusFilter = opt.key"
               >
                 {{ opt.label }}
-              </button>
-            </div>
-
-            <!-- Favourite team filter -->
-            <div class="flex items-center gap-2">
-              <template v-if="favTeamName">
-                <button
-                  :class="
-                    myTeamOnly
-                      ? 'bg-fav text-white'
-                      : 'border border-fav-border text-fav-text hover:bg-fav-light'
-                  "
-                  class="rounded px-3 py-1.5 text-sm"
-                  @click="myTeamOnly = !myTeamOnly"
-                >
-                  {{ s.myTeam }}: {{ favTeamName }}
-                </button>
-                <button
-                  class="text-sm text-text-light underline"
-                  @click="clearFavTeam"
-                >
-                  {{ s.clearTeam }}
-                </button>
-              </template>
-              <button
-                v-else
-                class="rounded border border-gray-300 px-3 py-1.5 text-sm text-text-light hover:bg-background"
-                @click="showTeamPicker = true"
-              >
-                {{ s.chooseTeam }}
               </button>
             </div>
           </div>
@@ -836,7 +848,8 @@ const koFinalMatch = computed(() => {
             <template
               v-if="
                 tournamentType === 'KNOCKOUT' ||
-                (tournamentType === 'COMBINATION' && activeEindstandSub === 'ko')
+                (tournamentType === 'COMBINATION' &&
+                  activeEindstandSub === 'ko')
               "
             >
               <!-- Winner card -->
@@ -865,10 +878,7 @@ const koFinalMatch = computed(() => {
                 {{ nl.common.noResults }}
               </p>
               <div v-else class="overflow-x-auto">
-                <div
-                  class="flex flex-row gap-4"
-                  style="min-width: max-content"
-                >
+                <div class="flex flex-row gap-4" style="min-width: max-content">
                   <div
                     v-for="(group, colIdx) in koRounds"
                     :key="group.round"
@@ -995,7 +1005,8 @@ const koFinalMatch = computed(() => {
             <!-- Pool standings grouped per pool (COMBINATION+pool sub-tab) -->
             <template
               v-if="
-                tournamentType === 'COMBINATION' && activeEindstandSub === 'pool'
+                tournamentType === 'COMBINATION' &&
+                activeEindstandSub === 'pool'
               "
             >
               <div v-for="pool in standings" :key="pool.id" class="mb-6">
@@ -1008,39 +1019,25 @@ const koFinalMatch = computed(() => {
                   <table class="w-full text-sm">
                     <thead class="border-b border-gray-200 bg-gray-50">
                       <tr>
-                        <th
-                          class="px-3 py-2 text-left font-medium text-text"
-                        >
+                        <th class="px-3 py-2 text-left font-medium text-text">
                           {{ nl.public.standings.team }}
                         </th>
-                        <th
-                          class="px-2 py-2 text-center font-medium text-text"
-                        >
+                        <th class="px-2 py-2 text-center font-medium text-text">
                           {{ nl.public.standings.played }}
                         </th>
-                        <th
-                          class="px-2 py-2 text-center font-medium text-text"
-                        >
+                        <th class="px-2 py-2 text-center font-medium text-text">
                           {{ nl.public.standings.won }}
                         </th>
-                        <th
-                          class="px-2 py-2 text-center font-medium text-text"
-                        >
+                        <th class="px-2 py-2 text-center font-medium text-text">
                           {{ nl.public.standings.drawn }}
                         </th>
-                        <th
-                          class="px-2 py-2 text-center font-medium text-text"
-                        >
+                        <th class="px-2 py-2 text-center font-medium text-text">
                           {{ nl.public.standings.lost }}
                         </th>
-                        <th
-                          class="px-2 py-2 text-center font-medium text-text"
-                        >
+                        <th class="px-2 py-2 text-center font-medium text-text">
                           {{ nl.public.standings.goalDifference }}
                         </th>
-                        <th
-                          class="px-2 py-2 text-center font-medium text-text"
-                        >
+                        <th class="px-2 py-2 text-center font-medium text-text">
                           {{ nl.public.standings.points }}
                         </th>
                       </tr>
@@ -1091,8 +1088,7 @@ const koFinalMatch = computed(() => {
                   </table>
                 </div>
               </div>
-            </template>
-          </template
+            </template> </template
           ><!-- end eindstand v-if --> </template
         ><!-- end currentTabScheduleIsLive v-else --> </template
       ><!-- end tournamentType v-else --> </template
