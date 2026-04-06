@@ -145,41 +145,39 @@ Database schema synchronized with Prisma migration.
 
 ---
 
-### H5. HTTP status codes all default to 200 — ✅ DONE
+### H5. HTTP status codes all default to 200
 
 **AC violated:** #9.1 HTTP Methods & Status Codes
 
-**Status:** COMPLETED. Added proper HTTP status codes:
-- 11 POST-create endpoints now return 201 Created
-- 5 DELETE endpoints now return 204 No Content
+Zero uses of `setResponseStatus()` across the entire API. All POST-create endpoints return 200 instead of 201. All DELETE endpoints return `{ success: true }` with 200 instead of 204.
 
-Test mocks updated to stub `setResponseStatus`. DELETE endpoints now return `null` with 204 status (no response body for DELETE operations per REST standards).
+**Affected:**
+
+- 11 POST-create endpoints (should be 201)
+- 6 DELETE endpoints (should be 204)
+
+**Fix:** Add `setResponseStatus(event, 201)` / `setResponseStatus(event, 204)` respectively.
 
 ---
 
-### H6. JSDoc missing on all API endpoints and utility functions — ✅ DONE
+### H6. JSDoc missing on all API endpoints and utility functions
 
 **AC violated:** #1.2 JSDoc/Type Documentation
 
-**Status:** COMPLETED. All 52 functions/endpoints documented:
-- 45 API endpoints (POST, PUT, PATCH, DELETE, GET)
-- 5 server utilities (tournament.ts, errors.ts, standings.ts, rate-limit.ts, logger.ts)
-- 2 composables (useAuth.ts, usePolling.ts)
+All 36 API endpoints, all 5 server utilities, both composables, and the datetime util have zero JSDoc. The acceptance criteria require documenting parameters, return type, and errors on every API route, complex composable, and utility function.
 
-**Pattern established and applied:**
+**Fix:** Add JSDoc to every API handler and utility function. Example:
+
 ```ts
 /**
- * [Action] [Resource description].
- * [Additional context if needed].
- * @param {type} param - Description (constraints if any)
- * @returns {Type} Returned object/array
- * @throws {400} If validation fails
- * @throws {404} If resource not found
- * @throws {409} If conflict (duplicate, etc)
+ * Create a new tournament and deactivate any existing active tournament.
+ * @param body.name - Tournament name (unique)
+ * @param body.type - POOLS | KNOCKOUT | COMBINATION
+ * @returns Created Tournament object
+ * @throws 400 if name empty or matchDuration < 1
+ * @throws 409 if name already exists
  */
 ```
-
-All functions now have complete JSDoc with parameter types, return types, error conditions, and contextual explanations.
 
 ---
 
