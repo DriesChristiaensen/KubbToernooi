@@ -335,6 +335,7 @@ onMounted(async () => {
                 :is24="true"
                 auto-apply
                 :locale="nlBE"
+                :disabled="createLoading"
                 @closed="touched.startTime = true"
               />
             </ClientOnly>
@@ -350,7 +351,8 @@ onMounted(async () => {
                 v-model.number="form.matchDuration"
                 type="number"
                 min="1"
-                class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+                :disabled="createLoading"
+                class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none disabled:opacity-50"
                 @blur="touched.matchDuration = true"
               >
               <p v-if="touched.matchDuration && form.matchDuration < 1" class="mt-1 text-xs text-error">{{ nl.admin.tournament.matchDurationRequired }}</p>
@@ -363,7 +365,8 @@ onMounted(async () => {
                 v-model.number="form.breakTime"
                 type="number"
                 min="0"
-                class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+                :disabled="createLoading"
+                class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none disabled:opacity-50"
                 @blur="touched.breakTime = true"
               >
               <p v-if="touched.breakTime && !breakTimeValid" class="mt-1 text-xs text-error">{{ nl.admin.tournament.breakTimeInvalid }}</p>
@@ -373,15 +376,15 @@ onMounted(async () => {
           <div class="mb-4 grid gap-3 md:grid-cols-3">
             <div>
               <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.tournament.pointsWin }}</label>
-              <input v-model.number="form.pointsWin" type="number" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
+              <input v-model.number="form.pointsWin" type="number" :disabled="createLoading" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none disabled:opacity-50">
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.tournament.pointsDraw }}</label>
-              <input v-model.number="form.pointsDraw" type="number" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
+              <input v-model.number="form.pointsDraw" type="number" :disabled="createLoading" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none disabled:opacity-50">
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.tournament.pointsLoss }}</label>
-              <input v-model.number="form.pointsLoss" type="number" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none">
+              <input v-model.number="form.pointsLoss" type="number" :disabled="createLoading" class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none disabled:opacity-50">
             </div>
           </div>
 
@@ -412,7 +415,9 @@ onMounted(async () => {
               v-model.number="form.fieldCount"
               type="number"
               min="1"
-              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+              required
+              :disabled="createLoading"
+              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none disabled:opacity-50"
             >
           </div>
 

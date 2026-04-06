@@ -148,7 +148,7 @@ async function saveAssignment() {
   assignSuccess.value = "";
   assignLoading.value = true;
   try {
-    await $fetch(`/api/admin/pools/${editingPool.value.id}` as string, {
+    await $fetch(`/api/admin/pools/${editingPool.value.id}`, {
       method: "PUT",
       body: {
         name: poolEditName.value,
@@ -172,7 +172,7 @@ async function deletePool(pool: Pool) {
   error.value = "";
   deleteLoading.value = new Set([...deleteLoading.value, pool.id]);
   try {
-    await $fetch(`/api/admin/pools/${pool.id}` as string, { method: "DELETE" });
+    await $fetch(`/api/admin/pools/${pool.id}`, { method: "DELETE" });
     await fetchData();
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
@@ -230,6 +230,7 @@ onMounted(fetchData);
               v-model.number="poolCount"
               type="number"
               min="1"
+              required
               class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
             >
           </div>
@@ -303,14 +304,15 @@ onMounted(fetchData);
               <button
                 v-for="team in allTeams"
                 :key="team.id"
-                :disabled="isTeamDisabled(team.id)"
+                :disabled="isTeamDisabled(team.id) || assignLoading"
+                :aria-pressed="editingSelectedTeamIds.includes(team.id)"
                 :class="[
                   editingSelectedTeamIds.includes(team.id)
                     ? 'bg-primary text-white'
-                    : isTeamDisabled(team.id)
+                    : isTeamDisabled(team.id) || assignLoading
                       ? 'cursor-not-allowed bg-gray-100 text-gray-400'
                       : 'bg-white text-text hover:bg-gray-50 border-gray-300',
-                  'rounded border px-3 py-1 text-sm font-medium transition-colors'
+                  'rounded border px-3 py-1 text-sm font-medium transition-colors disabled:opacity-50'
                 ]"
                 @click="toggleTeam(team.id)"
               >

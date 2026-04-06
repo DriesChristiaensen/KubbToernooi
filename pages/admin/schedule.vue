@@ -249,6 +249,7 @@ const matchesByField = computed(() => {
   for (const m of matches.value) {
     if (!map.has(m.field.id))
       map.set(m.field.id, { field: m.field, matches: [] });
+    // Safe: Entry guaranteed to exist from has check or set call above
     map.get(m.field.id)!.matches.push(m);
   }
   return Array.from(map.values()).sort((a, b) =>
@@ -265,6 +266,7 @@ const matchesByTeam = computed(() => {
       { id: m.teamB.id, name: m.teamB.name, opponent: m.teamA.name },
     ].forEach(({ id, name }) => {
       if (!map.has(id)) map.set(id, { teamName: name, matches: [] });
+      // Safe: Entry guaranteed to exist from has check or set call above
       map.get(id)!.matches.push(m);
     });
   }
@@ -451,6 +453,7 @@ onMounted(async () => {
             :is24="true"
             auto-apply
             :locale="nlBE"
+            :disabled="generateLoading"
           />
         </ClientOnly>
       </div>
@@ -553,7 +556,7 @@ onMounted(async () => {
             v-model.number="timeShiftMinutes"
             type="number"
             class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          />
+          >
         </div>
         <div class="flex items-end">
           <button

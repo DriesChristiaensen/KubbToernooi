@@ -67,7 +67,7 @@ async function saveEdit() {
   error.value = "";
   loading.value = true;
   try {
-    await $fetch(`/api/admin/teams/${editingId.value}` as string, {
+    await $fetch(`/api/admin/teams/${editingId.value}`, {
       method: "PUT",
       body: { name: editingName.value.trim() },
     });
@@ -87,7 +87,7 @@ async function deleteTeam(team: Team) {
   error.value = "";
   deleteLoading.value = new Set([...deleteLoading.value, team.id]);
   try {
-    await $fetch(`/api/admin/teams/${team.id}` as string, { method: "DELETE" });
+    await $fetch(`/api/admin/teams/${team.id}`, { method: "DELETE" });
     await fetchTeams();
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
@@ -153,8 +153,9 @@ onMounted(fetchTeams);
             v-model="newName"
             type="text"
             required
+            :disabled="loading"
             :placeholder="nl.admin.teams.namePlaceholder"
-            class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none disabled:opacity-50"
           >
         </div>
         <button

@@ -71,7 +71,7 @@ async function saveEdit() {
   error.value = "";
   loading.value = true;
   try {
-    await $fetch(`/api/admin/fields/${editingId.value}` as string, {
+    await $fetch(`/api/admin/fields/${editingId.value}`, {
       method: "PUT",
       body: { name: editingName.value.trim() },
     });
@@ -91,7 +91,7 @@ async function deleteField(field: Field) {
   error.value = "";
   deleteLoading.value = new Set([...deleteLoading.value, field.id]);
   try {
-    await $fetch(`/api/admin/fields/${field.id}` as string, {
+    await $fetch(`/api/admin/fields/${field.id}`, {
       method: "DELETE",
     });
     await fetchFields();
@@ -163,9 +163,10 @@ onMounted(fetchFields);
           v-model="newName"
           type="text"
           required
+          :disabled="loading"
           :placeholder="nl.admin.fields.namePlaceholder"
-          class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-        />
+          class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none disabled:opacity-50"
+        >
       </div>
       <button
         type="submit"
@@ -196,8 +197,9 @@ onMounted(fetchFields);
             v-model.number="generateCount"
             type="number"
             min="1"
+            required
             class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          />
+          >
         </div>
         <button
           :disabled="generateLoading"
@@ -251,7 +253,7 @@ onMounted(fetchFields);
               type="text"
               required
               class="flex-1 rounded border border-gray-300 px-3 py-1 text-text focus:border-primary focus:outline-none"
-            />
+            >
             <button
               type="submit"
               :disabled="loading"

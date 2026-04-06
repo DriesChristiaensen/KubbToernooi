@@ -30,10 +30,10 @@ const saving = ref<string | null>(null);
 const saveError = ref("");
 const saveSuccess = ref<string | null>(null); // matchId of recently saved
 
-// T9.3: edit mode per match (null = read mode if score exists)
+// Track which matches are in edit mode (allows re-editing if score exists)
 const editingIds = ref<Set<string>>(new Set());
 
-// T9.1: overwrite confirmation per match
+// Show confirmation dialog when overwriting an existing score
 const overwriteConfirmId = ref<string | null>(null);
 
 const scoreInputs = ref<
@@ -150,7 +150,7 @@ async function doSave(match: Match) {
       scoreB: input.scoreB,
     };
     editingIds.value.delete(match.id);
-    // T9.2: success feedback for 2 seconds
+    // Show success checkmark for 2 seconds
     saveSuccess.value = match.id;
     setTimeout(() => {
       if (saveSuccess.value === match.id) saveSuccess.value = null;
@@ -329,6 +329,7 @@ onMounted(() => {
                 ? 'bg-success text-white'
                 : 'bg-primary text-white hover:bg-primary-dark'"
               class="rounded px-4 py-2 text-sm font-medium disabled:opacity-50 transition-colors"
+              :aria-label="saveSuccess === match.id ? nl.common.save : nl.ref.matches.saveScore"
               @click="tryToSave(match)"
             >
               <span v-if="saveSuccess === match.id">✓</span>

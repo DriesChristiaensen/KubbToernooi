@@ -16,6 +16,7 @@ const error = ref('')
 const loading = ref(false)
 const isLoading = ref(true)
 const resetSuccess = ref<Set<string>>(new Set())
+const resetLoading = ref<Set<string>>(new Set())
 const deleteLoading = ref<Set<string>>(new Set())
 
 async function fetchReferees() {
@@ -51,8 +52,9 @@ async function addReferee() {
 
 async function resetPassword(id: string) {
   error.value = ''
+  resetLoading.value = new Set([...resetLoading.value, id])
   try {
-    await $fetch(`/api/admin/referees/${id}/reset-password` as string, { method: 'POST' })
+    await $fetch(`/api/admin/referees/${id}/reset-password`, { method: 'POST' })
     resetSuccess.value = new Set([...resetSuccess.value, id])
     setTimeout(() => {
       resetSuccess.value = new Set([...resetSuccess.value].filter(x => x !== id))
@@ -62,6 +64,9 @@ async function resetPassword(id: string) {
     const fetchErr = err as { data?: { data?: { error?: string } } }
     error.value = fetchErr?.data?.data?.error || nl.common.error
   }
+  finally {
+    resetLoading.value = new Set([...resetLoading.value].filter(x => x !== id))
+  }
 }
 
 async function deleteReferee(id: string) {
@@ -69,7 +74,7 @@ async function deleteReferee(id: string) {
   error.value = ''
   deleteLoading.value = new Set([...deleteLoading.value, id])
   try {
-    await $fetch(`/api/admin/referees/${id}` as string, { method: 'DELETE' })
+    await $fetch(`/api/admin/referees/${id}`, { method: 'DELETE' })
     await fetchReferees()
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } }
@@ -128,8 +133,10 @@ onMounted(fetchReferees)
           <span class="font-medium text-text">{{ referee.name }}</span>
           <div class="flex gap-2">
             <button
+              :disabled="resetLoading.has(referee.id)"
               :class="resetSuccess.has(referee.id) ? 'bg-success' : 'bg-secondary hover:opacity-80'"
-              class="rounded px-3 py-1 text-sm text-white transition-colors"
+              class="rounded px-3 py-1 text-sm text-white transition-colors disabled:opacity-50"
+              :aria-label="resetSuccess.has(referee.id) ? nl.common.save : nl.auth.resetPassword"
               @click="resetPassword(referee.id)"
             >
               <span v-if="resetSuccess.has(referee.id)">✓</span>

@@ -155,7 +155,7 @@ async function saveSwap() {
   swapError.value = "";
   try {
     await $fetch(
-      `/api/admin/ko-bracket/matches/${swapMatchId.value}` as string,
+      `/api/admin/ko-bracket/matches/${swapMatchId.value}`,
       {
         method: "PATCH",
         body: { teamAId: swapTeamAId.value, teamBId: swapTeamBId.value },
@@ -220,6 +220,7 @@ const rounds = computed(() => {
   const map = new Map<number, KoMatch[]>();
   for (const m of matches.value) {
     if (!map.has(m.round)) map.set(m.round, []);
+    // Safe: Entry guaranteed to exist from has check or set call above
     map.get(m.round)!.push(m);
   }
   return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
@@ -271,6 +272,7 @@ onMounted(async () => {
         .filter((m) => m.phase === "POOL")
         .map((m) => m.startTime);
       if (poolTimes.length > 0) {
+        // Safe: poolTimes.length > 0 ensures array has at least one element
         lastPoolMatchTime.value = poolTimes.sort().at(-1)!;
       }
     }

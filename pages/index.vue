@@ -48,16 +48,16 @@ const koScheduleLive = ref(false);
 const isLoading = ref(true);
 const now = ref(Date.now());
 
-// T8.2 – status filter
+// Filter matches by played/unplayed status
 const statusFilter = ref<"all" | "played" | "toPlay">("all");
 
-// T8.3 – favorite team cookie (48 h)
+// Persist user's favorite team selection in cookie (48 hour expiry)
 const favTeamId = useCookie<string>("kubb-fav-team", { maxAge: 48 * 3600 });
 const myTeamOnly = ref(false);
 const showTeamPicker = ref(false);
 const teamSearch = ref("");
 
-// T8.5 – main tab state
+// Track active tab and sub-tab selections for UI navigation
 const activeMainTab = ref<"pool" | "ko" | "eindstand">("pool");
 const activeSubTab = ref<"matches" | "standings">("matches");
 const activeEindstandSub = ref<"ko" | "pool">("ko");
@@ -117,7 +117,7 @@ onMounted(() => {
   }, 30_000);
 });
 
-// T8.1 – status label
+// Determine match status: played, live, awaiting (team assignment), or scheduled
 function matchStatus(
   match: Match,
 ): "live" | "played" | "awaiting" | "scheduled" {
@@ -197,7 +197,7 @@ const statusOpts = [
   { key: "toPlay" as const, label: s.filterToPlay },
 ];
 
-// T8.3 – unique teams from all matches
+// Extract and deduplicate teams across all matches for display
 const uniqueTeams = computed(() => {
   const map = new Map<string, string>();
   for (const m of matches.value) {
@@ -257,7 +257,7 @@ const displayStandings = computed(() => {
   return standings.value;
 });
 
-// T8.2 + T8.3 – apply filters
+// Filter matches by status and favorite team
 function applyFilters(list: Match[]): Match[] {
   let result = list;
   if (statusFilter.value === "played") {
@@ -276,7 +276,7 @@ function applyFilters(list: Match[]): Match[] {
 const displayPoolMatches = computed(() => applyFilters(poolMatches.value));
 const displayKoMatches = computed(() => applyFilters(koMatches.value));
 
-// T8.5 – KO round grouping and labels
+// Group KO matches by round and generate round labels (e.g., "1/8 finale")
 const koRounds = computed(() => {
   if (!koMatches.value.length) return [];
   const rounds: number[] = [];
@@ -323,7 +323,7 @@ function poolMatchTitle(match: Match): string {
   return `${match.round}e ${s.poolMatchLabel} ${match.pool?.name ?? ""}`;
 }
 
-// T8.5 – Eindstand helpers
+// Sort tied standings by head-to-head record against other teams in the group
 function headToHeadSort(group: Standing[], h2hMatches: Match[]): Standing[] {
   const ids = new Set(group.map((s) => s.teamId));
   const pts: Record<string, number> = {};
@@ -1097,6 +1097,8 @@ const koFinalMatch = computed(() => {
     <!-- Team picker modal -->
     <div
       v-if="showTeamPicker"
+      role="dialog"
+      aria-labelledby="team-picker-title"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       @click.self="
         showTeamPicker = false;
@@ -1104,27 +1106,27 @@ const koFinalMatch = computed(() => {
       "
     >
       <div class="mx-4 w-full max-w-sm rounded-lg bg-surface p-4 shadow-xl">
-        <h3 class="mb-3 font-semibold text-text">{{ s.teamPickerTitle }}</h3>
+        <h3 id="team-picker-title" class="mb-3 font-semibold text-text">{{ s.teamPickerTitle }}</h3>
         <input
           v-model="teamSearch"
           type="text"
           :placeholder="nl.common.search"
           class="mb-3 w-full rounded border border-gray-300 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none"
           autofocus
-        />
+        >
         <ul class="max-h-64 divide-y divide-gray-100 overflow-y-auto">
-          <li
-            v-for="team in filteredTeamList"
-            :key="team.id"
-            :class="
-              team.id === favTeamId
-                ? 'bg-primary/10 font-semibold text-primary'
-                : 'text-text hover:bg-background'
-            "
-            class="cursor-pointer px-3 py-2 text-sm"
-            @click="selectTeam(team.id)"
-          >
-            {{ team.name }}
+          <li v-for="team in filteredTeamList" :key="team.id">
+            <button
+              :class="
+                team.id === favTeamId
+                  ? 'bg-primary/10 font-semibold text-primary'
+                  : 'text-text hover:bg-background'
+              "
+              class="w-full px-3 py-2 text-left text-sm"
+              @click="selectTeam(team.id)"
+            >
+              {{ team.name }}
+            </button>
           </li>
           <li
             v-if="filteredTeamList.length === 0"
