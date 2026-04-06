@@ -2,6 +2,15 @@ import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { recalculatePoolStandings } from "~/server/utils/standings";
 
+/**
+ * Delete a match's recorded score and revert status.
+ * Sets status to LIVE if match is in progress, SCHEDULED otherwise.
+ * Recalculates standings for pool matches.
+ * @param {string} id - Match ID (path parameter)
+ * @returns {Object} Reverted match object with scoreA=null, scoreB=null, status reverted
+ * @throws {400} If id is missing or no score exists to delete
+ * @throws {404} If match does not exist
+ */
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) {

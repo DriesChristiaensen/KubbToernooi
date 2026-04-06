@@ -9,6 +9,19 @@ const bodySchema = z.object({
   koWinnerId: z.string().optional(),
 });
 
+/**
+ * Record match score and auto-advance winner in KO bracket.
+ * For pool matches, recalculates standings. For KO draws, requires koWinnerId to determine advancement.
+ * Atomically updates match, advances winner to next KO round, and recalculates pool standings if needed.
+ * @param {string} id - Match ID (path parameter)
+ * @param {Object} body - Request body
+ * @param {number} body.scoreA - Score for team A (non-negative integer, required)
+ * @param {number} body.scoreB - Score for team B (non-negative integer, required)
+ * @param {string} [body.koWinnerId] - Required for KO matches on draw: ID of advancing team
+ * @returns {Object} Updated match object with scoreA, scoreB, status="PLAYED", koWinnerId
+ * @throws {400} If id is missing, scores invalid, or KO winner missing/invalid on draw
+ * @throws {404} If match does not exist
+ */
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) {

@@ -1,6 +1,12 @@
 import { type MatchPhase, TournamentStatus } from "@prisma/client";
 import { prisma } from "~/server/utils/prisma";
 
+/**
+ * Get publicly visible schedule for the active tournament.
+ * Only shows matches when tournament is LIVE and respective schedule flag is enabled.
+ * Only shows matches with both teams assigned (no byes or empty KO slots).
+ * @returns {Array<Object>} Array of visible matches with field, teamA, teamB, pool, sorted by startTime
+ */
 export default defineEventHandler(async (_event) => {
   const tournament = await prisma.tournament.findFirst({
     where: { isActive: true },

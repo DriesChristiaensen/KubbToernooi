@@ -1,8 +1,29 @@
+import { z } from 'zod'
 import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
 import { logRequest } from '~/server/utils/logger'
 import { checkRateLimit, resetRateLimitForIp } from '~/server/utils/rate-limit'
 
+const bodySchema = z.object({
+  password: z.string().min(1, 'Password is required'),
+  name: z.string().optional(),
+  setPassword: z.boolean().optional(),
+})
+
+/**
+ * Authenticate a user and create a session.
+ * Supports both admin login (no name) and referee login (with name).
+ * If password is not yet set on the user, can optionally initialize it via setPassword flag.
+ * Rate-limited to 5 attempts per IP per minute.
+ * @param {Object} body - Request body
+ * @param {string} body.password - User password (required)
+ * @param {string} [body.name] - Referee name (omit for admin login)
+ * @param {boolean} [body.setPassword] - If true and password not set, initialize password
+ * @returns {Object} Authenticated user: { user: { id, name, role }, loggedInAt } OR { needsPasswordSetup: true }
+ * @throws {400} If password is missing
+ * @throws {401} If credentials are invalid or rate limit exceeded
+ * @throws {409} If setPassword attempted but password already set
+ */
 export default defineEventHandler(async (event) => {
   const ip = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown'
   if (!checkRateLimit(ip)) {
@@ -13,9 +34,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readBody(event)
+  const raw = await readBody(event)
 
-  if (!body?.password) {
+  let body
+  try {
+    body = bodySchema.parse(raw ?? {})
+  } catch {
     throw createApiError({
       error: 'Wachtwoord is verplicht',
       code: 'invalid_input',

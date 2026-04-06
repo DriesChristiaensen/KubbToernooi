@@ -1,11 +1,30 @@
+import { z } from 'zod'
 import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
 import { resetRateLimitStore } from '~/server/utils/rate-limit'
 
-export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
+const bodySchema = z.object({
+  password: z.string().min(1, 'Password is required'),
+})
 
-  if (!body?.password) {
+/**
+ * Clear all rate-limit counters (admin only).
+ * Requires valid admin password for security.
+ * @param {Object} body - Request body
+ * @param {string} body.password - Admin password (required)
+ * @returns {Object} Reset status: { reset: boolean }
+ * @throws {400} If password is missing
+ * @throws {401} If password is invalid
+ * @throws {404} If admin user not found
+ * @throws {503} If database is unavailable
+ */
+export default defineEventHandler(async (event) => {
+  const raw = await readBody(event)
+
+  let body
+  try {
+    body = bodySchema.parse(raw ?? {})
+  } catch {
     throw createApiError({
       error: 'Wachtwoord is verplicht',
       code: 'invalid_input',
