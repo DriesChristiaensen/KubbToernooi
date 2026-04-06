@@ -4,8 +4,6 @@ export const nl = {
     standings: "Standen",
     admin: "Beheer",
     ref: "Scheidsrechter",
-    closeMenu: "Menu sluiten",
-    openMenu: "Menu openen",
   },
 
   footer: {
@@ -149,6 +147,7 @@ export const nl = {
     },
     referees: {
       title: "Scheidsrechters",
+      deleteConfirm: "Weet je zeker dat je deze scheidsrechter wilt verwijderen?",
     },
 
     schedule: {
@@ -207,7 +206,7 @@ export const nl = {
       winningTeams: "Winnende teams",
       otherTeams: "Overige teams",
       tbd: "Nog te bepalen",
-      bye: "Vrij lot",
+      bye: "Bye",
       fillTeams: "Teams invullen",
       fillTeamsSuccess: "Teams ingevuld",
       fillTeamsStep: "Stap 2: Teams invullen",
@@ -301,8 +300,6 @@ export const nl = {
       winner: "Winnaar",
       round: "Ronde",
       poolMatchLabel: "wedstrijd Poule",
-      finaleFormat: "1/{count} finale",
-      roundOrdinal: "{round}e",
     },
     standings: {
       title: "Standen",

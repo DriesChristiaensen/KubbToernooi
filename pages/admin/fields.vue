@@ -25,6 +25,7 @@ const generateError = ref("");
 const generateSuccess = ref("");
 const generateLoading = ref(false);
 const showOverwriteConfirm = ref(false);
+const deleteLoading = ref<Set<string>>(new Set());
 
 async function fetchFields() {
   try {
@@ -88,6 +89,7 @@ async function saveEdit() {
 async function deleteField(field: Field) {
   if (!confirm(nl.admin.fields.deleteConfirm)) return;
   error.value = "";
+  deleteLoading.value = new Set([...deleteLoading.value, field.id]);
   try {
     await $fetch(`/api/admin/fields/${field.id}` as string, {
       method: "DELETE",
@@ -96,6 +98,8 @@ async function deleteField(field: Field) {
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
     error.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    deleteLoading.value = new Set([...deleteLoading.value].filter(x => x !== field.id));
   }
 }
 
@@ -274,7 +278,8 @@ onMounted(fetchFields);
               {{ nl.common.edit }}
             </button>
             <button
-              class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700"
+              :disabled="deleteLoading.has(field.id)"
+              class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
               @click="deleteField(field)"
             >
               {{ nl.common.delete }}

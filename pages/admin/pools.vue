@@ -41,6 +41,7 @@ const editingSelectedTeamIds = ref<string[]>([]);
 const assignError = ref("");
 const assignSuccess = ref("");
 const assignLoading = ref(false);
+const deleteLoading = ref<Set<string>>(new Set());
 
 const poolEditName = ref("");
 const poolEditTeamsAdvancing = ref(1);
@@ -169,12 +170,15 @@ async function saveAssignment() {
 async function deletePool(pool: Pool) {
   if (!confirm(nl.admin.pools.deleteConfirm)) return;
   error.value = "";
+  deleteLoading.value = new Set([...deleteLoading.value, pool.id]);
   try {
     await $fetch(`/api/admin/pools/${pool.id}` as string, { method: "DELETE" });
     await fetchData();
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
     error.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    deleteLoading.value = new Set([...deleteLoading.value].filter(x => x !== pool.id));
   }
 }
 
@@ -363,7 +367,8 @@ onMounted(fetchData);
                   {{ nl.admin.pools.assignTeams }}
                 </button>
                 <button
-                  class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700"
+                  :disabled="deleteLoading.has(pool.id)"
+                  class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
                   @click="deletePool(pool)"
                 >
                   {{ nl.common.delete }}

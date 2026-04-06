@@ -16,6 +16,7 @@ const error = ref('')
 const loading = ref(false)
 const isLoading = ref(true)
 const resetSuccess = ref<Set<string>>(new Set())
+const deleteLoading = ref<Set<string>>(new Set())
 
 async function fetchReferees() {
   try {
@@ -64,8 +65,18 @@ async function resetPassword(id: string) {
 }
 
 async function deleteReferee(id: string) {
-  await $fetch(`/api/admin/referees/${id}` as string, { method: 'DELETE' })
-  await fetchReferees()
+  if (!confirm(nl.admin.referees.deleteConfirm)) return
+  error.value = ''
+  deleteLoading.value = new Set([...deleteLoading.value, id])
+  try {
+    await $fetch(`/api/admin/referees/${id}` as string, { method: 'DELETE' })
+    await fetchReferees()
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } }
+    error.value = fetchErr?.data?.data?.error || nl.common.error
+  } finally {
+    deleteLoading.value = new Set([...deleteLoading.value].filter(x => x !== id))
+  }
 }
 
 onMounted(fetchReferees)
@@ -125,7 +136,8 @@ onMounted(fetchReferees)
               <span v-else>{{ nl.auth.resetPassword }}</span>
             </button>
             <button
-              class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700"
+              :disabled="deleteLoading.has(referee.id)"
+              class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
               @click="deleteReferee(referee.id)"
             >
               {{ nl.common.delete }}

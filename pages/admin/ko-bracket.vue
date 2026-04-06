@@ -70,7 +70,7 @@ function getRoundLabel(matchCount: number): string {
   if (matchCount === 4) return labels.quarterfinal;
   if (matchCount === 8) return labels.r8;
   if (matchCount === 16) return labels.r16;
-  return nl.public.schedule.finaleFormat.replace('{count}', String(matchCount));
+  return `1/${matchCount} finale`;
 }
 
 async function fetchMatches() {

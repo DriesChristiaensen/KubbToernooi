@@ -21,7 +21,7 @@ const bulkText = ref("");
 const bulkError = ref("");
 const bulkSuccess = ref("");
 const bulkLoading = ref(false);
-
+const deleteLoading = ref<Set<string>>(new Set());
 
 async function fetchTeams() {
   try {
@@ -85,12 +85,15 @@ async function saveEdit() {
 async function deleteTeam(team: Team) {
   if (!confirm(nl.admin.teams.deleteConfirm)) return;
   error.value = "";
+  deleteLoading.value = new Set([...deleteLoading.value, team.id]);
   try {
     await $fetch(`/api/admin/teams/${team.id}` as string, { method: "DELETE" });
     await fetchTeams();
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
     error.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    deleteLoading.value = new Set([...deleteLoading.value].filter(x => x !== team.id));
   }
 }
 
@@ -238,7 +241,8 @@ onMounted(fetchTeams);
                 {{ nl.common.edit }}
               </button>
               <button
-                class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700"
+                :disabled="deleteLoading.has(team.id)"
+                class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
                 @click="deleteTeam(team)"
               >
                 {{ nl.common.delete }}
