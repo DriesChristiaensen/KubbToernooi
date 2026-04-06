@@ -2,10 +2,22 @@ import { ref } from 'vue'
 import { navigateTo } from '#app'
 import { nl } from '~/i18n/nl'
 
+/**
+ * Authentication composable for login/logout flows.
+ * Manages loading state and error messages during authentication.
+ * Automatically navigates to role-specific pages post-login.
+ * @returns {Object} Object with login, logout, loading, error
+ */
 export function useAuth() {
   const loading = ref(false)
   const error = ref('')
 
+  /**
+   * Authenticate user with credentials and navigate to dashboard.
+   * @param {Object} credentials - Login credentials
+   * @param {string} [credentials.name] - Referee name (omit for admin login)
+   * @param {string} credentials.password - User password
+   */
   async function login(credentials: { name?: string, password: string }) {
     loading.value = true
     error.value = ''
@@ -28,6 +40,9 @@ export function useAuth() {
     }
   }
 
+  /**
+   * Clear session and navigate to login page (role-specific).
+   */
   async function logout() {
     const { user, fetch: fetchSession } = useUserSession()
     const isAdmin = user.value?.role === 'ADMIN'

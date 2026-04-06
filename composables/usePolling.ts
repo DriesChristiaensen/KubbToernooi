@@ -5,6 +5,15 @@ interface UsePollingOptions {
   immediate?: boolean
 }
 
+/**
+ * Polling composable for periodically fetching data.
+ * Automatically pauses when page is not visible (tab/window hidden).
+ * @param {Function} fetchFn - Async function to call periodically
+ * @param {UsePollingOptions} options - Polling options
+ * @param {number} [options.interval=60000] - Poll interval in milliseconds
+ * @param {boolean} [options.immediate=true] - Call fetchFn immediately on mount
+ * @returns {Object} Object with isPolling, start, stop
+ */
 export function usePolling(fetchFn: () => Promise<void>, options: UsePollingOptions = {}) {
   const { interval = 60_000, immediate = true } = options
   const isPolling = ref(false)

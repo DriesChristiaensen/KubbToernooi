@@ -1,5 +1,12 @@
 import { prisma } from "~/server/utils/prisma";
 
+/**
+ * Recalculate all standings for a pool based on played matches.
+ * Uses tournament's point system (pointsWin, pointsDraw, pointsLoss).
+ * Atomically replaces all standings for the pool in a single transaction.
+ * @param {string} poolId - Pool ID
+ * @returns {Promise<void>}
+ */
 export async function recalculatePoolStandings(poolId: string): Promise<void> {
   const [poolTeams, playedMatches, tournament] = await Promise.all([
     prisma.poolTeam.findMany({ where: { poolId } }),

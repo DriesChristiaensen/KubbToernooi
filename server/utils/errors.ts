@@ -1,4 +1,7 @@
-// Map of error codes to HTTP status codes
+/**
+ * Map of error codes to HTTP status codes.
+ * Centralized error code registry. All API errors must use codes from this map.
+ */
 const codeToStatusCode: Record<string, number> = {
   // 400 Bad Request
   invalid_input: 400,
@@ -82,6 +85,17 @@ interface ApiErrorOptions {
   cause?: unknown
 }
 
+/**
+ * Create a standardized API error with automatic HTTP status code mapping.
+ * Status code is determined by codeToStatusCode map; defaults to 500 if code not found.
+ * @param {ApiErrorOptions} options - Error options
+ * @param {string} options.error - User-facing error message (Dutch)
+ * @param {string} options.code - Machine-readable error code (must exist in codeToStatusCode map)
+ * @param {string} options.reason - Internal reason (English, for logs)
+ * @param {string} [options.field] - Form field involved (optional)
+ * @param {unknown} [options.cause] - Original error cause (only included in dev mode)
+ * @returns {Error} Nuxt error with statusCode and data
+ */
 export function createApiError({ error, code, reason, field, cause }: ApiErrorOptions) {
   const statusCode = codeToStatusCode[code] ?? 500
   return createError({
