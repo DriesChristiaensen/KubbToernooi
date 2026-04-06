@@ -157,24 +157,30 @@ Test mocks updated to stub `setResponseStatus`. DELETE endpoints now return `nul
 
 ---
 
-### H6. JSDoc missing on all API endpoints and utility functions
+### H6. JSDoc missing on all API endpoints and utility functions — **WIP** 🔄
 
 **AC violated:** #1.2 JSDoc/Type Documentation
 
-All 36 API endpoints, all 5 server utilities, both composables, and the datetime util have zero JSDoc. The acceptance criteria require documenting parameters, return type, and errors on every API route, complex composable, and utility function.
+**Progress:** JSDoc template established and applied to key endpoints (tournament.post.ts, teams.post.ts). Pattern:
+- Summary of what the endpoint does
+- @param documentation for all body parameters with type and constraints
+- @returns with object type
+- @throws with HTTP status and conditions
 
-**Fix:** Add JSDoc to every API handler and utility function. Example:
-
+**Template (2/36+ API endpoints completed):**
 ```ts
 /**
- * Create a new tournament and deactivate any existing active tournament.
- * @param body.name - Tournament name (unique)
- * @param body.type - POOLS | KNOCKOUT | COMBINATION
- * @returns Created Tournament object
- * @throws 400 if name empty or matchDuration < 1
- * @throws 409 if name already exists
+ * [Action] [Resource description].
+ * @param {Object} body - Request body
+ * @param {type} body.field - Field description (constraints if any)
+ * @returns {Type} Returned object/array
+ * @throws {400} If validation fails
+ * @throws {404} If resource not found
+ * @throws {409} If conflict (duplicate, etc)
  */
 ```
+
+**Remaining:** 34+ API endpoints, 5 server utilities (tournament.ts, errors.ts, standings.ts, rate-limit.ts, logger.ts), 2 composables (useAuth.ts, usePolling.ts).
 
 ---
 

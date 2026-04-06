@@ -16,6 +16,23 @@ const bodySchema = z.object({
   fieldCount: z.number().int().min(1),
 });
 
+/**
+ * Create a new tournament and deactivate any existing active tournament.
+ * Atomically creates the tournament and initial fields in a single transaction.
+ * @param {Object} body - Request body
+ * @param {string} body.name - Tournament name (unique, required)
+ * @param {string} body.type - Tournament type: POOLS, KNOCKOUT, or COMBINATION
+ * @param {string} body.startTime - Tournament start date/time (ISO 8601 with time component)
+ * @param {number} body.matchDuration - Match duration in minutes (positive)
+ * @param {number} body.breakTime - Break time between matches in minutes (≥0)
+ * @param {number} body.pointsWin - Points awarded for a win
+ * @param {number} body.pointsDraw - Points awarded for a draw
+ * @param {number} body.pointsLoss - Points awarded for a loss
+ * @param {number} body.fieldCount - Number of initial fields to create (≥1)
+ * @returns {Tournament} Created tournament with fields initialized
+ * @throws {400} If name is empty or invalid, or matchDuration < 1
+ * @throws {409} If name already exists
+ */
 export default defineEventHandler(async (event) => {
   const raw = await readBody(event);
   const parsed = bodySchema.safeParse(raw ?? {});

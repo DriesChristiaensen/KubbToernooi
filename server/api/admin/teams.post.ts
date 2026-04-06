@@ -7,6 +7,15 @@ const bodySchema = z.object({
   name: z.string().trim().min(1, "Team name is required"),
 });
 
+/**
+ * Create a new team in the active tournament.
+ * @param {Object} body - Request body
+ * @param {string} body.name - Team name (unique within tournament, required, non-empty)
+ * @returns {Team} Created team object
+ * @throws {400} If name is empty or not provided
+ * @throws {404} If no active tournament exists
+ * @throws {409} If team name already exists in the current tournament
+ */
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
   const raw = await readBody(event);
