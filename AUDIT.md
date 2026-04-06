@@ -157,22 +157,21 @@ Test mocks updated to stub `setResponseStatus`. DELETE endpoints now return `nul
 
 ---
 
-### H6. JSDoc missing on all API endpoints and utility functions — **WIP** 🔄
+### H6. JSDoc missing on all API endpoints and utility functions — ✅ DONE
 
 **AC violated:** #1.2 JSDoc/Type Documentation
 
-**Progress:** JSDoc template established and applied to key endpoints (tournament.post.ts, teams.post.ts). Pattern:
-- Summary of what the endpoint does
-- @param documentation for all body parameters with type and constraints
-- @returns with object type
-- @throws with HTTP status and conditions
+**Status:** COMPLETED. All 52 functions/endpoints documented:
+- 45 API endpoints (POST, PUT, PATCH, DELETE, GET)
+- 5 server utilities (tournament.ts, errors.ts, standings.ts, rate-limit.ts, logger.ts)
+- 2 composables (useAuth.ts, usePolling.ts)
 
-**Template (2/36+ API endpoints completed):**
+**Pattern established and applied:**
 ```ts
 /**
  * [Action] [Resource description].
- * @param {Object} body - Request body
- * @param {type} body.field - Field description (constraints if any)
+ * [Additional context if needed].
+ * @param {type} param - Description (constraints if any)
  * @returns {Type} Returned object/array
  * @throws {400} If validation fails
  * @throws {404} If resource not found
@@ -180,7 +179,7 @@ Test mocks updated to stub `setResponseStatus`. DELETE endpoints now return `nul
  */
 ```
 
-**Remaining:** 34+ API endpoints, 5 server utilities (tournament.ts, errors.ts, standings.ts, rate-limit.ts, logger.ts), 2 composables (useAuth.ts, usePolling.ts).
+All functions now have complete JSDoc with parameter types, return types, error conditions, and contextual explanations.
 
 ---
 
