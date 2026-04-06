@@ -183,6 +183,7 @@ export default defineEventHandler(async (event) => {
     await tx.match.createMany({ data: matchData });
   });
 
+  setResponseStatus(event, 201);
   logRequest(event, "success", `Generated ${matchData.length} pool matches`);
   return { generated: matchData.length };
 });

@@ -70,6 +70,7 @@ export default defineEventHandler(async (event) => {
     data: names.map((name) => ({ name, tournamentId: tournament.id })),
   });
 
+  setResponseStatus(event, 201);
   logRequest(event, "success", `Bulk imported ${result.count} teams`);
   return { imported: result.count };
 });

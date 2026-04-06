@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
     });
   });
 
+  setResponseStatus(event, 201);
   logRequest(event, "success", `Tournament restored: ${tournament.name}`);
   return restored;
 });

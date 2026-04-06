@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await prisma.pool.delete({ where: { id } });
+  setResponseStatus(event, 204);
   logRequest(event, "success", `Pool ${id} deleted`);
-  return { success: true };
+  return null;
 });

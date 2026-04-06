@@ -15,6 +15,7 @@ const mockBcryptCompare = vi.hoisted(() => vi.fn());
 
 vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("readBody", vi.fn());
+vi.stubGlobal("setResponseStatus", vi.fn());
 vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
   const err = new Error(reason) as any;
   err.statusCode = code;

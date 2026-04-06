@@ -27,6 +27,7 @@ export default defineEventHandler(async (event) => {
 
   await prisma.tournament.delete({ where: { id } });
 
+  setResponseStatus(event, 204);
   logRequest(event, "success", `Tournament deleted: ${tournament.name}`);
-  return { success: true };
+  return null;
 });

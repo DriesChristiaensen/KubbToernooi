@@ -22,6 +22,7 @@ vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("readBody", vi.fn());
 vi.stubGlobal("getRouterParam", vi.fn());
 vi.stubGlobal("getQuery", vi.fn());
+vi.stubGlobal("setResponseStatus", vi.fn());
 vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
   const statusCode = codeToStatusCode[code] ?? 500;
   const err = new Error(reason) as any;
@@ -210,6 +211,6 @@ describe("DELETE /api/admin/fields/:id", () => {
     const result = await deleteFieldHandler(createMockEvent());
 
     expect(mockFieldDelete).toHaveBeenCalledWith({ where: { id: "f3" } });
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual(null);
   });
 });

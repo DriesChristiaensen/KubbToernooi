@@ -21,6 +21,7 @@ const codeToStatusCode: Record<string, number> = {
 vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("readBody", vi.fn());
 vi.stubGlobal("getRouterParam", vi.fn());
+vi.stubGlobal("setResponseStatus", vi.fn());
 vi.stubGlobal("getQuery", vi.fn());
 vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
   const statusCode = codeToStatusCode[code] ?? 500;
@@ -214,6 +215,6 @@ describe("DELETE /api/admin/teams/:id", () => {
     const result = await deleteTeamHandler(createMockEvent());
 
     expect(mockTeamDelete).toHaveBeenCalledWith({ where: { id: "5" } });
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual(null);
   });
 });

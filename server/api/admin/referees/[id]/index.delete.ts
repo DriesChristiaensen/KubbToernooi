@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
 
   await prisma.user.delete({ where: { id } })
 
+  setResponseStatus(event, 204)
   logRequest(event, 'success', `Referee deleted: id=${id}`)
-  return { success: true }
+  return null
 })

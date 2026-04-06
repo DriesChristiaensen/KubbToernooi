@@ -48,6 +48,7 @@ export default defineEventHandler(async (event) => {
     return tx.field.createMany({ data });
   });
 
+  setResponseStatus(event, 201);
   logRequest(event, "success", `Generated ${result.count} fields`);
   return { generated: result.count };
 });

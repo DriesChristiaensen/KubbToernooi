@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
 
   await prisma.field.delete({ where: { id } });
 
+  setResponseStatus(event, 204);
   logRequest(event, "success", `Field deleted: id=${id}`);
-  return { success: true };
+  return null;
 });

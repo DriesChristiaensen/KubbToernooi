@@ -74,6 +74,7 @@ export default defineEventHandler(async (event) => {
     }
   });
 
+  setResponseStatus(event, 201);
   logRequest(event, "success", `Generated ${body.poolCount} pools`);
   return { generated: body.poolCount };
 });

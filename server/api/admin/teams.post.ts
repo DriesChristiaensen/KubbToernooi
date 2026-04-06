@@ -40,6 +40,7 @@ export default defineEventHandler(async (event) => {
     data: { name, tournamentId: tournament.id },
   });
 
+  setResponseStatus(event, 201);
   logRequest(event, "success", `Team created: ${team.name}`);
   return team;
 });

@@ -80,6 +80,7 @@ export default defineEventHandler(async (event) => {
     return { tournament: newTournament };
   });
 
+  setResponseStatus(event, 201);
   logRequest(event, "success", `Tournament created: ${tournament.name}`);
   return tournament;
 });

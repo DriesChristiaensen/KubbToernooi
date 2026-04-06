@@ -41,6 +41,7 @@ export default defineEventHandler(async (event) => {
     select: { id: true, name: true, createdAt: true },
   })
 
+  setResponseStatus(event, 201)
   logRequest(event, 'success', `Referee created: ${referee.name}`)
   return referee
 })

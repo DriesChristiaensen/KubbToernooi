@@ -144,6 +144,7 @@ export default defineEventHandler(async (event) => {
     }
   });
 
+  setResponseStatus(event, 201);
   logRequest(event, "success", `Generated ${totalCreated} KO match slots`);
   return { generated: totalCreated };
 });

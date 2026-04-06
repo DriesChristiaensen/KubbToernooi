@@ -23,6 +23,7 @@ const codeToStatusCode: Record<string, number> = {
 vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("readBody", vi.fn());
 vi.stubGlobal("getRouterParam", vi.fn());
+vi.stubGlobal("setResponseStatus", vi.fn());
 vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
   const statusCode = codeToStatusCode[code] ?? 500;
   const err = new Error(reason) as any;
@@ -296,6 +297,6 @@ describe("DELETE /api/admin/pools/:id", () => {
     const result = await deletePoolHandler(createMockEvent());
 
     expect(mockPoolDelete).toHaveBeenCalledWith({ where: { id: "p1" } });
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual(null);
   });
 });
