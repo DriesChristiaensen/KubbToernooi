@@ -90,7 +90,7 @@ These routes read `await readBody(event)` without a Zod schema — raw user inpu
 | 4   | `server/api/admin/fields/generate.post.ts`          | ✅ DONE | Zod validation added             |
 | 5   | `server/api/admin/teams.post.ts`                    | ✅ DONE | Zod validation added             |
 | 6   | `server/api/admin/teams/[id].put.ts`                | ✅ DONE | Zod validation added             |
-| 7   | `server/api/admin/teams/bulk-import.post.ts`        | TODO | Complex: array of teams parsing  |
+| 7   | `server/api/admin/teams/bulk-import.post.ts`        | ✅ DONE | Zod validation added             |
 | 8   | `server/api/admin/referees.post.ts`                 | ✅ DONE | Zod validation added             |
 | 9   | `server/api/admin/pools/[id].put.ts`                | ✅ DONE | Zod validation added             |
 | 10  | `server/api/admin/pools/generate.post.ts`           | ✅ DONE | Zod validation added             |
@@ -105,22 +105,16 @@ Additionally, `server/api/admin/import.post.ts` uses a custom `isValidImport()` 
 
 ---
 
-### H2. Error code format: numeric instead of snake_case strings — **WIP** 🔄
+### H2. Error code format: numeric instead of snake_case strings — ✅ DONE
 
 **AC violated:** #5.2 Error Responses, #2.4 API Routes
 
-**Progress:** Infrastructure complete. Error code mapping added to `server/utils/errors.ts`. String codes applied to ~20 endpoints (tournament, fields, teams, referees, pools, schedule). Remaining ~16 endpoints need code conversion (auth, import, ko-bracket, ref endpoints).
+**Status:** COMPLETED. All endpoints now use string error codes instead of numeric HTTP status codes. Error code mapping centralized in `server/utils/errors.ts`. Added new codes:
+- `unauthorized` (403)
+- `rate_limit_exceeded` (429)  
+- `database_unavailable` (503)
 
-The `ApiErrorOptions` interface in `server/utils/errors.ts:3` now defines `code: string` with automatic HTTP status code mapping. Acceptance criteria require:
-
-```ts
-// Spec requires:
-{ error: "Dutch message", code: "tournament_not_found", reason: "English reason" }
-// DONE:
-{ error: "Dutch message", code: "tournament_not_found", reason: "English reason" }
-```
-
-**Fix:** Update remaining ~16 endpoints to use string error codes from the mapping in `errors.ts`.
+All API endpoints (~14 files) updated with string codes. Test mocks updated to properly map string codes to HTTP status codes. All validations passing.
 
 ---
 
