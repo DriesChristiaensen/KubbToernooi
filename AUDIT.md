@@ -145,61 +145,47 @@ Database schema synchronized with Prisma migration.
 
 ---
 
-### H5. HTTP status codes all default to 200
+### H5. HTTP status codes all default to 200 — ✅ DONE
 
 **AC violated:** #9.1 HTTP Methods & Status Codes
 
-Zero uses of `setResponseStatus()` across the entire API. All POST-create endpoints return 200 instead of 201. All DELETE endpoints return `{ success: true }` with 200 instead of 204.
-
-**Affected:**
-
-- 11 POST-create endpoints (should be 201)
-- 6 DELETE endpoints (should be 204)
-
-**Fix:** Add `setResponseStatus(event, 201)` / `setResponseStatus(event, 204)` respectively.
+**Status:** COMPLETED. Added `setResponseStatus()` calls to all endpoints:
+- 11 POST-create endpoints now return 201 (Created)
+- 6 DELETE endpoints now return 204 (No Content)
 
 ---
 
-### H6. JSDoc missing on all API endpoints and utility functions
+### H6. JSDoc missing on all API endpoints and utility functions — ✅ DONE
 
 **AC violated:** #1.2 JSDoc/Type Documentation
 
-All 36 API endpoints, all 5 server utilities, both composables, and the datetime util have zero JSDoc. The acceptance criteria require documenting parameters, return type, and errors on every API route, complex composable, and utility function.
-
-**Fix:** Add JSDoc to every API handler and utility function. Example:
-
-```ts
-/**
- * Create a new tournament and deactivate any existing active tournament.
- * @param body.name - Tournament name (unique)
- * @param body.type - POOLS | KNOCKOUT | COMBINATION
- * @returns Created Tournament object
- * @throws 400 if name empty or matchDuration < 1
- * @throws 409 if name already exists
- */
-```
+**Status:** COMPLETED. Added comprehensive JSDoc to all 52 functions:
+- All 36 API endpoints documented with @param, @returns, @throws
+- All 5 server utilities documented (tournament, errors, standings, rate-limit, logger)
+- Both composables documented (useAuth, usePolling)
+- Datetime utilities documented
+- All JSDoc includes: parameter descriptions, return types, and error conditions
 
 ---
 
-### H7. Hardcoded strings violating i18n
+### H7. Hardcoded strings violating i18n — 🟡 PARTIALLY DONE
 
 **AC violated:** #7.1 User-Facing Text, Top-10 #3
 
-#### Client-side (visible to users):
+#### Client-side (✅ COMPLETED):
 
-| File                           | Line | String                                           | Fix                                                 |
-| ------------------------------ | ---- | ------------------------------------------------ | --------------------------------------------------- |
-| `components/HamburgerMenu.vue` | 18   | `'Menu sluiten'` / `'Menu openen'` in aria-label | Use `nl.nav.closeMenu` / `nl.nav.openMenu`          |
-| `pages/index.vue`              | 300  | `` `1/${matchCount} finale` ``                   | Add i18n key with interpolation                     |
-| `pages/admin/ko-bracket.vue`   | 73   | `` `1/${matchCount} finale` ``                   | Same                                                |
-| `pages/index.vue`              | 322  | `"e"` ordinal suffix in `` `${match.round}e` ``  | Add i18n key                                        |
-| `composables/useAuth.ts`       | 25   | `'Inloggen mislukt'` fallback                    | Use `nl.auth.loginFailed`                           |
-| `i18n/nl.ts`                   | 203  | `"Winning teams"` (English in Dutch file)        | Change to `"Winnende teams"`                        |
-| `i18n/nl.ts`                   | 206  | `"Bye"` (English)                                | Change to `"Vrij lot"` or keep as tournament jargon |
+All user-facing hardcoded strings have been fixed:
+- `components/HamburgerMenu.vue`: Added `nl.nav.closeMenu` / `nl.nav.openMenu` keys
+- `pages/index.vue`: Added i18n keys with interpolation (`nl.public.schedule.finaleFormat`, `nl.public.schedule.roundOrdinal`)
+- `pages/admin/ko-bracket.vue`: Updated to use i18n keys for round labels
+- `composables/useAuth.ts`: Uses proper i18n fallback handling
+- `i18n/nl.ts`: Fixed English strings to Dutch ("Winnende teams", "Vrij lot")
 
-#### Server-side (87 occurrences):
+Client-side: **100% complete**
 
-All `createApiError({ error: "Dutch text" })` calls use hardcoded strings. While server errors are harder to i18n, they should at minimum be constants to prevent inconsistency.
+#### Server-side (⏳ PENDING):
+
+87 hardcoded error strings in `createApiError()` calls across API endpoints. These should be extracted to an `error-messages.ts` constants module for consistency and maintainability. This is deferred to future iteration as server errors are not user-visible and have lower impact than client-side issues.
 
 ---
 
@@ -245,82 +231,94 @@ await prisma.user.update({
 
 ## MEDIUM
 
-### M1. Non-null assertions without justifying comments
+### M1. Non-null assertions without justifying comments — ✅ DONE
 
 **AC violated:** #4.2 Strict Mode
 
-| File                                           | Line | Expression                             |
-| ---------------------------------------------- | ---- | -------------------------------------- |
-| `server/api/admin/schedule/generate.post.ts`   | 154  | `fields[0]!`                           |
-| `server/api/admin/ko-bracket/generate.post.ts` | 118  | `fields[i % fields.length]!`           |
-| `pages/admin/schedule.vue`                     | 252  | `map.get(m.field.id)!.matches.push(m)` |
-| `pages/admin/schedule.vue`                     | 268  | `map.get(id)!.matches.push(m)`         |
-| `pages/admin/ko-bracket.vue`                   | 223  | `map.get(m.round)!.push(m)`            |
-| `pages/admin/ko-bracket.vue`                   | 274  | `poolTimes.sort().at(-1)!`             |
+**Status:** COMPLETED. Added `// Safe: <reason>` comments to all 6 non-null assertions:
+- `server/api/admin/schedule/generate.post.ts:161`: fields guard ensures array has ≥1 element
+- `server/api/admin/ko-bracket/generate.post.ts:134`: fields guard ensures array has ≥1 element
+- `pages/admin/schedule.vue:252,268`: map entries created before access via has/set pattern
+- `pages/admin/ko-bracket.vue:223,274`: map entries created before access, length guard on array
 
-**Fix:** Add `// Safe: <reason>` comment to each, or refactor to avoid the assertion.
+All assertions now have explanatory comments justifying why null is impossible.
 
 ---
 
-### M2. Unnecessary `as string` casts on template literals
+### M2. Unnecessary `as string` casts on template literals — ✅ DONE
 
 **AC violated:** #4.1 Type Annotations
 
-~10 occurrences across admin pages:
+**Status:** COMPLETED. Removed all 9 unnecessary `as string` casts from template literals across admin pages:
+- `teams.vue`: 2 occurrences in saveEdit() and deleteTeam()
+- `fields.vue`: 2 occurrences in saveEdit() and deleteField()
+- `pools.vue`: 2 occurrences in saveAssignment() and deletePool()
+- `referees.vue`: 2 occurrences in resetPassword() and deleteReferee()
+- `ko-bracket.vue`: 1 occurrence in swap operation
+- `schedule.vue`: Previously removed
 
-```ts
-await $fetch(`/api/admin/fields/${id}` as string, { ... })
-```
-
-Template literals are already strings. These casts are noise.
-
-**Affected:** `teams.vue` (2x), `fields.vue` (2x), `pools.vue` (2x), `referees.vue` (2x), `ko-bracket.vue` (1x), `schedule.vue` (1x)
-
-**Fix:** Remove `as string` from all template literal URL expressions.
+Template literals are already strings; casts were unnecessary type pollution.
 
 ---
 
-### M3. Accessibility gaps
+### M3. Accessibility gaps — ✅ DONE
 
 **AC violated:** #7.3 Accessibility
 
-| Issue                                                            | Location                                                                                                                    |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Team picker modal missing `role="dialog"` and `aria-labelledby`  | `pages/index.vue` template                                                                                                  |
-| Checkmark `✓` character used as icon without accessible text     | `pages/index.vue`, `pages/ref/index.vue`, `pages/admin/referees.vue`                                                        |
-| Pool team toggle buttons missing `aria-pressed` attribute        | `pages/admin/pools.vue`                                                                                                     |
-| Clickable `<li>` elements instead of `<button>` in team picker   | `pages/index.vue`                                                                                                           |
-| Missing `required` on essential form inputs                      | `pages/admin/fields.vue` (generate count), `pages/admin/pools.vue` (pool count), `pages/admin/tournament.vue` (field count) |
-| Small touch targets (`px-3 py-1 text-sm`) on edit/delete buttons | `pages/admin/teams.vue`, `pages/admin/fields.vue`                                                                           |
+**Status:** COMPLETED. Implemented accessibility improvements across 5 files:
+- **Team picker modal:** Added `role="dialog"` and `aria-labelledby` with `id="team-picker-title"` to main div
+- **Team picker buttons:** Converted clickable `<li>` elements to semantic `<button>` elements for keyboard navigation
+- **Checkmarks:** Added `aria-label` bindings to both checkmark buttons (referees.vue, ref/index.vue)
+- **Pool team buttons:** Added `aria-pressed` attribute reflecting toggle state
+- **Required inputs:** Added `required` attribute to 3 essential form inputs:
+  - `pages/admin/fields.vue`: generate count input
+  - `pages/admin/pools.vue`: pool count input
+  - `pages/admin/tournament.vue`: field count input
+- ESLint auto-fixed attribute ordering (`:aria-label` before `@click`)
 
 ---
 
-### M4. Race conditions on form inputs during async operations
+### M4. Race conditions on form inputs during async operations — ✅ DONE
 
 **AC violated:** Top-10 #5 Race Conditions
 
-Multiple forms disable the submit button but not the input fields during async operations, allowing re-submission via Enter key:
+**Status:** COMPLETED. Disabled all form inputs during async operations across 6 functions:
+- **teams.vue**: Added `:disabled="loading"` to name input during addTeam()
+- **fields.vue**: Added `:disabled="loading"` to name input during addField()
+- **pools.vue**: Extended `:disabled` to team buttons using `isTeamDisabled(team.id) || assignLoading`
+- **tournament.vue**: Added `:disabled="createLoading"` to all form fields:
+  - VueDatePicker, matchDuration, breakTime, pointsWin, pointsDraw, pointsLoss, fieldCount
+- **schedule.vue**: Added `:disabled="generateLoading"` to VueDatePicker during generateSchedule()
+- **referees.vue**: Added new `resetLoading` Set ref with per-item tracking, implemented loading state:
+  - Disabled button with `:disabled="resetLoading.has(referee.id)"`
+  - Proper error handling in catch block
 
-| File                         | Function             | Issue                                           |
-| ---------------------------- | -------------------- | ----------------------------------------------- |
-| `pages/admin/teams.vue`      | `addTeam()`          | Input not disabled during loading               |
-| `pages/admin/fields.vue`     | `addField()`         | Same                                            |
-| `pages/admin/pools.vue`      | `saveAssignment()`   | Team selection buttons not disabled during save |
-| `pages/admin/tournament.vue` | `createTournament()` | Form inputs not disabled                        |
-| `pages/admin/schedule.vue`   | `generateSchedule()` | Same                                            |
-| `pages/admin/referees.vue`   | `resetPassword()`    | No loading state, button not disabled           |
+All inputs now have `disabled:opacity-50` class for visual feedback.
 
 ---
 
-### M5. Cryptic "T8.x" / "T9.x" comments throughout pages
+### M5. Cryptic "T8.x" / "T9.x" comments throughout pages — ✅ DONE
 
 **AC violated:** #1.1 Comments
 
-Comments like `// T8.2 – status filter`, `// T9.3: edit mode per match` reference ticket/task IDs without context. While they trace to requirements, they should explain the **why** not reference internal IDs.
+**Status:** COMPLETED. Replaced all 15 cryptic task ID comments with descriptive ones:
 
-**Affected:** `pages/index.vue` (9 occurrences), `pages/ref/index.vue` (6 occurrences)
+**pages/index.vue (9 occurrences):**
+- `// T8.2` → `// Filter matches by played/unplayed status`
+- `// T8.3` → `// Persist user's favorite team selection in cookie (48 hour expiry)`
+- `// T8.5` → `// Track active tab and sub-tab selections for UI navigation`
+- `// T8.1` → `// Determine match status: played, live, awaiting (team assignment), or scheduled`
+- `// T8.3` → `// Extract and deduplicate teams across all matches for display`
+- `// T8.2 + T8.3` → `// Filter matches by status and favorite team`
+- `// T8.5` → `// Group KO matches by round and generate round labels (e.g., "1/8 finale")`
+- `// T8.5` → `// Sort tied standings by head-to-head record against other teams in the group`
 
-**Fix:** Rewrite as `// Filter matches by played/unplayed status` etc., or remove if the code is self-explanatory.
+**pages/ref/index.vue (6 occurrences):**
+- `// T9.3` → `// Track which matches are in edit mode (allows re-editing if score exists)`
+- `// T9.1` → `// Show confirmation dialog when overwriting an existing score`
+- `// T9.2` → `// Show success checkmark for 2 seconds`
+
+Comments now explain **why** the code exists, not which ticket created it.
 
 ---
 
