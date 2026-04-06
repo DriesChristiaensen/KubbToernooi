@@ -203,18 +203,24 @@ All `createApiError({ error: "Dutch text" })` calls use hardcoded strings. While
 
 ---
 
-### H8. Delete operations lack error handling and loading guards
+### H8. Delete operations lack error handling and loading guards — ✅ DONE
 
 **AC violated:** #5.3 Frontend Validation, #7.4 Forms, Top-10 #5 Race Conditions
 
-| File                             | Function          | Issues                                                            |
-| -------------------------------- | ----------------- | ----------------------------------------------------------------- |
-| `pages/admin/referees.vue:66-69` | `deleteReferee()` | **No try-catch, no error feedback, no confirm, no loading state** |
-| `pages/admin/teams.vue:85-95`    | `deleteTeam()`    | Has confirm but no `:disabled` on button, silent on failure       |
-| `pages/admin/fields.vue:85-97`   | `deleteField()`   | Same pattern                                                      |
-| `pages/admin/pools.vue:169-179`  | `deletePool()`    | Has error handling but no `:disabled` on button during operation  |
+**Status:** COMPLETED. All four delete operations now have:
+- ✓ Confirmation dialogs (using i18n keys)
+- ✓ Try-catch error handling with user feedback
+- ✓ Loading state management (per-item using Set<string>)
+- ✓ Disabled buttons during operation (prevents race conditions)
 
-**Fix:** Add try-catch with error display, loading ref, `:disabled` binding, and confirm dialog to each.
+**Files updated:**
+- `pages/admin/referees.vue`: Added deleteLoading ref, confirm dialog, error handling, :disabled binding
+- `pages/admin/teams.vue`: Added deleteLoading ref, error handling, :disabled binding  
+- `pages/admin/fields.vue`: Added deleteLoading ref, error handling, :disabled binding
+- `pages/admin/pools.vue`: Added deleteLoading ref to existing error handling, added :disabled binding
+- `i18n/nl.ts`: Added `nl.admin.referees.deleteConfirm` confirmation message
+
+All delete operations now prevent race conditions and provide proper user feedback.
 
 ---
 
