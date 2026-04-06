@@ -1,6 +1,17 @@
 import { prisma } from "~/server/utils/prisma";
 import { getActiveTournament } from "~/server/utils/tournament";
 
+/**
+ * Check for scheduling conflicts before updating a match.
+ * Validates whether a proposed field+time combination conflicts with existing matches.
+ * @param {Object} query - Query parameters
+ * @param {string} query.matchId - Match ID to check (required)
+ * @param {string} [query.fieldId] - Proposed field ID (defaults to match's current field)
+ * @param {string} [query.startTime] - Proposed start time in ISO 8601 format (defaults to match's current time)
+ * @returns {Object} Conflict check result: { ok: boolean, conflicts: string[] }
+ * @throws {400} If matchId is missing or startTime is invalid
+ * @throws {404} If match does not exist or no active tournament exists
+ */
 export default defineEventHandler(async (event) => {
   await getActiveTournament();
   const query = getQuery(event);

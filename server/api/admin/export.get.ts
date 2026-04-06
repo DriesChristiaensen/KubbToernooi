@@ -1,6 +1,13 @@
 import { prisma } from "~/server/utils/prisma";
 import { getActiveTournament } from "~/server/utils/tournament";
 
+/**
+ * Export the complete active tournament snapshot as JSON.
+ * Includes all tournament data: teams, fields, pools with team assignments, matches, and standings.
+ * Can be imported via /admin/import endpoint.
+ * @returns {Object} Snapshot with tournament, teams, fields, pools, matches, standings
+ * @throws {404} If no active tournament exists
+ */
 export default defineEventHandler(async (_event) => {
   const tournament = await getActiveTournament();
 
