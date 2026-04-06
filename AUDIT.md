@@ -17,15 +17,15 @@ Full audit against `.project-docs/AcceptanceCriteriaAllCode.md`. Every API endpo
 
 Priority groups ordered by risk and dependency. Each group can be done in one iteration.
 
-| Priority | IDs                | Scope                                                             | Est. Files |
-| -------- | ------------------ | ----------------------------------------------------------------- | ---------- |
-| **P0**   | C1, C2, C3         | Security fixes: $transaction wrappers, nuxt.config                | ~15        |
-| **P1**   | H1, H2, H9         | Zod validation on all endpoints + error code format + null guard  | ~20        |
-| **P2**   | H4, H3, M6, M7     | Schema: indexes, cascade fix, unique constraint + standings batch | ~3         |
-| **P3**   | H5, H6             | HTTP status codes + JSDoc on all endpoints                        | ~36        |
-| **P4**   | H7, H8             | i18n fixes + delete operation error handling/guards               | ~10        |
-| **P5**   | M1, M2, M3, M4, M5 | Code quality: assertions, casts, a11y, race guards, comments      | ~15        |
-| **P6**   | L1-L9              | Backlog: tests, config, minor fixes                               | ~10        |
+| Priority | IDs                | Scope                                                             | Status | Est. Files |
+| -------- | ------------------ | ----------------------------------------------------------------- | ------ | ---------- |
+| **P0**   | C1, C2, C3         | Security fixes: $transaction wrappers, nuxt.config                | ✅ DONE | ~15        |
+| **P1**   | H1, H2, H9         | Zod validation on all endpoints + error code format + null guard  | ✅ DONE | ~20        |
+| **P2**   | H4, H3, M6, M7     | Schema: indexes, cascade fix, unique constraint + standings batch | ✅ DONE | ~3         |
+| **P3**   | H5, H6             | HTTP status codes + JSDoc on all endpoints                        | ✅ DONE | ~36        |
+| **P4**   | H7, H8             | i18n fixes + delete operation error handling/guards               | 🟡 WIP | ~10        |
+| **P5**   | M1, M2, M3, M4, M5 | Code quality: assertions, casts, a11y, race guards, comments      | ⏳ TODO | ~15        |
+| **P6**   | L1-L9              | Backlog: tests, config, minor fixes                               | ⏳ TODO | ~10        |
 
 ---
 
