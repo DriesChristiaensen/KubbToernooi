@@ -1,6 +1,13 @@
 import { prisma } from '~/server/utils/prisma'
 import { logRequest } from '~/server/utils/logger'
 
+/**
+ * Reset a referee's password to null (no login required).
+ * @param {string} id - Referee user ID (path parameter)
+ * @returns {Object} Success status: { success: boolean }
+ * @throws {400} If referee ID is missing
+ * @throws {404} If referee does not exist
+ */
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
 

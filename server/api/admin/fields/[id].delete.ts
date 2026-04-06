@@ -1,6 +1,13 @@
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 
+/**
+ * Delete a field and all its matches (cascade delete).
+ * @param {string} id - Field ID (path parameter)
+ * @returns {null} Empty response body (204 No Content)
+ * @throws {400} If field ID is missing
+ * @throws {404} If field does not exist
+ */
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
 

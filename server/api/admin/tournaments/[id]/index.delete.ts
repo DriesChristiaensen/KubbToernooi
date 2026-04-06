@@ -1,6 +1,14 @@
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 
+/**
+ * Delete an inactive tournament and all its data (cascade delete).
+ * Only non-active tournaments can be deleted; active tournament must be deactivated first.
+ * @param {string} id - Tournament ID (path parameter)
+ * @returns {null} Empty response body (204 No Content)
+ * @throws {400} If tournament ID is missing or tournament is active
+ * @throws {404} If tournament does not exist
+ */
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) {

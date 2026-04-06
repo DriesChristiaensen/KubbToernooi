@@ -1,6 +1,13 @@
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 
+/**
+ * Delete a team and all its references (cascade delete).
+ * @param {string} id - Team ID (path parameter)
+ * @returns {null} Empty response body (204 No Content)
+ * @throws {400} If team ID is missing
+ * @throws {404} If team does not exist
+ */
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
 
