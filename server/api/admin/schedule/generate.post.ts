@@ -25,7 +25,6 @@ const bodySchema = z.object({
  */
 const BYE = "";
 
-export default defineEventHandler(async (event) => {
 interface RoundQueue {
   poolId: string;
   rounds: Array<Array<[string, string]>>;
