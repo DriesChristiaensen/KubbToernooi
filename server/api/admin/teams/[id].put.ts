@@ -7,6 +7,16 @@ const bodySchema = z.object({
   name: z.string().trim().min(1, "Team name is required"),
 });
 
+/**
+ * Update a team's name in the active tournament.
+ * @param {string} id - Team ID (path parameter)
+ * @param {Object} body - Request body
+ * @param {string} body.name - New team name (unique within tournament, required, non-empty)
+ * @returns {Object} Updated team object with id, name, tournamentId
+ * @throws {400} If id is missing or name is empty
+ * @throws {404} If team does not exist or no active tournament exists
+ * @throws {409} If new name already exists in the current tournament (for a different team)
+ */
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
 

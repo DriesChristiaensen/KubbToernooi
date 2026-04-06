@@ -7,6 +7,18 @@ const bodySchema = z.object({
   teamBId: z.string().optional(),
 });
 
+/**
+ * Assign teams to a KO bracket match.
+ * Only updates unplayed KO matches. Used for assigning teams to bye slots or correcting assignments.
+ * @param {string} id - Match ID (path parameter)
+ * @param {Object} body - Request body
+ * @param {string} [body.teamAId] - Team A ID (optional)
+ * @param {string} [body.teamBId] - Team B ID (optional)
+ * @returns {Object} Updated match object with teamAId, teamBId, status
+ * @throws {400} If id is missing or input validation fails
+ * @throws {404} If match does not exist
+ * @throws {409} If match is not a KO match or has already been played
+ */
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) {

@@ -8,6 +8,18 @@ const bodySchema = z.object({
   startTime: z.string().refine((s) => !isNaN(new Date(s).getTime()), { message: "Invalid date" }).optional(),
 });
 
+/**
+ * Update a match's field and/or start time.
+ * Checks for conflicts: no other match can use the same field or involve the same team at the new time.
+ * @param {string} id - Match ID (path parameter)
+ * @param {Object} body - Request body (at least one field must be provided)
+ * @param {string} [body.fieldId] - New field ID
+ * @param {string} [body.startTime] - New start time (ISO 8601 format with time component)
+ * @returns {Object} Updated match object with id, fieldId, startTime, teamAId, teamBId, status
+ * @throws {400} If id is missing or input validation fails
+ * @throws {404} If match or field does not exist
+ * @throws {409} If conflict detected: field or team already scheduled at new time
+ */
 export default defineEventHandler(async (event) => {
   await getActiveTournament();
   const id = getRouterParam(event, "id");

@@ -6,6 +6,14 @@ const bodySchema = z.object({
   name: z.string().trim().min(1, 'Referee name is required'),
 })
 
+/**
+ * Create a new referee with no password.
+ * @param {Object} body - Request body
+ * @param {string} body.name - Referee name (unique across all referees, required, non-empty)
+ * @returns {Object} Created referee object: { id, name, createdAt }
+ * @throws {400} If name is empty or not provided
+ * @throws {409} If referee with this name already exists
+ */
 export default defineEventHandler(async (event) => {
   const raw = await readBody(event)
 

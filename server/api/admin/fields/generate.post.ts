@@ -8,6 +8,17 @@ const bodySchema = z.object({
   overwrite: z.boolean().optional(),
 });
 
+/**
+ * Generate multiple fields for the active tournament.
+ * Creates fields named "Veld 1", "Veld 2", etc. Uses names in Dutch by convention.
+ * @param {Object} body - Request body
+ * @param {number} body.count - Number of fields to generate (required, positive integer)
+ * @param {boolean} [body.overwrite=false] - If true, delete existing fields before generating
+ * @returns {Object} Count of generated fields: { generated: number }
+ * @throws {400} If count is invalid (not a positive integer)
+ * @throws {404} If no active tournament exists
+ * @throws {409} If fields already exist and overwrite is false
+ */
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
   const raw = await readBody(event);

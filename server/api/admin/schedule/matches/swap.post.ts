@@ -1,12 +1,31 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
 
+const bodySchema = z.object({
+  matchAId: z.string().min(1),
+  matchBId: z.string().min(1),
+});
+
+/**
+ * Swap field and start time between two matches.
+ * Atomically swaps both matches to avoid partial state. Matches must exist and be different.
+ * @param {Object} body - Request body
+ * @param {string} body.matchAId - First match ID (required)
+ * @param {string} body.matchBId - Second match ID (required, must differ from matchAId)
+ * @returns {Object} Swap status: { swapped: boolean }
+ * @throws {400} If either match ID is missing or invalid
+ * @throws {404} If one or both matches do not exist
+ */
 export default defineEventHandler(async (event) => {
   await getActiveTournament();
-  const body = await readBody(event);
+  const raw = await readBody(event);
 
-  if (!body?.matchAId || !body?.matchBId) {
+  let body;
+  try {
+    body = bodySchema.parse(raw ?? {});
+  } catch {
     throw createApiError({
       error: "matchAId en matchBId zijn verplicht",
       code: "invalid_match_id",

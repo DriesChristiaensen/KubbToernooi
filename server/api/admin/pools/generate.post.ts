@@ -8,6 +8,18 @@ const bodySchema = z.object({
   overwrite: z.boolean().optional(),
 });
 
+/**
+ * Generate pools and distribute all teams evenly across them.
+ * Pools are named "Poule A", "Poule B", etc. Teams are shuffled and distributed round-robin.
+ * @param {Object} body - Request body
+ * @param {number} body.poolCount - Number of pools to generate (required, positive integer)
+ * @param {boolean} [body.overwrite=false] - If true, delete existing pools and teams assignments before generating
+ * @returns {Object} Count of generated pools: { generated: number }
+ * @throws {400} If poolCount is invalid (not a positive integer)
+ * @throws {400} If not enough teams to distribute (teams.length < poolCount)
+ * @throws {404} If no active tournament exists
+ * @throws {409} If pools already exist and overwrite is false
+ */
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
   const raw = await readBody(event);

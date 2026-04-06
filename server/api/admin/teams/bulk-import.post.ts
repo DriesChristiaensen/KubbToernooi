@@ -15,6 +15,19 @@ const bodySchema = z.object({
   names: z.array(z.string()).optional(),
 });
 
+/**
+ * Bulk import teams into the active tournament from CSV or name array.
+ * Either csv or names must be provided. CSV format: one team name per line (quotes optional).
+ * Enforces uniqueness within the import and against existing teams in the tournament.
+ * @param {Object} body - Request body
+ * @param {string} [body.csv] - Comma-separated or newline-separated team names
+ * @param {string[]} [body.names] - Array of team names (alternative to csv)
+ * @returns {Object} Count of imported teams: { imported: number }
+ * @throws {400} If neither csv nor names provided, or list is empty
+ * @throws {400} If duplicate names exist within the import list
+ * @throws {404} If no active tournament exists
+ * @throws {409} If any team name already exists in the current tournament
+ */
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
   const raw = await readBody(event);

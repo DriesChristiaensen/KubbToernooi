@@ -12,6 +12,17 @@ const bodySchema = z.object({
   { message: "At least one field must be provided" },
 );
 
+/**
+ * Update active tournament properties: status and schedule visibility flags.
+ * At least one field must be provided; status must be "DRAFT" or "LIVE".
+ * @param {Object} body - Request body (at least one field required)
+ * @param {string} [body.status] - Tournament status: "DRAFT" or "LIVE"
+ * @param {boolean} [body.poolScheduleLive] - Whether pool schedule is public
+ * @param {boolean} [body.koScheduleLive] - Whether KO schedule is public
+ * @returns {Object} Updated tournament object with id, name, status, poolScheduleLive, koScheduleLive
+ * @throws {400} If no fields provided or status is invalid
+ * @throws {404} If no active tournament exists
+ */
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
   const raw = await readBody(event);

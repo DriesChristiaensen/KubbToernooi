@@ -24,6 +24,18 @@ function isValidImport(data: unknown): data is {
   );
 }
 
+/**
+ * Import a complete tournament snapshot from JSON export.
+ * Atomically deactivates any existing tournament and imports all tables (tournament, teams, fields, pools, matches, standings).
+ * If data already exists, requires password confirmation. IDs are remapped; KO advancement links are restored.
+ * @param {Object} body - Request body
+ * @param {Object} body.data - Tournament snapshot with tournament, teams, fields, pools, matches, standings
+ * @param {string} [body.password] - Admin password (required if existing tournament data is present)
+ * @returns {Object} Import status: { imported: boolean }
+ * @throws {400} If import data structure is invalid
+ * @throws {401} If password is required but missing or incorrect
+ * @throws {404} If admin user not found or has no password set
+ */
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 

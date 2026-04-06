@@ -31,6 +31,14 @@ function buildRound1Slots(
   return slots;
 }
 
+/**
+ * Fill KO bracket round 1 with teams and auto-advance byes.
+ * For KNOCKOUT tournaments, uses all teams. For POOLS tournaments, uses top advancers from each pool.
+ * Bye teams (teamAId set, teamBId null) are automatically marked as PLAYED and advanced to next round.
+ * @returns {Object} Count of round-1 matches filled: { filled: number }
+ * @throws {404} If no KO matches exist (must generate bracket first) or no active tournament exists
+ * @throws {400} If not enough teams/standings to fill the bracket
+ */
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
 

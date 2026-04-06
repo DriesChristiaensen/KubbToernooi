@@ -8,6 +8,16 @@ const bodySchema = z.object({
   offsetMinutes: z.number().int(),
 });
 
+/**
+ * Shift the start time of all matches starting at or after a given time.
+ * Atomically updates all affected matches in a single transaction.
+ * @param {Object} body - Request body
+ * @param {string} body.fromTime - Reference time (ISO 8601). Matches at or after this time are shifted.
+ * @param {number} body.offsetMinutes - Time offset in minutes (can be positive or negative)
+ * @returns {Object} Count of shifted matches: { shifted: number }
+ * @throws {400} If fromTime is invalid or offsetMinutes is not an integer
+ * @throws {404} If no active tournament exists
+ */
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
   const raw = await readBody(event);

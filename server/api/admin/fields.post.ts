@@ -7,6 +7,15 @@ const bodySchema = z.object({
   name: z.string().trim().min(1, "Field name is required"),
 });
 
+/**
+ * Create a new field in the active tournament.
+ * @param {Object} body - Request body
+ * @param {string} body.name - Field name (unique within tournament, required, non-empty)
+ * @returns {Object} Created field object with id, name, tournamentId
+ * @throws {400} If name is empty or not provided
+ * @throws {404} If no active tournament exists
+ * @throws {409} If field name already exists in the current tournament
+ */
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
   const raw = await readBody(event);

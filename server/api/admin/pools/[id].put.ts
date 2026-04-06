@@ -9,6 +9,18 @@ const bodySchema = z.object({
   teamIds: z.array(z.string()).optional(),
 });
 
+/**
+ * Update a pool's properties and team assignments.
+ * Atomically updates pool metadata and reassigns teams if teamIds is provided.
+ * @param {string} id - Pool ID (path parameter)
+ * @param {Object} body - Request body (all fields optional)
+ * @param {string} [body.name] - New pool name
+ * @param {number} [body.teamsAdvancing] - Number of teams advancing to KO (non-negative)
+ * @param {string[]} [body.teamIds] - Complete list of team IDs to assign to pool (replaces existing)
+ * @returns {Object} Updated pool object with id, name, teamsAdvancing, tournamentId
+ * @throws {400} If id is missing or input validation fails
+ * @throws {404} If pool does not exist or no active tournament exists
+ */
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) {
