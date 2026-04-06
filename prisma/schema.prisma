@@ -42,6 +42,8 @@ model User {
   role      Role
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([name])
 }
 
 model Tournament {
@@ -141,12 +143,17 @@ model Match {
   updatedAt   DateTime    @updatedAt
 
   field       Field  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
-  pool        Pool?  @relation(fields: [poolId], references: [id], onDelete: SetNull)
+  pool        Pool?  @relation(fields: [poolId], references: [id], onDelete: Cascade)
   teamA       Team?  @relation("teamA", fields: [teamAId], references: [id], onDelete: SetNull)
   teamB       Team?  @relation("teamB", fields: [teamBId], references: [id], onDelete: SetNull)
   koWinner    Team?  @relation("koWinner", fields: [koWinnerId], references: [id], onDelete: SetNull)
   nextMatch   Match? @relation("MatchProgression", fields: [nextMatchId], references: [id])
   prevMatches Match[] @relation("MatchProgression")
+
+  @@index([poolId])
+  @@index([fieldId])
+  @@index([startTime])
+  @@index([poolId, status])
 }
 
 model Standing {
@@ -168,4 +175,5 @@ model Standing {
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([poolId, teamId])
+  @@index([poolId])
 }

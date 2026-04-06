@@ -11,7 +11,8 @@ export async function recalculatePoolStandings(poolId: string): Promise<void> {
   const pointsDraw = tournament?.pointsDraw ?? 1;
   const pointsLoss = tournament?.pointsLoss ?? 0;
 
-  for (const pt of poolTeams) {
+  // Compute all standings in memory
+  const standingsData = poolTeams.map((pt) => {
     const teamMatches = playedMatches.filter(
       (m) => m.teamAId === pt.teamId || m.teamBId === pt.teamId,
     );
@@ -35,30 +36,25 @@ export async function recalculatePoolStandings(poolId: string): Promise<void> {
 
     const points = won * pointsWin + drawn * pointsDraw + lost * pointsLoss;
 
-    await prisma.standing.upsert({
-      where: { poolId_teamId: { poolId, teamId: pt.teamId } },
-      update: {
-        played: teamMatches.length,
-        won,
-        drawn,
-        lost,
-        goalsFor,
-        goalsAgainst,
-        goalDifference: goalsFor - goalsAgainst,
-        points,
-      },
-      create: {
-        poolId,
-        teamId: pt.teamId,
-        played: teamMatches.length,
-        won,
-        drawn,
-        lost,
-        goalsFor,
-        goalsAgainst,
-        goalDifference: goalsFor - goalsAgainst,
-        points,
-      },
+    return {
+      poolId,
+      teamId: pt.teamId,
+      played: teamMatches.length,
+      won,
+      drawn,
+      lost,
+      goalsFor,
+      goalsAgainst,
+      goalDifference: goalsFor - goalsAgainst,
+      points,
+    };
+  });
+
+  // Batch delete old standings and recreate them in a single transaction
+  await prisma.$transaction(async (tx) => {
+    await tx.standing.deleteMany({ where: { poolId } });
+    await tx.standing.createMany({
+      data: standingsData,
     });
-  }
+  });
 }
