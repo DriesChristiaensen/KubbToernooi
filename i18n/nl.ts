@@ -300,6 +300,8 @@ export const nl = {
       winner: "Winnaar",
       round: "Ronde",
       poolMatchLabel: "wedstrijd Poule",
+      finaleFormat: "1/{count} finale",
+      roundOrdinal: "{round}e",
     },
     standings: {
       title: "Standen",

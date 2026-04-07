@@ -298,7 +298,7 @@ function getRoundLabel(matchCount: number): string {
   if (matchCount === 4) return lb.quarterfinal;
   if (matchCount === 8) return lb.r8;
   if (matchCount === 16) return lb.r16;
-  return `1/${matchCount} finale`;
+  return nl.public.schedule.finaleFormat.replace('{count}', String(matchCount));
 }
 
 function isTabDisabled(tab: { key: "pool" | "ko" | "eindstand" }): boolean {
@@ -320,7 +320,7 @@ const currentTabScheduleIsLive = computed(() => {
 });
 
 function poolMatchTitle(match: Match): string {
-  return `${match.round}e ${s.poolMatchLabel} ${match.pool?.name ?? ""}`;
+  return `${nl.public.schedule.roundOrdinal.replace('{round}', String(match.round))} ${s.poolMatchLabel} ${match.pool?.name ?? ""}`;
 }
 
 // Sort tied standings by head-to-head record against other teams in the group
