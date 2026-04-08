@@ -73,6 +73,7 @@ export default defineEventHandler(async (event) => {
   } else {
     const pools = await prisma.pool.findMany({
       where: { tournamentId: tournament.id },
+      orderBy: { id: "asc" },
       include: {
         standings: {
           orderBy: [

@@ -220,6 +220,8 @@ export const nl = {
       fillTeamsStep: "Stap 2: Teams invullen",
       fillTeamsOverwriteWarning: "Wil je de ingedeelde teams echt overschrijven?",
       noTeamsLive: "Deel eerst teams in voordat je het KO-schema live zet",
+      poolMatchesNotPlayed: "Niet alle poule matchen zijn gespeeld",
+      newGenerate: "Nieuw KO-schema genereren",
       generateStep: "Stap 1: Schema genereren",
       roundLabels: {
         final: "Finale",

@@ -61,6 +61,7 @@ const swapError = ref("");
 const swapSuccess = ref("");
 const rankedTournamentTeams = ref<Team[]>([]);
 const allTeams = ref<Team[]>([]);
+const allPoolMatchesPlayed = ref(true);
 
 const hasStructure = computed(() => matches.value.length > 0);
 const hasTeams = computed(() =>
@@ -281,16 +282,16 @@ onMounted(async () => {
     tournamentType.value = t.type;
     tournament.value = t;
     if (t.type === "COMBINATION") {
-      const poolMatches = await $fetch<{ startTime: string; phase: string }[]>(
+      const poolMatches = await $fetch<{ startTime: string; phase: string; status: string }[]>(
         "/api/admin/schedule/matches",
       );
-      const poolTimes = poolMatches
-        .filter((m) => m.phase === "POOL")
-        .map((m) => m.startTime);
+      const onlyPool = poolMatches.filter((m) => m.phase === "POOL");
+      const poolTimes = onlyPool.map((m) => m.startTime);
       if (poolTimes.length > 0) {
         // Safe: poolTimes.length > 0 ensures array has at least one element
         lastPoolMatchTime.value = poolTimes.sort().at(-1)!;
       }
+      allPoolMatchesPlayed.value = onlyPool.length > 0 && onlyPool.every((m) => m.status === "PLAYED");
     }
   } catch {
     // tournament fetch failing is non-critical
@@ -436,13 +437,13 @@ onMounted(async () => {
         class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
         @click="generate()"
       >
-        {{ nl.admin.koBracket.generate }}
+        {{ hasStructure ? nl.admin.koBracket.newGenerate : nl.admin.koBracket.generate }}
       </button>
     </div>
 
-    <!-- Step 2: Fill teams (only if structure exists) -->
+    <!-- Step 2: Fill teams (only if structure exists and teams not yet filled) -->
     <div
-      v-if="hasStructure"
+      v-if="hasStructure && !hasTeams"
       class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
     >
       <h2 class="mb-3 font-semibold text-text">
@@ -454,14 +455,21 @@ onMounted(async () => {
       <p v-if="fillTeamsSuccess" class="mb-2 text-sm text-success">
         {{ fillTeamsSuccess }}
       </p>
-      <button
-        :disabled="fillTeamsLoading"
-        :class="hasTeams ? 'bg-secondary' : 'bg-success'"
-        class="rounded px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50"
-        @click="requestFillTeams"
-      >
-        {{ nl.admin.koBracket.fillTeams }}
-      </button>
+      <div class="group relative inline-block">
+        <button
+          :disabled="fillTeamsLoading || (tournamentType === 'COMBINATION' && !allPoolMatchesPlayed)"
+          class="rounded bg-success px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50"
+          @click="requestFillTeams"
+        >
+          {{ nl.admin.koBracket.fillTeams }}
+        </button>
+        <div
+          v-if="tournamentType === 'COMBINATION' && !allPoolMatchesPlayed"
+          class="invisible absolute bottom-full left-0 z-10 mb-1 w-max max-w-xs rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible"
+        >
+          {{ nl.admin.koBracket.poolMatchesNotPlayed }}
+        </div>
+      </div>
     </div>
 
     <!-- Publish KO bracket -->
