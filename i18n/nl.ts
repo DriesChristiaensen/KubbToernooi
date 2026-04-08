@@ -218,6 +218,8 @@ export const nl = {
       fillTeams: "Teams invullen",
       fillTeamsSuccess: "Teams ingevuld",
       fillTeamsStep: "Stap 2: Teams invullen",
+      fillTeamsOverwriteWarning: "Wil je de ingedeelde teams echt overschrijven?",
+      noTeamsLive: "Deel eerst teams in voordat je het KO-schema live zet",
       generateStep: "Stap 1: Schema genereren",
       roundLabels: {
         final: "Finale",

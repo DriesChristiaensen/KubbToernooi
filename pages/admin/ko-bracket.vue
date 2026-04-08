@@ -52,6 +52,7 @@ const showDraftWarning = ref(false);
 const fillTeamsLoading = ref(false);
 const fillTeamsError = ref("");
 const fillTeamsSuccess = ref("");
+const showFillTeamsConfirm = ref(false);
 
 const swapMatchId = ref<string | null>(null);
 const swapTeamAId = ref<string>("");
@@ -130,7 +131,16 @@ async function generate(overwrite = false) {
   }
 }
 
+function requestFillTeams() {
+  if (hasTeams.value) {
+    showFillTeamsConfirm.value = true;
+  } else {
+    fillTeams();
+  }
+}
+
 async function fillTeams() {
+  showFillTeamsConfirm.value = false;
   fillTeamsError.value = "";
   fillTeamsSuccess.value = "";
   fillTeamsLoading.value = true;
@@ -174,6 +184,10 @@ async function saveSwap() {
 async function toggleKoPhase() {
   if (!tournament.value) return;
   const newVal = !tournament.value.koScheduleLive;
+  if (newVal && !hasTeams.value) {
+    phaseToggleError.value = nl.admin.koBracket.noTeamsLive;
+    return;
+  }
   if (!newVal) {
     const now = Date.now();
     const hasStarted = matches.value.some(
@@ -312,6 +326,29 @@ onMounted(async () => {
 
 <template>
   <main class="mx-auto max-w-content p-4">
+    <!-- Fill teams overwrite confirmation modal -->
+    <div
+      v-if="showFillTeamsConfirm"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    >
+      <div class="mx-4 max-w-md rounded-lg bg-surface p-6 shadow-xl">
+        <p class="mb-4 text-text">{{ nl.admin.koBracket.fillTeamsOverwriteWarning }}</p>
+        <div class="flex gap-3">
+          <button
+            class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            @click="fillTeams"
+          >
+            {{ nl.common.confirm }}
+          </button>
+          <button
+            class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="showFillTeamsConfirm = false"
+          >
+            {{ nl.common.cancel }}
+          </button>
+        </div>
+      </div>
+    </div>
     <!-- Draft warning modal -->
     <div
       v-if="showDraftWarning"
@@ -421,7 +458,7 @@ onMounted(async () => {
         :disabled="fillTeamsLoading"
         :class="hasTeams ? 'bg-secondary' : 'bg-success'"
         class="rounded px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50"
-        @click="fillTeams"
+        @click="requestFillTeams"
       >
         {{ nl.admin.koBracket.fillTeams }}
       </button>

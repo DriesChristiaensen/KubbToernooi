@@ -114,6 +114,12 @@ export default defineEventHandler(async (event) => {
   let filled = 0;
 
   await prisma.$transaction(async (tx) => {
+    // Clear all KO teams and reset bye statuses before refilling
+    await tx.match.updateMany({
+      where: { phase: "KO", tournamentId: tournament.id },
+      data: { teamAId: null, teamBId: null, status: "SCHEDULED" },
+    });
+
     // Atomically fill round-1 teams and auto-advance byes
     for (let i = 0; i < round1Matches.length; i++) {
       const slot = slots[i] ?? { teamAId: null, teamBId: null };
