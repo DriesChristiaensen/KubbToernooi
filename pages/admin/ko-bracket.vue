@@ -189,8 +189,8 @@ async function saveEdit() {
       body: {
         startTime: editStartTime.value?.toISOString(),
         fieldId: editFieldId.value || undefined,
-        teamAId: editTeamAId.value || undefined,
-        teamBId: editTeamBId.value || undefined,
+        teamAId: editTeamAId.value || null,
+        teamBId: editTeamBId.value || null,
       },
     });
     editSuccess.value = nl.admin.koBracket.matchSaved;
@@ -653,7 +653,7 @@ onMounted(async () => {
                   <span
                     class="my-1 rounded bg-primary/10 px-2 py-0.5 text-center text-xs font-medium text-primary"
                   >
-                    {{ nl.admin.koBracket.bye }}
+                    {{ r === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.waitingForOpponent }}
                   </span>
                 </template>
                 <template v-else>

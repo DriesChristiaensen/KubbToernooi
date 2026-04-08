@@ -3,8 +3,8 @@ import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 
 const bodySchema = z.object({
-  teamAId: z.string().optional(),
-  teamBId: z.string().optional(),
+  teamAId: z.string().nullable().optional(),
+  teamBId: z.string().nullable().optional(),
   startTime: z.string().datetime().optional(),
   fieldId: z.string().optional(),
 });

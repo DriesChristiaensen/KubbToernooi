@@ -215,6 +215,7 @@ export const nl = {
       otherTeams: "Overige teams",
       tbd: "Nog te bepalen",
       bye: "Automatische winst",
+      waitingForOpponent: "Wacht op tegenstander",
       fillTeams: "Teams invullen",
       fillTeamsSuccess: "Teams ingevuld",
       fillTeamsStep: "Stap 2: Teams invullen",

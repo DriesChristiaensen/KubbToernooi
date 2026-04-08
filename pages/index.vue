@@ -741,14 +741,14 @@ const koFinalMatch = computed(() => {
                                 ? 'text-text'
                                 : 'text-text-light italic'
                           "
-                          >{{ match.teamB ? match.teamB.name : nl.admin.koBracket.bye }}</span
+                          >{{ match.teamB ? match.teamB.name : (match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd) }}</span
                         >
                       </span>
                       <span
                         :class="match.teamB ? statusClasses(match) : 'bg-gray-200 text-text'"
                         class="rounded px-2 py-0.5 text-xs font-medium"
                       >
-                        <template v-if="!match.teamB">{{ nl.admin.koBracket.bye }}</template>
+                        <template v-if="!match.teamB">{{ match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd }}</template>
                         <template v-else-if="match.status === 'PLAYED'"
                           >{{ match.scoreA }} - {{ match.scoreB }} ({{
                             statusLabel(match)
@@ -767,11 +767,12 @@ const koFinalMatch = computed(() => {
                 {{ nl.common.noResults }}
               </p>
               <div v-else class="overflow-x-auto">
-                <div class="flex flex-row gap-4" style="min-width: max-content">
+                <div class="flex flex-row" style="min-width: max-content">
                   <div
                     v-for="(group, colIdx) in koRounds"
                     :key="group.round"
-                    class="flex w-52 flex-col"
+                    class="flex w-52 flex-col gap-2 px-4"
+                    :class="colIdx < koRounds.length - 1 ? 'border-r border-dashed border-gray-300' : ''"
                   >
                     <h3
                       class="mb-2 text-center text-sm font-semibold text-text"
@@ -782,10 +783,10 @@ const koFinalMatch = computed(() => {
                       v-for="match in group.matches"
                       :key="match.id"
                       class="flex items-center"
-                      :style="{ height: 80 * Math.pow(2, colIdx) + 'px' }"
+                      :style="{ minHeight: 80 * Math.pow(2, colIdx) + 'px' }"
                     >
                       <div
-                        class="w-full rounded-lg border p-3 shadow-sm"
+                        class="flex w-full flex-col gap-2 rounded-lg border p-3 shadow-sm"
                         :class="
                           isFavTeamMatch(match)
                             ? 'border-fav-match-border bg-fav-match-bg'
@@ -793,38 +794,38 @@ const koFinalMatch = computed(() => {
                         "
                       >
                         <div
-                          class="mb-1 flex items-center justify-between text-sm text-text-light"
+                          class="flex items-center justify-between text-sm text-text-light"
                         >
                           <span>{{ match.field.name }}</span>
                           <span>{{ formatDateTime(match.startTime) }}</span>
                         </div>
-                        <div class="flex items-center justify-between gap-2">
-                          <span class="min-w-0 font-semibold">
-                            <span
-                              :class="
-                                isFavTeam(match.teamA.id)
-                                  ? 'text-fav-text'
-                                  : 'text-text'
-                              "
-                              >{{ match.teamA.name }}</span
-                            >
-                            <span class="text-text"> vs </span>
-                            <span
-                              :class="
-                                match.teamB && isFavTeam(match.teamB.id)
-                                  ? 'text-fav-text'
-                                  : match.teamB
-                                    ? 'text-text'
-                                    : 'text-text-light italic'
-                              "
-                              >{{ match.teamB ? match.teamB.name : nl.admin.koBracket.bye }}</span
-                            >
-                          </span>
+                        <span class="min-w-0 font-semibold">
+                          <span
+                            :class="
+                              isFavTeam(match.teamA.id)
+                                ? 'text-fav-text'
+                                : 'text-text'
+                            "
+                            >{{ match.teamA.name }}</span
+                          >
+                          <span class="text-text"> vs </span>
+                          <span
+                            :class="
+                              match.teamB && isFavTeam(match.teamB.id)
+                                ? 'text-fav-text'
+                                : match.teamB
+                                  ? 'text-text'
+                                  : 'text-text-light italic'
+                            "
+                            >{{ match.teamB ? match.teamB.name : (match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd) }}</span
+                          >
+                        </span>
+                        <div class="flex justify-end">
                           <span
                             :class="match.teamB ? statusClasses(match) : 'bg-gray-200 text-text'"
                             class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
                           >
-                            <template v-if="!match.teamB">{{ nl.admin.koBracket.bye }}</template>
+                            <template v-if="!match.teamB">{{ match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd }}</template>
                             <template v-else-if="match.status === 'PLAYED'"
                               >{{ match.scoreA }} - {{ match.scoreB }} ({{
                                 statusLabel(match)
@@ -901,11 +902,12 @@ const koFinalMatch = computed(() => {
                 {{ nl.common.noResults }}
               </p>
               <div v-else class="overflow-x-auto">
-                <div class="flex flex-row gap-4" style="min-width: max-content">
+                <div class="flex flex-row" style="min-width: max-content">
                   <div
                     v-for="(group, colIdx) in koRounds"
                     :key="group.round"
-                    class="flex w-52 flex-col"
+                    class="flex w-52 flex-col gap-2 px-4"
+                    :class="colIdx < koRounds.length - 1 ? 'border-r border-dashed border-gray-300' : ''"
                   >
                     <h3
                       class="mb-2 text-center text-sm font-semibold text-text"
@@ -916,43 +918,43 @@ const koFinalMatch = computed(() => {
                       v-for="match in group.matches"
                       :key="match.id"
                       class="flex items-center"
-                      :style="{ height: 80 * Math.pow(2, colIdx) + 'px' }"
+                      :style="{ minHeight: 80 * Math.pow(2, colIdx) + 'px' }"
                     >
                       <div
-                        class="w-full rounded-lg border p-3 shadow-sm"
+                        class="flex w-full flex-col gap-2 rounded-lg border p-3 shadow-sm"
                         :class="
                           isFavTeamMatch(match)
                             ? 'border-fav-match-border bg-fav-match-bg'
                             : 'border-gray-200 bg-surface'
                         "
                       >
-                        <div class="flex items-center justify-between gap-2">
-                          <span class="min-w-0 font-semibold">
-                            <span
-                              :class="
-                                isFavTeam(match.teamA.id)
-                                  ? 'text-fav-text'
-                                  : 'text-text'
-                              "
-                              >{{ match.teamA.name }}</span
-                            >
-                            <span class="text-text"> vs </span>
-                            <span
-                              :class="
-                                match.teamB && isFavTeam(match.teamB.id)
-                                  ? 'text-fav-text'
-                                  : match.teamB
-                                    ? 'text-text'
-                                    : 'text-text-light italic'
-                              "
-                              >{{ match.teamB ? match.teamB.name : nl.admin.koBracket.bye }}</span
-                            >
-                          </span>
+                        <span class="min-w-0 font-semibold">
+                          <span
+                            :class="
+                              isFavTeam(match.teamA.id)
+                                ? 'text-fav-text'
+                                : 'text-text'
+                            "
+                            >{{ match.teamA.name }}</span
+                          >
+                          <span class="text-text"> vs </span>
+                          <span
+                            :class="
+                              match.teamB && isFavTeam(match.teamB.id)
+                                ? 'text-fav-text'
+                                : match.teamB
+                                  ? 'text-text'
+                                  : 'text-text-light italic'
+                            "
+                            >{{ match.teamB ? match.teamB.name : (match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd) }}</span
+                          >
+                        </span>
+                        <div class="flex justify-end">
                           <span
                             :class="match.teamB ? statusClasses(match) : 'bg-gray-200 text-text'"
                             class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
                           >
-                            <template v-if="!match.teamB">{{ nl.admin.koBracket.bye }}</template>
+                            <template v-if="!match.teamB">{{ match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd }}</template>
                             <template v-else>{{ match.scoreA }} - {{ match.scoreB }}</template>
                           </span>
                         </div>
