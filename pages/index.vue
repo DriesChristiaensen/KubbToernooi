@@ -16,7 +16,7 @@ interface Match {
   koWinnerId: string | null;
   field: { id: string; name: string };
   teamA: { id: string; name: string };
-  teamB: { id: string; name: string };
+  teamB: { id: string; name: string } | null;
   pool: { id: string; name: string } | null;
 }
 
@@ -45,6 +45,7 @@ const tournamentType = ref<string | null>(null);
 const tournamentLive = ref(false);
 const poolScheduleLive = ref(false);
 const koScheduleLive = ref(false);
+const maxKoRound = ref<number | null>(null);
 const isLoading = ref(true);
 const now = ref(Date.now());
 
@@ -73,11 +74,13 @@ async function fetchAll() {
       tournamentLive: boolean;
       poolScheduleLive: boolean;
       koScheduleLive: boolean;
+      maxKoRound: number | null;
     }>("/api/public/info").catch(() => ({
       type: null,
       tournamentLive: false,
       poolScheduleLive: false,
       koScheduleLive: false,
+      maxKoRound: null,
     })),
   ]);
   matches.value = newMatches;
@@ -86,6 +89,7 @@ async function fetchAll() {
   tournamentLive.value = info.tournamentLive;
   poolScheduleLive.value = info.poolScheduleLive;
   koScheduleLive.value = info.koScheduleLive;
+  maxKoRound.value = info.maxKoRound;
   now.value = Date.now();
   isLoading.value = false;
   if (
@@ -202,7 +206,7 @@ const uniqueTeams = computed(() => {
   const map = new Map<string, string>();
   for (const m of matches.value) {
     map.set(m.teamA.id, m.teamA.name);
-    map.set(m.teamB.id, m.teamB.name);
+    if (m.teamB) map.set(m.teamB.id, m.teamB.name);
   }
   return Array.from(map.entries())
     .map(([id, name]) => ({ id, name }))
@@ -238,7 +242,7 @@ function isFavTeam(id: string): boolean {
 function isFavTeamMatch(match: Match): boolean {
   return (
     !!favTeamId.value &&
-    (match.teamA.id === favTeamId.value || match.teamB.id === favTeamId.value)
+    (match.teamA.id === favTeamId.value || match.teamB?.id === favTeamId.value)
   );
 }
 
@@ -267,7 +271,7 @@ function applyFilters(list: Match[]): Match[] {
   }
   if (myTeamOnly.value && favTeamId.value) {
     result = result.filter(
-      (m) => m.teamA.id === favTeamId.value || m.teamB.id === favTeamId.value,
+      (m) => m.teamA.id === favTeamId.value || m.teamB?.id === favTeamId.value,
     );
   }
   return result;
@@ -279,6 +283,7 @@ const displayKoMatches = computed(() => applyFilters(koMatches.value));
 // Group KO matches by round and generate round labels (e.g., "1/8 finale")
 const koRounds = computed(() => {
   if (!koMatches.value.length) return [];
+  const max = maxKoRound.value ?? Math.max(...koMatches.value.map((m) => m.round));
   const rounds: number[] = [];
   for (const m of koMatches.value) {
     if (!rounds.includes(m.round)) rounds.push(m.round);
@@ -287,18 +292,18 @@ const koRounds = computed(() => {
     .sort((a, b) => a - b)
     .map((r) => {
       const matches = koMatches.value.filter((m) => m.round === r);
-      return { round: r, label: getRoundLabel(matches.length), matches };
+      return { round: r, label: getRoundLabel(max - r), matches };
     });
 });
 
-function getRoundLabel(matchCount: number): string {
+function getRoundLabel(diff: number): string {
   const lb = nl.admin.koBracket.roundLabels;
-  if (matchCount === 1) return lb.final;
-  if (matchCount === 2) return lb.semifinal;
-  if (matchCount === 4) return lb.quarterfinal;
-  if (matchCount === 8) return lb.r8;
-  if (matchCount === 16) return lb.r16;
-  return nl.public.schedule.finaleFormat.replace('{count}', String(matchCount));
+  if (diff === 0) return lb.final;
+  if (diff === 1) return lb.semifinal;
+  if (diff === 2) return lb.quarterfinal;
+  if (diff === 3) return lb.r8;
+  if (diff === 4) return lb.r16;
+  return nl.public.schedule.finaleFormat.replace('{count}', String(Math.pow(2, diff)));
 }
 
 function isTabDisabled(tab: { key: "pool" | "ko" | "eindstand" }): boolean {
@@ -727,18 +732,21 @@ const koFinalMatch = computed(() => {
                         <span class="text-text"> vs </span>
                         <span
                           :class="
-                            isFavTeam(match.teamB.id)
+                            match.teamB && isFavTeam(match.teamB.id)
                               ? 'text-fav-text'
-                              : 'text-text'
+                              : match.teamB
+                                ? 'text-text'
+                                : 'text-text-light italic'
                           "
-                          >{{ match.teamB.name }}</span
+                          >{{ match.teamB ? match.teamB.name : nl.admin.koBracket.bye }}</span
                         >
                       </span>
                       <span
-                        :class="statusClasses(match)"
+                        :class="match.teamB ? statusClasses(match) : 'bg-gray-200 text-text'"
                         class="rounded px-2 py-0.5 text-xs font-medium"
                       >
-                        <template v-if="match.status === 'PLAYED'"
+                        <template v-if="!match.teamB">{{ nl.admin.koBracket.bye }}</template>
+                        <template v-else-if="match.status === 'PLAYED'"
                           >{{ match.scoreA }} - {{ match.scoreB }} ({{
                             statusLabel(match)
                           }})</template
@@ -800,18 +808,21 @@ const koFinalMatch = computed(() => {
                             <span class="text-text"> vs </span>
                             <span
                               :class="
-                                isFavTeam(match.teamB.id)
+                                match.teamB && isFavTeam(match.teamB.id)
                                   ? 'text-fav-text'
-                                  : 'text-text'
+                                  : match.teamB
+                                    ? 'text-text'
+                                    : 'text-text-light italic'
                               "
-                              >{{ match.teamB.name }}</span
+                              >{{ match.teamB ? match.teamB.name : nl.admin.koBracket.bye }}</span
                             >
                           </span>
                           <span
-                            :class="statusClasses(match)"
+                            :class="match.teamB ? statusClasses(match) : 'bg-gray-200 text-text'"
                             class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
                           >
-                            <template v-if="match.status === 'PLAYED'"
+                            <template v-if="!match.teamB">{{ nl.admin.koBracket.bye }}</template>
+                            <template v-else-if="match.status === 'PLAYED'"
                               >{{ match.scoreA }} - {{ match.scoreB }} ({{
                                 statusLabel(match)
                               }})</template
@@ -925,18 +936,21 @@ const koFinalMatch = computed(() => {
                             <span class="text-text"> vs </span>
                             <span
                               :class="
-                                isFavTeam(match.teamB.id)
+                                match.teamB && isFavTeam(match.teamB.id)
                                   ? 'text-fav-text'
-                                  : 'text-text'
+                                  : match.teamB
+                                    ? 'text-text'
+                                    : 'text-text-light italic'
                               "
-                              >{{ match.teamB.name }}</span
+                              >{{ match.teamB ? match.teamB.name : nl.admin.koBracket.bye }}</span
                             >
                           </span>
                           <span
-                            :class="statusClasses(match)"
+                            :class="match.teamB ? statusClasses(match) : 'bg-gray-200 text-text'"
                             class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
                           >
-                            {{ match.scoreA }} - {{ match.scoreB }}
+                            <template v-if="!match.teamB">{{ nl.admin.koBracket.bye }}</template>
+                            <template v-else>{{ match.scoreA }} - {{ match.scoreB }}</template>
                           </span>
                         </div>
                       </div>

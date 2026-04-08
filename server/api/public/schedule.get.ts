@@ -20,12 +20,15 @@ export default defineEventHandler(async (_event) => {
   if (tournament.koScheduleLive) phases.push("KO");
   if (phases.length === 0) return [];
 
+  const phaseConditions: Array<{ phase: "POOL" | "KO"; teamBId?: { not: null } }> = [];
+  if (phases.includes("POOL")) phaseConditions.push({ phase: "POOL", teamBId: { not: null } });
+  if (phases.includes("KO")) phaseConditions.push({ phase: "KO" });
+
   return await prisma.match.findMany({
     where: {
       tournamentId: tournament.id,
-      phase: { in: phases },
       teamAId: { not: null },
-      teamBId: { not: null },
+      OR: phaseConditions,
     },
     include: {
       field: true,
