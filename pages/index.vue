@@ -597,7 +597,16 @@ const koFinalMatch = computed(() => {
                 <div
                   class="overflow-x-auto rounded-lg border border-gray-200 bg-surface shadow-sm"
                 >
-                  <table class="w-full text-sm">
+                  <table class="w-full table-fixed text-sm">
+                    <colgroup>
+                      <col class="w-[40%]" />
+                      <col class="w-[10%]" />
+                      <col class="w-[10%]" />
+                      <col class="w-[10%]" />
+                      <col class="w-[10%]" />
+                      <col class="w-[10%]" />
+                      <col class="w-[10%]" />
+                    </colgroup>
                     <thead class="border-b border-gray-200 bg-gray-50">
                       <tr>
                         <th class="px-3 py-2 text-left font-medium text-text">
@@ -943,7 +952,14 @@ const koFinalMatch = computed(() => {
               <div
                 class="overflow-x-auto rounded-lg border border-gray-200 bg-surface shadow-sm"
               >
-                <table class="w-full text-sm">
+                <table class="w-full table-fixed text-sm">
+                  <colgroup>
+                    <col class="w-[10%]" />
+                    <col class="w-[50%]" />
+                    <col class="w-[13%]" />
+                    <col class="w-[13%]" />
+                    <col class="w-[14%]" />
+                  </colgroup>
                   <thead class="border-b border-gray-200 bg-gray-50">
                     <tr>
                       <th class="px-2 py-2 text-center font-medium text-text">
@@ -1016,7 +1032,16 @@ const koFinalMatch = computed(() => {
                 <div
                   class="overflow-x-auto rounded-lg border border-gray-200 bg-surface shadow-sm"
                 >
-                  <table class="w-full text-sm">
+                  <table class="w-full table-fixed text-sm">
+                    <colgroup>
+                      <col class="w-[40%]" />
+                      <col class="w-[10%]" />
+                      <col class="w-[10%]" />
+                      <col class="w-[10%]" />
+                      <col class="w-[10%]" />
+                      <col class="w-[10%]" />
+                      <col class="w-[10%]" />
+                    </colgroup>
                     <thead class="border-b border-gray-200 bg-gray-50">
                       <tr>
                         <th class="px-3 py-2 text-left font-medium text-text">
