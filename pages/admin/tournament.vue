@@ -163,6 +163,7 @@ async function createTournament() {
     });
     showWizard.value = false;
     await fetchInactive();
+    await refreshNuxtData('admin-status-banner');
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string; field?: string } } };
     const errField = fetchErr?.data?.data?.field;
@@ -189,6 +190,7 @@ async function togglePublish() {
       body: { status: newStatus },
     });
     tournament.value.status = newStatus;
+    await refreshNuxtData('admin-status-banner');
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
     publishError.value = fetchErr?.data?.data?.error || nl.common.error;
@@ -205,6 +207,7 @@ async function restoreTournament(id: string) {
     await $fetch(`/api/admin/tournaments/${id}/restore`, { method: "POST" });
     await fetchTournament();
     await fetchInactive();
+    await refreshNuxtData('admin-status-banner');
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
     restoreError.value = fetchErr?.data?.data?.error || nl.common.error;

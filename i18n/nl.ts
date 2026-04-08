@@ -233,14 +233,12 @@ export const nl = {
         "Sommige KO-wedstrijden zijn al begonnen of de starttijd is al verstreken. Weet je zeker dat je het KO-schema terug naar concept wilt zetten?",
     },
     banner: {
-      draft: "Toernooi concept nog niet gepubliceerd",
-      live: "Toernooi is live",
-      poolLiveKoDraft:
-        "Poule-schema is live — KO-schema is nog niet gepubliceerd",
-      poolDraftKoLive:
-        "KO-schema is live — Poule-schema is nog niet gepubliceerd",
-      allLive: "Alle schema's zijn live",
-      noneLive: "Geen schema's gepubliceerd",
+      tournamentLive: "Toernooi: live",
+      tournamentDraft: "Toernooi: concept",
+      poolLive: "Poule-schema: live ({count} wedstrijden zichtbaar)",
+      poolDraft: "Poule-schema: concept",
+      koLive: "KO-schema: live ({count} wedstrijden zichtbaar)",
+      koDraft: "KO-schema: concept",
     },
 
     export: {

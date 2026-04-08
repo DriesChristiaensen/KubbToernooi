@@ -2,45 +2,61 @@
 import { computed } from 'vue'
 import { nl } from '~/i18n/nl'
 
-interface Tournament {
+interface StatusBanner {
   status: string
   type: string
   poolScheduleLive: boolean
   koScheduleLive: boolean
+  visiblePoolMatchCount: number
+  visibleKoMatchCount: number
 }
 
-const { data: tournament } = useFetch<Tournament>('/api/admin/tournament')
+const { data } = useFetch<StatusBanner | null>('/api/admin/status-banner', { key: 'admin-status-banner' })
 
-const bannerText = computed(() => {
-  if (!tournament.value) return ''
-  const t = tournament.value
-  const hasPools = t.type === 'POOLS' || t.type === 'COMBINATION'
-  const hasKo = t.type === 'KNOCKOUT' || t.type === 'COMBINATION'
+const hasPools = computed(() => data.value?.type === 'POOLS' || data.value?.type === 'COMBINATION')
+const hasKo = computed(() => data.value?.type === 'KNOCKOUT' || data.value?.type === 'COMBINATION')
 
-  if (hasPools && hasKo) {
-    if (t.poolScheduleLive && t.koScheduleLive) return nl.admin.banner.allLive
-    if (t.poolScheduleLive && !t.koScheduleLive) return nl.admin.banner.poolLiveKoDraft
-    if (!t.poolScheduleLive && t.koScheduleLive) return nl.admin.banner.poolDraftKoLive
-    return nl.admin.banner.noneLive
+const tournamentLabel = computed(() => {
+  if (!data.value) return ''
+  return data.value.status === 'LIVE' ? nl.admin.banner.tournamentLive : nl.admin.banner.tournamentDraft
+})
+
+const poolLabel = computed(() => {
+  if (!data.value || !hasPools.value) return null
+  if (data.value.poolScheduleLive) {
+    return nl.admin.banner.poolLive.replace('{count}', String(data.value.visiblePoolMatchCount))
   }
-  if (hasPools) return t.poolScheduleLive ? nl.admin.banner.allLive : nl.admin.banner.noneLive
-  if (hasKo) return t.koScheduleLive ? nl.admin.banner.allLive : nl.admin.banner.noneLive
-  return t.status === 'LIVE' ? nl.admin.banner.live : nl.admin.banner.draft
+  return nl.admin.banner.poolDraft
+})
+
+const koLabel = computed(() => {
+  if (!data.value || !hasKo.value) return null
+  if (data.value.koScheduleLive) {
+    return nl.admin.banner.koLive.replace('{count}', String(data.value.visibleKoMatchCount))
+  }
+  return nl.admin.banner.koDraft
 })
 
 const isLive = computed(() => {
-  if (!tournament.value) return false
-  const t = tournament.value
-  return t.status === 'LIVE' || t.poolScheduleLive || t.koScheduleLive
+  if (!data.value) return false
+  return data.value.status === 'LIVE' || data.value.poolScheduleLive || data.value.koScheduleLive
 })
 </script>
 
 <template>
   <div
-    v-if="tournament"
+    v-if="data"
     :class="isLive ? 'bg-success' : 'bg-warning'"
     class="px-4 py-2 text-center text-sm font-medium text-white"
   >
-    {{ bannerText }}
+    <span>{{ tournamentLabel }}</span>
+    <template v-if="poolLabel">
+      <span class="mx-2 opacity-60">·</span>
+      <span>{{ poolLabel }}</span>
+    </template>
+    <template v-if="koLabel">
+      <span class="mx-2 opacity-60">·</span>
+      <span>{{ koLabel }}</span>
+    </template>
   </div>
 </template>

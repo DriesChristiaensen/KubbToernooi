@@ -111,6 +111,7 @@ async function generate(overwrite = false) {
     generateSuccess.value = `${result.generated} ${nl.admin.koBracket.generated}`;
     showOverwrite.value = false;
     await fetchMatches();
+    await refreshNuxtData('admin-status-banner');
   } catch (err: unknown) {
     const fetchErr = err as {
       data?: { data?: { error?: string; code?: number } };
@@ -199,6 +200,7 @@ async function executeDraftToggle(newVal: boolean) {
       body: { koScheduleLive: newVal },
     });
     tournament.value.koScheduleLive = newVal;
+    await refreshNuxtData('admin-status-banner');
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
     phaseToggleError.value = fetchErr?.data?.data?.error || nl.common.error;

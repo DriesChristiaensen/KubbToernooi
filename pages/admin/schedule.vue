@@ -104,6 +104,7 @@ async function generateSchedule(overwrite = false) {
     );
     generateSuccess.value = `${result.generated} ${nl.admin.schedule.generate}`;
     await fetchMatches();
+    await refreshNuxtData('admin-status-banner');
   } catch (err: unknown) {
     const fetchErr = err as {
       data?: { data?: { error?: string; code?: number } };
@@ -219,6 +220,7 @@ async function executeDraftToggle(
       body: { [field]: newVal },
     });
     tournament.value[field] = newVal;
+    await refreshNuxtData('admin-status-banner');
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
     phaseToggleError.value = fetchErr?.data?.data?.error || nl.common.error;

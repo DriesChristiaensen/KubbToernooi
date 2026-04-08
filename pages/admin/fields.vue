@@ -120,6 +120,7 @@ async function generateFields(overwrite = false) {
     generateCount.value = null;
     generateSuccess.value = `${result.generated} ${nl.admin.fields.generated}`;
     await fetchFields();
+    await refreshNuxtData('admin-status-banner');
   } catch (err: unknown) {
     const fetchErr = err as {
       data?: { data?: { error?: string; code?: number } };
