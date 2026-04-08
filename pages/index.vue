@@ -479,7 +479,14 @@ const koFinalMatch = computed(() => {
             class="inline-flex items-center justify-self-end gap-2 float-end"
           >
             <template v-if="favTeamName">
+              <span
+                v-if="activeMainTab === 'eindstand' || (activeMainTab === 'ko' && activeSubTab === 'standings')"
+                class="rounded bg-fav px-3 py-1.5 text-sm text-white"
+              >
+                Favoriete team: {{ favTeamName }}
+              </span>
               <button
+                v-else
                 :class="
                   myTeamOnly
                     ? 'bg-fav text-white'
