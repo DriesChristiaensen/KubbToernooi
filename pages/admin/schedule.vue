@@ -51,7 +51,7 @@ const timeShiftLoading = ref(false);
 const timeShiftError = ref("");
 const timeShiftSuccess = ref("");
 
-const viewMode = ref<"field" | "team" | "slot">("field");
+const viewMode = ref<"field" | "team" | "slot">("slot");
 const switchMatchId = ref<string | null>(null);
 const swapLoading = ref(false);
 const swapError = ref("");
@@ -281,6 +281,44 @@ const uniqueSlots = computed(() =>
   [...new Set(matches.value.map((m) => m.startTime))].sort(),
 );
 
+interface ConflictPair {
+  field: string;
+  teamA1: string;
+  teamB1: string;
+  teamA2: string;
+  teamB2: string;
+  type: "field" | "team";
+}
+
+const conflictPairs = computed(() => {
+  const pairs: ConflictPair[] = [];
+  const list = matches.value;
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const a = list[i]!;
+      const b = list[j]!;
+      if (a.startTime !== b.startTime) continue;
+      const fieldConflict = a.field.id === b.field.id;
+      const teamConflict =
+        a.teamA?.id === b.teamA?.id ||
+        a.teamA?.id === b.teamB?.id ||
+        a.teamB?.id === b.teamA?.id ||
+        a.teamB?.id === b.teamB?.id;
+      if (fieldConflict || teamConflict) {
+        pairs.push({
+          field: a.field.name,
+          teamA1: a.teamA?.name ?? "?",
+          teamB1: a.teamB?.name ?? "?",
+          teamA2: b.teamA?.name ?? "?",
+          teamB2: b.teamB?.name ?? "?",
+          type: fieldConflict ? "field" : "team",
+        });
+      }
+    }
+  }
+  return pairs;
+});
+
 const conflictingMatchIds = computed(() => {
   const ids = new Set<string>();
   const list = matches.value;
@@ -336,6 +374,33 @@ function wouldSwapCauseConflict(sm: Match, target: Match): boolean {
   return false;
 }
 
+function getSwapConflictReason(sm: Match, target: Match): string {
+  const smTime = new Date(sm.startTime).getTime();
+  const targetTime = new Date(target.startTime).getTime();
+  const dur = matchDurationMs.value;
+  const exclude = new Set([sm.id, target.id]);
+  const conflicting = new Set<string>();
+  for (const m of matches.value) {
+    if (exclude.has(m.id)) continue;
+    const mTime = new Date(m.startTime).getTime();
+    // sm would move to target's slot — check sm's teams at targetTime
+    if (Math.abs(mTime - targetTime) < dur) {
+      if (m.teamA?.id === sm.teamA?.id || m.teamB?.id === sm.teamA?.id)
+        conflicting.add(sm.teamA!.name);
+      if (m.teamA?.id === sm.teamB?.id || m.teamB?.id === sm.teamB?.id)
+        conflicting.add(sm.teamB!.name);
+    }
+    // target would move to sm's slot — check target's teams at smTime
+    if (Math.abs(mTime - smTime) < dur) {
+      if (m.teamA?.id === target.teamA?.id || m.teamB?.id === target.teamA?.id)
+        conflicting.add(target.teamA!.name);
+      if (m.teamA?.id === target.teamB?.id || m.teamB?.id === target.teamB?.id)
+        conflicting.add(target.teamB!.name);
+    }
+  }
+  return Array.from(conflicting).join(", ");
+}
+
 const isSelectedMatchScheduleLive = computed(() => {
   const sm = switchMatch.value;
   if (!sm || !tournament.value) return false;
@@ -364,6 +429,17 @@ const disabledSwapMatchIds = computed(() => {
     if (wouldSwapCauseConflict(sm, m)) ids.add(m.id);
   }
   return ids;
+});
+
+const disabledSwapReasons = computed(() => {
+  const sm = switchMatch.value;
+  if (!sm || !isSelectedMatchScheduleLive.value) return new Map<string, string>();
+  const map = new Map<string, string>();
+  for (const m of matches.value) {
+    if (m.id === sm.id) continue;
+    if (wouldSwapCauseConflict(sm, m)) map.set(m.id, getSwapConflictReason(sm, m));
+  }
+  return map;
 });
 
 function rowClass(matchId: string): string {
@@ -606,10 +682,18 @@ onMounted(async () => {
 
       <!-- Conflict warning (persistent across all tabs) -->
       <div
-        v-if="conflictingMatchIds.size > 0"
-        class="mb-3 rounded-lg border border-error bg-error/10 px-4 py-2 text-sm font-medium text-error"
+        v-if="conflictPairs.length > 0"
+        class="mb-3 rounded-lg border border-error bg-error/10 px-4 py-2 text-sm text-error"
       >
-        {{ nl.admin.schedule.swapConflictWarning }}
+        <p class="mb-1 font-medium">{{ nl.admin.schedule.swapConflictWarning }}</p>
+        <ul class="list-disc pl-4">
+          <li v-for="(c, i) in conflictPairs" :key="i">
+            <span class="font-medium">{{ c.field }}</span>:
+            {{ c.teamA1 }} vs {{ c.teamB1 }}
+            &amp;
+            {{ c.teamA2 }} vs {{ c.teamB2 }}
+          </li>
+        </ul>
       </div>
 
       <!-- Switch mode status -->
@@ -648,6 +732,7 @@ onMounted(async () => {
                 )"
                 :key="m.id"
                 :class="rowClass(m.id)"
+                :title="disabledSwapMatchIds.has(m.id) ? `${nl.admin.schedule.swapDisabledHint} ${disabledSwapReasons.get(m.id)}` : undefined"
                 @click="clickMatch(m)"
               >
                 <td class="py-2 pr-4 text-text-light">
@@ -684,6 +769,7 @@ onMounted(async () => {
                 )"
                 :key="m.id"
                 :class="rowClass(m.id)"
+                :title="disabledSwapMatchIds.has(m.id) ? `${nl.admin.schedule.swapDisabledHint} ${disabledSwapReasons.get(m.id)}` : undefined"
                 @click="clickMatch(m)"
               >
                 <td class="py-2 pr-4 text-text-light">
@@ -732,13 +818,22 @@ onMounted(async () => {
                 </td>
                 <td v-for="f in fields" :key="f.id" class="py-2 pr-4">
                   <template v-if="getMatchForSlot(f.id, slot)">
-                    <button
-                      :class="cellClass(getMatchForSlot(f.id, slot)!.id)"
-                      @click="clickMatch(getMatchForSlot(f.id, slot)!)"
-                    >
-                      {{ getMatchForSlot(f.id, slot)!.teamA?.name ?? "?" }} vs
-                      {{ getMatchForSlot(f.id, slot)!.teamB?.name ?? "?" }}
-                    </button>
+                    <div class="group relative">
+                      <button
+                        :class="cellClass(getMatchForSlot(f.id, slot)!.id)"
+                        @click="clickMatch(getMatchForSlot(f.id, slot)!)"
+                      >
+                        {{ getMatchForSlot(f.id, slot)!.teamA?.name ?? "?" }} vs
+                        {{ getMatchForSlot(f.id, slot)!.teamB?.name ?? "?" }}
+                      </button>
+                      <div
+                        v-if="disabledSwapMatchIds.has(getMatchForSlot(f.id, slot)!.id)"
+                        class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden w-48 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-center text-xs text-white group-hover:block"
+                      >
+                        {{ nl.admin.schedule.swapDisabledHint }}
+                        {{ disabledSwapReasons.get(getMatchForSlot(f.id, slot)!.id) }}
+                      </div>
+                    </div>
                   </template>
                   <span v-else class="text-text-light">—</span>
                 </td>
