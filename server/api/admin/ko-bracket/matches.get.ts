@@ -10,7 +10,7 @@ export default defineEventHandler(async (_event) => {
   const tournament = await getActiveTournament();
 
   const matches = await prisma.match.findMany({
-    where: { phase: "KO", field: { tournamentId: tournament.id } },
+    where: { phase: "KO", tournamentId: tournament.id },
     include: {
       teamA: { select: { id: true, name: true } },
       teamB: { select: { id: true, name: true } },

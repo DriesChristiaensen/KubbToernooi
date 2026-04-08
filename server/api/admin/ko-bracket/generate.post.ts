@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
 
   const tournament = await getActiveTournament();
 
-  const existingCount = await prisma.match.count({ where: { phase: "KO" } });
+  const existingCount = await prisma.match.count({ where: { phase: "KO", tournamentId: tournament.id } });
   if (existingCount > 0 && !overwrite) {
     throw createApiError({
       error: "Er is al een KO-schema. Gebruik overwrite om te vervangen.",
@@ -117,7 +117,7 @@ export default defineEventHandler(async (event) => {
   await prisma.$transaction(async (tx) => {
     // Atomically delete old KO matches and create new bracket
     if (existingCount > 0) {
-      await tx.match.deleteMany({ where: { phase: "KO" } });
+      await tx.match.deleteMany({ where: { phase: "KO", tournamentId: tournament.id } });
     }
 
     const roundMatchIds = new Map<number, string[]>();
@@ -138,6 +138,7 @@ export default defineEventHandler(async (event) => {
           data: {
             phase: "KO",
             round: r,
+            tournamentId: tournament.id,
             fieldId: field.id,
             teamAId: null,
             teamBId: null,

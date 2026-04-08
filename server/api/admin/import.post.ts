@@ -155,6 +155,7 @@ export default defineEventHandler(async (event) => {
             phase: ((match.phase as string) || "POOL") as MatchPhase,
             round: Number(match.round) || 1,
             startTime: new Date(match.startTime as string),
+            tournamentId: newTournament.id,
             fieldId: mappedFieldId,
             poolId: mappedPoolId ?? null,
             teamAId: mappedTeamAId,

@@ -135,6 +135,7 @@ async function createPools(
             phase: "POOL",
             round: roundIdx + 1,
             startTime: slotTime(slot),
+            tournamentId,
             fieldId: fields[i % fields.length]!.id,
             poolId: pool.id,
             teamAId,
@@ -178,7 +179,7 @@ async function seedKo() {
   await clearData();
   await ensureAdmin();
 
-  const { teams, fields } = await createBase(
+  const { tournament, teams, fields } = await createBase(
     "KNOCKOUT",
     "Kubb Knock-out Toernooi 2025",
     4,
@@ -199,6 +200,7 @@ async function seedKo() {
         phase: "KO",
         round: 1,
         startTime: slotTime(i % fields.length === 0 && i > 0 ? 1 : 0),
+        tournamentId: tournament.id,
         fieldId: fields[i % fields.length]!.id,
         teamAId,
         teamBId,
@@ -444,6 +446,7 @@ async function seedCombinedFinished() {
       phase: "KO",
       round: 2,
       startTime: slotTime(koStartSlot + 1),
+      tournamentId: tournament.id,
       fieldId: fields[0]!.id,
       status: "PLAYED",
       scoreA: 6,
@@ -456,6 +459,7 @@ async function seedCombinedFinished() {
       phase: "KO",
       round: 1,
       startTime: slotTime(koStartSlot),
+      tournamentId: tournament.id,
       fieldId: fields[0]!.id,
       teamAId: qualifiedTeams[0], // Pool A #1
       teamBId: qualifiedTeams[3], // Pool B #2
@@ -472,6 +476,7 @@ async function seedCombinedFinished() {
       phase: "KO",
       round: 1,
       startTime: slotTime(koStartSlot),
+      tournamentId: tournament.id,
       fieldId: fields[1]!.id,
       teamAId: qualifiedTeams[2], // Pool B #1
       teamBId: qualifiedTeams[1], // Pool A #2

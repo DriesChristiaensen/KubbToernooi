@@ -63,9 +63,10 @@ model Tournament {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
-  teams  Team[]
-  fields Field[]
-  pools  Pool[]
+  teams   Team[]
+  fields  Field[]
+  pools   Pool[]
+  matches Match[]
 }
 
 model Team {
@@ -126,12 +127,13 @@ model PoolTeam {
 }
 
 model Match {
-  id          String      @id @default(uuid())
-  phase       MatchPhase
-  round       Int         @default(1)
-  startTime   DateTime
-  fieldId     String
-  poolId      String?
+  id           String      @id @default(uuid())
+  phase        MatchPhase
+  round        Int         @default(1)
+  startTime    DateTime
+  tournamentId String
+  fieldId      String
+  poolId       String?
   teamAId     String?
   teamBId     String?
   scoreA      Int?
@@ -142,14 +144,16 @@ model Match {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  field       Field  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
-  pool        Pool?  @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  tournament  Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  field       Field      @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  pool        Pool?      @relation(fields: [poolId], references: [id], onDelete: Cascade)
   teamA       Team?  @relation("teamA", fields: [teamAId], references: [id], onDelete: SetNull)
   teamB       Team?  @relation("teamB", fields: [teamBId], references: [id], onDelete: SetNull)
   koWinner    Team?  @relation("koWinner", fields: [koWinnerId], references: [id], onDelete: SetNull)
   nextMatch   Match? @relation("MatchProgression", fields: [nextMatchId], references: [id])
   prevMatches Match[] @relation("MatchProgression")
 
+  @@index([tournamentId])
   @@index([poolId])
   @@index([fieldId])
   @@index([startTime])

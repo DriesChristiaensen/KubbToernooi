@@ -22,7 +22,7 @@ export default defineEventHandler(async (_event) => {
 
   return await prisma.match.findMany({
     where: {
-      field: { tournamentId: tournament.id },
+      tournamentId: tournament.id,
       phase: { in: phases },
       teamAId: { not: null },
       teamBId: { not: null },

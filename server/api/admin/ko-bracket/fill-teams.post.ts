@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
 
   const koMatches = await prisma.match.findMany({
-    where: { phase: "KO" },
+    where: { phase: "KO", tournamentId: tournament.id },
     orderBy: [{ round: "asc" }],
   });
 

@@ -147,6 +147,7 @@ export default defineEventHandler(async (event) => {
     phase: "POOL";
     round: number;
     startTime: Date;
+    tournamentId: string;
     fieldId: string;
     poolId: string;
     teamAId: string;
@@ -173,6 +174,7 @@ export default defineEventHandler(async (event) => {
       phase: "POOL",
       round: m.round,
       startTime: new Date(baseTime.getTime() + bestSlot * slotDurationMs),
+      tournamentId: tournament.id,
       fieldId: bestField.id,
       poolId: m.poolId,
       teamAId: m.teamA,
