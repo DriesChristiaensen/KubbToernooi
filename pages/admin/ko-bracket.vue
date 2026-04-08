@@ -18,6 +18,8 @@ interface Tournament {
   type: string;
   status: string;
   koScheduleLive: boolean;
+  qualifyGlobally: boolean;
+  globalQualifyingTeams: number;
 }
 
 interface KoMatch {
@@ -53,6 +55,11 @@ const showDraftWarning = ref(false);
 const fillTeamsLoading = ref(false);
 const fillTeamsError = ref("");
 const fillTeamsSuccess = ref("");
+
+const globalQualifyingTeams = ref<number>(8);
+const globalQtSaving = ref(false);
+const globalQtError = ref("");
+const globalQtSuccess = ref("");
 const showFillTeamsConfirm = ref(false);
 
 const rankedTournamentTeams = ref<Team[]>([]);
@@ -256,6 +263,25 @@ function cancelDraftToggle() {
   showDraftWarning.value = false;
 }
 
+async function saveGlobalQualifyingTeams() {
+  globalQtError.value = "";
+  globalQtSuccess.value = "";
+  globalQtSaving.value = true;
+  try {
+    await $fetch("/api/admin/tournament", {
+      method: "PATCH",
+      body: { globalQualifyingTeams: globalQualifyingTeams.value },
+    });
+    if (tournament.value) tournament.value.globalQualifyingTeams = globalQualifyingTeams.value;
+    globalQtSuccess.value = nl.admin.koBracket.globalQualifyingTeamsSaved;
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    globalQtError.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    globalQtSaving.value = false;
+  }
+}
+
 const rounds = computed(() => {
   const map = new Map<number, KoMatch[]>();
   for (const m of matches.value) {
@@ -305,6 +331,7 @@ onMounted(async () => {
     const t = await $fetch<Tournament>("/api/admin/tournament");
     tournamentType.value = t.type;
     tournament.value = t;
+    globalQualifyingTeams.value = t.globalQualifyingTeams;
     if (t.type === "COMBINATION") {
       const poolMatches = await $fetch<{ startTime: string; phase: string; status: string }[]>(
         "/api/admin/schedule/matches",
@@ -508,6 +535,30 @@ onMounted(async () => {
       <h2 class="mb-3 font-semibold text-text">
         {{ nl.admin.koBracket.generateStep }}
       </h2>
+      <!-- Global qualifying teams (only for COMBINATION + qualifyGlobally) -->
+      <div v-if="tournament?.qualifyGlobally && tournamentType === 'COMBINATION'" class="mb-4">
+        <label class="mb-1 block text-sm font-medium text-text">
+          {{ nl.admin.koBracket.globalQualifyingTeams }}
+        </label>
+        <div class="flex items-center gap-2">
+          <input
+            v-model.number="globalQualifyingTeams"
+            type="number"
+            min="2"
+            class="w-24 rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+          >
+          <button
+            :disabled="globalQtSaving"
+            class="rounded bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+            @click="saveGlobalQualifyingTeams"
+          >
+            {{ nl.admin.koBracket.globalQualifyingTeamsSave }}
+          </button>
+          <span v-if="globalQtSuccess" class="text-sm text-success">{{ globalQtSuccess }}</span>
+          <span v-if="globalQtError" class="text-sm text-error">{{ globalQtError }}</span>
+        </div>
+      </div>
+
       <div class="mb-4">
         <label class="mb-1 block text-sm font-medium text-text" for="ko-start">
           {{ nl.admin.koBracket.startDateTime }}

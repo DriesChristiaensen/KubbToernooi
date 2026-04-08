@@ -152,6 +152,8 @@ export const nl = {
       assignSuccess: "Indeling opgeslagen",
       notAvailableForType:
         "Poule-beheer is niet beschikbaar voor dit toernooitype.",
+      qualifyGlobally: "Kwalificatie globaal bepalen",
+      qualifyGloballyHint: "Het totaal aantal doorstromende teams wordt ingesteld in het KO-schema",
     },
     referees: {
       title: "Scheidsrechters",
@@ -225,6 +227,9 @@ export const nl = {
       poolMatchesNotPlayed: "Niet alle poule matchen zijn gespeeld",
       newGenerate: "Nieuw KO-schema genereren",
       generateStep: "Stap 1: Schema genereren",
+      globalQualifyingTeams: "Totaal doorstromende teams",
+      globalQualifyingTeamsSave: "Opslaan",
+      globalQualifyingTeamsSaved: "Opgeslagen",
       roundLabels: {
         final: "Finale",
         semifinal: "Halve finale",

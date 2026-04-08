@@ -7,6 +7,8 @@ const bodySchema = z.object({
   status: z.enum(["DRAFT", "LIVE"]).optional(),
   poolScheduleLive: z.boolean().optional(),
   koScheduleLive: z.boolean().optional(),
+  qualifyGlobally: z.boolean().optional(),
+  globalQualifyingTeams: z.number().int().min(2).optional(),
 }).refine(
   (data) => Object.values(data).some((v) => v !== undefined),
   { message: "At least one field must be provided" },
@@ -53,6 +55,14 @@ export default defineEventHandler(async (event) => {
 
   if (body.koScheduleLive !== undefined) {
     data.koScheduleLive = body.koScheduleLive;
+  }
+
+  if (body.qualifyGlobally !== undefined) {
+    data.qualifyGlobally = body.qualifyGlobally;
+  }
+
+  if (body.globalQualifyingTeams !== undefined) {
+    data.globalQualifyingTeams = body.globalQualifyingTeams;
   }
 
   const updated = await prisma.tournament.update({

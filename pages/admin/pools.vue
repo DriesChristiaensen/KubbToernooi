@@ -22,6 +22,7 @@ interface Pool {
 
 interface Tournament {
   type: string;
+  qualifyGlobally: boolean;
 }
 
 const tournament = ref<Tournament | null>(null);
@@ -45,6 +46,8 @@ const deleteLoading = ref<Set<string>>(new Set());
 
 const poolEditName = ref("");
 const poolEditTeamsAdvancing = ref(1);
+
+const qualifyGloballyLoading = ref(false);
 
 const hasPools = computed(() =>
   tournament.value?.type === "POOLS" || tournament.value?.type === "COMBINATION",
@@ -182,6 +185,22 @@ async function deletePool(pool: Pool) {
   }
 }
 
+async function toggleQualifyGlobally() {
+  if (!tournament.value) return;
+  qualifyGloballyLoading.value = true;
+  try {
+    await $fetch("/api/admin/tournament", {
+      method: "PATCH",
+      body: { qualifyGlobally: !tournament.value.qualifyGlobally },
+    });
+    tournament.value.qualifyGlobally = !tournament.value.qualifyGlobally;
+  } catch {
+    error.value = nl.common.error;
+  } finally {
+    qualifyGloballyLoading.value = false;
+  }
+}
+
 onMounted(fetchData);
 </script>
 
@@ -214,6 +233,27 @@ onMounted(fetchData);
       >
         {{ nl.admin.pools.unassignedWarning.replace("{n}", String(unassignedCount)) }}
       </div>
+
+      <!-- Qualify globally switch (COMBINATION only) -->
+      <section v-if="tournament?.type === 'COMBINATION'" class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="font-semibold text-text">{{ nl.admin.pools.qualifyGlobally }}</p>
+            <p class="text-sm text-text-light">{{ nl.admin.pools.qualifyGloballyHint }}</p>
+          </div>
+          <button
+            :disabled="qualifyGloballyLoading"
+            :class="tournament?.qualifyGlobally ? 'bg-primary' : 'bg-gray-300'"
+            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+            @click="toggleQualifyGlobally"
+          >
+            <span
+              :class="tournament?.qualifyGlobally ? 'translate-x-6' : 'translate-x-1'"
+              class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+            />
+          </button>
+        </div>
+      </section>
 
       <!-- Generate pools -->
       <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
@@ -286,7 +326,7 @@ onMounted(fetchData);
                   class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
                 >
               </div>
-              <div v-if="tournament?.type === 'COMBINATION'" class="w-32">
+              <div v-if="tournament?.type === 'COMBINATION' && !tournament?.qualifyGlobally" class="w-32">
                 <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.pools.teamsAdvancing }}</label>
                 <input
                   v-model.number="poolEditTeamsAdvancing"
@@ -349,7 +389,7 @@ onMounted(fetchData);
             <div class="flex items-start justify-between">
               <div>
                 <p class="font-semibold text-text">{{ pool.name }}</p>
-                <p v-if="tournament?.type === 'COMBINATION'" class="text-sm text-text-light">
+                <p v-if="tournament?.type === 'COMBINATION' && !tournament?.qualifyGlobally" class="text-sm text-text-light">
                   {{ nl.admin.pools.teamsAdvancing }}: {{ pool.teamsAdvancing }}
                 </p>
                 <ul class="mt-1 text-sm text-text-light">

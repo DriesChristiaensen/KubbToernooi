@@ -73,11 +73,13 @@ export default defineEventHandler(async (event) => {
   } else {
     const pools = await prisma.pool.findMany({
       where: { tournamentId: tournament.id },
-      orderBy: { id: "asc" },
+      orderBy: { name: "asc" },
       include: {
+        poolTeams: true,
         standings: {
           orderBy: [
             { points: "desc" },
+            { won: "desc" },
             { goalDifference: "desc" },
             { goalsFor: "desc" },
           ],
@@ -93,11 +95,41 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    participants = pools.flatMap((pool) =>
-      pool.standings
-        .slice(0, pool.teamsAdvancing)
-        .map((s) => ({ teamId: s.teamId })),
-    );
+    if (tournament.qualifyGlobally) {
+      const total = tournament.globalQualifyingTeams;
+      const numPools = pools.length;
+      const base = Math.floor(total / numPools);
+      const extras = total % numPools;
+
+      // Sort pools: most teams first; tiebreak by cross-pool ranking of their (base)th standing entry
+      const poolsSorted = [...pools].sort((a, b) => {
+        const teamCountDiff = b.poolTeams.length - a.poolTeams.length;
+        if (teamCountDiff !== 0) return teamCountDiff;
+        // Same team count: compare the (base+1)th team's standings for tiebreaking
+        const aNext = a.standings[base];
+        const bNext = b.standings[base];
+        if (!aNext && !bNext) return a.name.localeCompare(b.name);
+        if (!aNext) return 1;
+        if (!bNext) return -1;
+        const diff =
+          bNext.points - aNext.points ||
+          bNext.won - aNext.won ||
+          bNext.goalDifference - aNext.goalDifference ||
+          bNext.goalsFor - aNext.goalsFor;
+        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+      });
+
+      participants = poolsSorted.flatMap((pool, i) => {
+        const allocation = base + (i < extras ? 1 : 0);
+        return pool.standings.slice(0, allocation).map((s) => ({ teamId: s.teamId }));
+      });
+    } else {
+      participants = pools.flatMap((pool) =>
+        pool.standings
+          .slice(0, pool.teamsAdvancing)
+          .map((s) => ({ teamId: s.teamId })),
+      );
+    }
 
     if (participants.length < 2) {
       throw createApiError({

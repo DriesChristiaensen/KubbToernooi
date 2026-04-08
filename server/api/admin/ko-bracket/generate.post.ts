@@ -70,15 +70,6 @@ export default defineEventHandler(async (event) => {
   } else {
     const pools = await prisma.pool.findMany({
       where: { tournamentId: tournament.id },
-      include: {
-        standings: {
-          orderBy: [
-            { points: "desc" },
-            { goalDifference: "desc" },
-            { goalsFor: "desc" },
-          ],
-        },
-      },
     });
 
     if (pools.length === 0) {
@@ -89,10 +80,11 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    participantCount = pools.reduce(
-      (sum, pool) => sum + pool.teamsAdvancing,
-      0,
-    );
+    if (tournament.qualifyGlobally) {
+      participantCount = tournament.globalQualifyingTeams;
+    } else {
+      participantCount = pools.reduce((sum, pool) => sum + pool.teamsAdvancing, 0);
+    }
 
     if (participantCount < 2) {
       throw createApiError({
