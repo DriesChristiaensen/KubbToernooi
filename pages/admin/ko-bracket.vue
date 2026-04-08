@@ -4,7 +4,10 @@ import { VueDatePicker } from "@vuepic/vue-datepicker";
 import { nlBE } from "date-fns/locale";
 import { nl } from "~/i18n/nl";
 
-definePageMeta({ middleware: ["auth", "admin-tournament-guard"], layout: "admin" });
+definePageMeta({
+  middleware: ["auth", "admin-tournament-guard"],
+  layout: "admin",
+});
 
 interface Team {
   id: string;
@@ -70,7 +73,7 @@ function getRoundLabel(matchCount: number): string {
   if (matchCount === 4) return labels.quarterfinal;
   if (matchCount === 8) return labels.r8;
   if (matchCount === 16) return labels.r16;
-  return nl.public.schedule.finaleFormat.replace('{count}', String(matchCount));
+  return nl.public.schedule.finaleFormat.replace("{count}", String(matchCount));
 }
 
 async function fetchMatches() {
@@ -89,9 +92,9 @@ async function generate(overwrite = false) {
     return;
   }
   if (
-    tournamentType.value === "COMBINATION"
-    && lastPoolMatchTime.value
-    && generateStartDateTime.value <= new Date(lastPoolMatchTime.value)
+    tournamentType.value === "COMBINATION" &&
+    lastPoolMatchTime.value &&
+    generateStartDateTime.value <= new Date(lastPoolMatchTime.value)
   ) {
     generateError.value = nl.admin.koBracket.koStartAfterPool;
     return;
@@ -111,13 +114,13 @@ async function generate(overwrite = false) {
     generateSuccess.value = `${result.generated} ${nl.admin.koBracket.generated}`;
     showOverwrite.value = false;
     await fetchMatches();
-    await refreshNuxtData('admin-status-banner');
+    await refreshNuxtData("admin-status-banner");
   } catch (err: unknown) {
     const fetchErr = err as {
       data?: { data?: { error?: string; code?: number } };
     };
+    showOverwrite.value = true;
     if (fetchErr?.data?.data?.code === 409) {
-      showOverwrite.value = true;
       generateError.value = nl.admin.koBracket.existingWarning;
     } else {
       generateError.value = fetchErr?.data?.data?.error || nl.common.error;
@@ -155,13 +158,10 @@ async function saveSwap() {
   if (!swapMatchId.value) return;
   swapError.value = "";
   try {
-    await $fetch(
-      `/api/admin/ko-bracket/matches/${swapMatchId.value}`,
-      {
-        method: "PATCH",
-        body: { teamAId: swapTeamAId.value, teamBId: swapTeamBId.value },
-      },
-    );
+    await $fetch(`/api/admin/ko-bracket/matches/${swapMatchId.value}`, {
+      method: "PATCH",
+      body: { teamAId: swapTeamAId.value, teamBId: swapTeamBId.value },
+    });
     swapSuccess.value = nl.common.save;
     swapMatchId.value = null;
     await fetchMatches();
@@ -200,7 +200,7 @@ async function executeDraftToggle(newVal: boolean) {
       body: { koScheduleLive: newVal },
     });
     tournament.value.koScheduleLive = newVal;
-    await refreshNuxtData('admin-status-banner');
+    await refreshNuxtData("admin-status-banner");
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
     phaseToggleError.value = fetchErr?.data?.data?.error || nl.common.error;
@@ -345,7 +345,9 @@ onMounted(async () => {
     </div>
 
     <!-- Step 1: Generate structure -->
-    <div class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+    <div
+      class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
+    >
       <h2 class="mb-3 font-semibold text-text">
         {{ nl.admin.koBracket.generateStep }}
       </h2>
@@ -382,7 +384,10 @@ onMounted(async () => {
         </button>
         <button
           class="rounded border border-gray-300 px-4 py-2 text-text hover:bg-gray-100"
-          @click="showOverwrite = false; generateError = ''"
+          @click="
+            showOverwrite = false;
+            generateError = '';
+          "
         >
           {{ nl.common.cancel }}
         </button>
@@ -399,7 +404,10 @@ onMounted(async () => {
     </div>
 
     <!-- Step 2: Fill teams (only if structure exists) -->
-    <div v-if="hasStructure" class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+    <div
+      v-if="hasStructure"
+      class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
+    >
       <h2 class="mb-3 font-semibold text-text">
         {{ nl.admin.koBracket.fillTeamsStep }}
       </h2>
@@ -457,7 +465,9 @@ onMounted(async () => {
       </p>
       <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div>
-          <label class="mb-1 block text-sm text-text-light">{{ nl.ref.matches.scoreA }}</label>
+          <label class="mb-1 block text-sm text-text-light">{{
+            nl.ref.matches.scoreA
+          }}</label>
           <select
             v-model="swapTeamAId"
             class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
@@ -468,13 +478,27 @@ onMounted(async () => {
               </option>
             </template>
             <template v-else>
-              <optgroup v-if="swapWinningTeams.length" :label="nl.admin.koBracket.winningTeams">
-                <option v-for="team in swapWinningTeams" :key="team.id" :value="team.id">
+              <optgroup
+                v-if="swapWinningTeams.length"
+                :label="nl.admin.koBracket.winningTeams"
+              >
+                <option
+                  v-for="team in swapWinningTeams"
+                  :key="team.id"
+                  :value="team.id"
+                >
                   {{ team.name }}
                 </option>
               </optgroup>
-              <optgroup v-if="swapNonKoTeams.length" :label="nl.admin.koBracket.otherTeams">
-                <option v-for="team in swapNonKoTeams" :key="team.id" :value="team.id">
+              <optgroup
+                v-if="swapNonKoTeams.length"
+                :label="nl.admin.koBracket.otherTeams"
+              >
+                <option
+                  v-for="team in swapNonKoTeams"
+                  :key="team.id"
+                  :value="team.id"
+                >
                   {{ team.name }}
                 </option>
               </optgroup>
@@ -482,7 +506,9 @@ onMounted(async () => {
           </select>
         </div>
         <div>
-          <label class="mb-1 block text-sm text-text-light">{{ nl.ref.matches.scoreB }}</label>
+          <label class="mb-1 block text-sm text-text-light">{{
+            nl.ref.matches.scoreB
+          }}</label>
           <select
             v-model="swapTeamBId"
             class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
@@ -493,13 +519,27 @@ onMounted(async () => {
               </option>
             </template>
             <template v-else>
-              <optgroup v-if="swapWinningTeams.length" :label="nl.admin.koBracket.winningTeams">
-                <option v-for="team in swapWinningTeams" :key="team.id" :value="team.id">
+              <optgroup
+                v-if="swapWinningTeams.length"
+                :label="nl.admin.koBracket.winningTeams"
+              >
+                <option
+                  v-for="team in swapWinningTeams"
+                  :key="team.id"
+                  :value="team.id"
+                >
                   {{ team.name }}
                 </option>
               </optgroup>
-              <optgroup v-if="swapNonKoTeams.length" :label="nl.admin.koBracket.otherTeams">
-                <option v-for="team in swapNonKoTeams" :key="team.id" :value="team.id">
+              <optgroup
+                v-if="swapNonKoTeams.length"
+                :label="nl.admin.koBracket.otherTeams"
+              >
+                <option
+                  v-for="team in swapNonKoTeams"
+                  :key="team.id"
+                  :value="team.id"
+                >
                   {{ team.name }}
                 </option>
               </optgroup>
@@ -551,15 +591,26 @@ onMounted(async () => {
                 <span class="text-sm font-medium text-text">
                   {{ getMatch(r, idx)!.teamA?.name ?? nl.admin.koBracket.tbd }}
                 </span>
-                <template v-if="getMatch(r, idx)!.teamAId !== null && getMatch(r, idx)!.teamBId === null">
-                  <span class="my-1 rounded bg-primary/10 px-2 py-0.5 text-center text-xs font-medium text-primary">
+                <template
+                  v-if="
+                    getMatch(r, idx)!.teamAId !== null &&
+                    getMatch(r, idx)!.teamBId === null
+                  "
+                >
+                  <span
+                    class="my-1 rounded bg-primary/10 px-2 py-0.5 text-center text-xs font-medium text-primary"
+                  >
                     {{ nl.admin.koBracket.bye }}
                   </span>
                 </template>
                 <template v-else>
-                  <span class="my-1 text-center text-xs text-text-light">vs</span>
+                  <span class="my-1 text-center text-xs text-text-light"
+                    >vs</span
+                  >
                   <span class="text-sm font-medium text-text">
-                    {{ getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd }}
+                    {{
+                      getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd
+                    }}
                   </span>
                 </template>
                 <div class="mt-2 text-xs text-text-light">
@@ -576,7 +627,9 @@ onMounted(async () => {
                 </div>
               </template>
               <template v-else>
-                <div class="flex grow items-center justify-center text-sm text-text-light">
+                <div
+                  class="flex grow items-center justify-center text-sm text-text-light"
+                >
                   {{ nl.admin.koBracket.tbd }}
                 </div>
               </template>
