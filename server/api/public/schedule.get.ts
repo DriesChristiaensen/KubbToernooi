@@ -30,7 +30,16 @@ export default defineEventHandler(async (_event) => {
       teamAId: { not: null },
       OR: phaseConditions,
     },
-    include: {
+    select: {
+      id: true,
+      phase: true,
+      round: true,
+      startTime: true,
+      status: true,
+      scoreA: true,
+      scoreB: true,
+      koWinnerId: true,
+      bracketPosition: true,
       field: true,
       teamA: true,
       teamB: true,

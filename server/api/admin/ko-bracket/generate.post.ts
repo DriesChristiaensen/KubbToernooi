@@ -145,6 +145,7 @@ export default defineEventHandler(async (event) => {
             poolId: null,
             startTime: new Date(matchStartTime.getTime() + slotOffset * slotMs),
             status: "SCHEDULED",
+            bracketPosition: i,
             ...(nextMatchId !== null ? { nextMatchId } : {}),
           },
         });

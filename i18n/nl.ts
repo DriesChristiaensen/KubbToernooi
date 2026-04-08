@@ -233,6 +233,11 @@ export const nl = {
       statusSection: "Status",
       koScheduleLive: "KO-schema live",
       koScheduleDraft: "KO-schema concept",
+      editMatch: "Wedstrijd aanpassen",
+      fieldLabel: "Veld",
+      timeLabel: "Tijdstip",
+      saveMatch: "Opslaan",
+      matchSaved: "Wedstrijd opgeslagen",
       draftWarning:
         "Sommige KO-wedstrijden zijn al begonnen of de starttijd is al verstreken. Weet je zeker dat je het KO-schema terug naar concept wilt zetten?",
     },

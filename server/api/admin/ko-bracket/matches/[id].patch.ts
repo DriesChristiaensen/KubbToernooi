@@ -5,6 +5,8 @@ import { logRequest } from "~/server/utils/logger";
 const bodySchema = z.object({
   teamAId: z.string().optional(),
   teamBId: z.string().optional(),
+  startTime: z.string().datetime().optional(),
+  fieldId: z.string().optional(),
 });
 
 /**
@@ -62,8 +64,16 @@ export default defineEventHandler(async (event) => {
   const updateData: Record<string, unknown> = {};
   if (body.teamAId !== undefined) updateData.teamAId = body.teamAId;
   if (body.teamBId !== undefined) updateData.teamBId = body.teamBId;
+  if (body.startTime !== undefined) updateData.startTime = new Date(body.startTime);
+  if (body.fieldId !== undefined) {
+    const field = await prisma.field.findFirst({ where: { id: body.fieldId } });
+    if (!field) {
+      throw createApiError({ error: "Veld niet gevonden", code: "field_not_found", reason: "Field not found" });
+    }
+    updateData.fieldId = body.fieldId;
+  }
 
-  const updated = await prisma.match.update({ where: { id }, data: updateData });
+  const updated = await prisma.match.update({ where: { id }, data: updateData, include: { field: true, teamA: true, teamB: true } });
 
   logRequest(event, "success", `KO match ${id} adjusted`);
   return updated;

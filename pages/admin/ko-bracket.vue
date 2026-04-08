@@ -32,6 +32,7 @@ interface KoMatch {
   teamA: Team | null;
   teamB: Team | null;
   nextMatchId: string | null;
+  bracketPosition: number | null;
   field: { id: string; name: string };
 }
 
@@ -54,14 +55,24 @@ const fillTeamsError = ref("");
 const fillTeamsSuccess = ref("");
 const showFillTeamsConfirm = ref(false);
 
-const swapMatchId = ref<string | null>(null);
-const swapTeamAId = ref<string>("");
-const swapTeamBId = ref<string>("");
-const swapError = ref("");
-const swapSuccess = ref("");
 const rankedTournamentTeams = ref<Team[]>([]);
 const allTeams = ref<Team[]>([]);
 const allPoolMatchesPlayed = ref(true);
+
+interface Field {
+  id: string;
+  name: string;
+}
+const allFields = ref<Field[]>([]);
+
+const editMatchId = ref<string | null>(null);
+const editStartTime = ref<Date | null>(null);
+const editFieldId = ref<string>("");
+const editTeamAId = ref<string>("");
+const editTeamBId = ref<string>("");
+const editError = ref("");
+const editSaving = ref(false);
+const editSuccess = ref("");
 
 const hasStructure = computed(() => matches.value.length > 0);
 const hasTeams = computed(() =>
@@ -157,30 +168,42 @@ async function fillTeams() {
   }
 }
 
-function startSwap(match: KoMatch) {
-  swapMatchId.value = match.id;
-  swapTeamAId.value = match.teamAId ?? "";
-  swapTeamBId.value = match.teamBId ?? "";
-  swapError.value = "";
-  swapSuccess.value = "";
+
+function startEdit(match: KoMatch) {
+  editMatchId.value = match.id;
+  editStartTime.value = new Date(match.startTime);
+  editFieldId.value = match.field.id;
+  editTeamAId.value = match.teamAId ?? "";
+  editTeamBId.value = match.teamBId ?? "";
+  editError.value = "";
+  editSuccess.value = "";
 }
 
-async function saveSwap() {
-  if (!swapMatchId.value) return;
-  swapError.value = "";
+async function saveEdit() {
+  if (!editMatchId.value) return;
+  editError.value = "";
+  editSaving.value = true;
   try {
-    await $fetch(`/api/admin/ko-bracket/matches/${swapMatchId.value}`, {
+    await $fetch(`/api/admin/ko-bracket/matches/${editMatchId.value}`, {
       method: "PATCH",
-      body: { teamAId: swapTeamAId.value, teamBId: swapTeamBId.value },
+      body: {
+        startTime: editStartTime.value?.toISOString(),
+        fieldId: editFieldId.value || undefined,
+        teamAId: editTeamAId.value || undefined,
+        teamBId: editTeamBId.value || undefined,
+      },
     });
-    swapSuccess.value = nl.common.save;
-    swapMatchId.value = null;
+    editSuccess.value = nl.admin.koBracket.matchSaved;
+    editMatchId.value = null;
     await fetchMatches();
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
-    swapError.value = fetchErr?.data?.data?.error || nl.common.error;
+    editError.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    editSaving.value = false;
   }
 }
+
 
 async function toggleKoPhase() {
   if (!tournament.value) return;
@@ -240,6 +263,9 @@ const rounds = computed(() => {
     // Safe: Entry guaranteed to exist from has check or set call above
     map.get(m.round)!.push(m);
   }
+  for (const ms of map.values()) {
+    ms.sort((a, b) => (a.bracketPosition ?? 0) - (b.bracketPosition ?? 0));
+  }
   return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
 });
 
@@ -267,8 +293,6 @@ function matchCount(r: number): number {
 function spanCount(r: number): number {
   return Math.pow(2, r - 1);
 }
-
-const swapWinningTeams = computed(() => rankedTournamentTeams.value);
 
 const swapNonKoTeams = computed(() => {
   const rankedIds = new Set(rankedTournamentTeams.value.map((t) => t.id));
@@ -322,6 +346,11 @@ onMounted(async () => {
   } catch {
     // allTeams fetch failing is non-critical
   }
+  try {
+    allFields.value = await $fetch<Field[]>("/api/admin/fields");
+  } catch {
+    // fields fetch failing is non-critical
+  }
 });
 </script>
 
@@ -373,6 +402,96 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+    <!-- Edit match modal -->
+    <div
+      v-if="editMatchId"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    >
+      <div class="mx-4 w-full max-w-md rounded-lg bg-surface p-6 shadow-xl">
+        <h2 class="mb-4 font-semibold text-text">{{ nl.admin.koBracket.editMatch }}</h2>
+        <p v-if="editError" class="mb-3 text-sm text-error">{{ editError }}</p>
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.koBracket.timeLabel }}</label>
+            <ClientOnly>
+              <VueDatePicker
+                v-model="editStartTime"
+                :formats="{ input: 'dd/MM/yyyy HH:mm' }"
+                :enable-time-picker="true"
+                :is24="true"
+                auto-apply
+                :locale="nlBE"
+              />
+            </ClientOnly>
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text">{{ nl.admin.koBracket.fieldLabel }}</label>
+            <select
+              v-model="editFieldId"
+              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            >
+              <option v-for="f in allFields" :key="f.id" :value="f.id">{{ f.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text">{{ nl.ref.matches.scoreA }}</label>
+            <select
+              v-model="editTeamAId"
+              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            >
+              <option value="">{{ nl.admin.koBracket.tbd }}</option>
+              <template v-if="tournamentType === 'KO'">
+                <option v-for="team in allTeams" :key="team.id" :value="team.id">{{ team.name }}</option>
+              </template>
+              <template v-else>
+                <optgroup v-if="rankedTournamentTeams.length" :label="nl.admin.koBracket.winningTeams">
+                  <option v-for="team in rankedTournamentTeams" :key="team.id" :value="team.id">{{ team.name }}</option>
+                </optgroup>
+                <optgroup v-if="swapNonKoTeams.length" :label="nl.admin.koBracket.otherTeams">
+                  <option v-for="team in swapNonKoTeams" :key="team.id" :value="team.id">{{ team.name }}</option>
+                </optgroup>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text">{{ nl.ref.matches.scoreB }}</label>
+            <select
+              v-model="editTeamBId"
+              class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            >
+              <option value="">{{ nl.admin.koBracket.tbd }}</option>
+              <template v-if="tournamentType === 'KO'">
+                <option v-for="team in allTeams" :key="team.id" :value="team.id">{{ team.name }}</option>
+              </template>
+              <template v-else>
+                <optgroup v-if="rankedTournamentTeams.length" :label="nl.admin.koBracket.winningTeams">
+                  <option v-for="team in rankedTournamentTeams" :key="team.id" :value="team.id">{{ team.name }}</option>
+                </optgroup>
+                <optgroup v-if="swapNonKoTeams.length" :label="nl.admin.koBracket.otherTeams">
+                  <option v-for="team in swapNonKoTeams" :key="team.id" :value="team.id">{{ team.name }}</option>
+                </optgroup>
+              </template>
+            </select>
+          </div>
+        </div>
+        <div class="mt-4 flex gap-2">
+          <button
+            :disabled="editSaving"
+            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+            @click="saveEdit"
+          >
+            {{ nl.admin.koBracket.saveMatch }}
+          </button>
+          <button
+            class="rounded border border-gray-300 px-4 py-2 text-text hover:bg-gray-100"
+            @click="editMatchId = null"
+          >
+            {{ nl.common.cancel }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="mb-4 flex items-center gap-3">
       <NuxtLink to="/admin" class="text-sm text-text-light hover:text-primary">
         &larr; {{ nl.common.back }}
@@ -497,117 +616,6 @@ onMounted(async () => {
       </p>
     </div>
 
-    <!-- Swap teams panel -->
-    <div
-      v-if="swapMatchId"
-      class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
-    >
-      <h2 class="mb-3 font-semibold text-text">
-        {{ nl.admin.koBracket.swapTeams }}
-      </h2>
-      <p v-if="swapError" class="mb-2 text-sm text-error">
-        {{ swapError }}
-      </p>
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div>
-          <label class="mb-1 block text-sm text-text-light">{{
-            nl.ref.matches.scoreA
-          }}</label>
-          <select
-            v-model="swapTeamAId"
-            class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          >
-            <template v-if="tournamentType === 'KO'">
-              <option v-for="team in allTeams" :key="team.id" :value="team.id">
-                {{ team.name }}
-              </option>
-            </template>
-            <template v-else>
-              <optgroup
-                v-if="swapWinningTeams.length"
-                :label="nl.admin.koBracket.winningTeams"
-              >
-                <option
-                  v-for="team in swapWinningTeams"
-                  :key="team.id"
-                  :value="team.id"
-                >
-                  {{ team.name }}
-                </option>
-              </optgroup>
-              <optgroup
-                v-if="swapNonKoTeams.length"
-                :label="nl.admin.koBracket.otherTeams"
-              >
-                <option
-                  v-for="team in swapNonKoTeams"
-                  :key="team.id"
-                  :value="team.id"
-                >
-                  {{ team.name }}
-                </option>
-              </optgroup>
-            </template>
-          </select>
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-text-light">{{
-            nl.ref.matches.scoreB
-          }}</label>
-          <select
-            v-model="swapTeamBId"
-            class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          >
-            <template v-if="tournamentType === 'KO'">
-              <option v-for="team in allTeams" :key="team.id" :value="team.id">
-                {{ team.name }}
-              </option>
-            </template>
-            <template v-else>
-              <optgroup
-                v-if="swapWinningTeams.length"
-                :label="nl.admin.koBracket.winningTeams"
-              >
-                <option
-                  v-for="team in swapWinningTeams"
-                  :key="team.id"
-                  :value="team.id"
-                >
-                  {{ team.name }}
-                </option>
-              </optgroup>
-              <optgroup
-                v-if="swapNonKoTeams.length"
-                :label="nl.admin.koBracket.otherTeams"
-              >
-                <option
-                  v-for="team in swapNonKoTeams"
-                  :key="team.id"
-                  :value="team.id"
-                >
-                  {{ team.name }}
-                </option>
-              </optgroup>
-            </template>
-          </select>
-        </div>
-        <div class="flex gap-2">
-          <button
-            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
-            @click="saveSwap"
-          >
-            {{ nl.admin.schedule.saveMatch }}
-          </button>
-          <button
-            class="rounded border border-gray-300 px-4 py-2 text-text hover:bg-gray-100"
-            @click="swapMatchId = null"
-          >
-            {{ nl.common.cancel }}
-          </button>
-        </div>
-      </div>
-    </div>
-
     <div v-if="round1Count === 0" class="text-center text-text-light">
       {{ nl.common.noResults }}
     </div>
@@ -661,13 +669,16 @@ onMounted(async () => {
                 <div class="mt-2 text-xs text-text-light">
                   {{ getMatch(r, idx)!.field.name }}
                 </div>
+                <div class="mt-1 text-xs text-text-light">
+                  {{ new Date(getMatch(r, idx)!.startTime).toLocaleString("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) }}
+                </div>
                 <div class="mt-1 text-right">
                   <button
                     v-if="getMatch(r, idx)!.status !== 'PLAYED'"
                     class="text-xs text-primary hover:underline"
-                    @click="startSwap(getMatch(r, idx)!)"
+                    @click="startEdit(getMatch(r, idx)!)"
                   >
-                    {{ nl.admin.koBracket.swapTeams }}
+                    {{ nl.admin.koBracket.editMatch }}
                   </button>
                 </div>
               </template>

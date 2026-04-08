@@ -16,7 +16,7 @@ export default defineEventHandler(async (_event) => {
       teamB: { select: { id: true, name: true } },
       field: { select: { id: true, name: true } },
     },
-    orderBy: [{ round: "asc" }, { startTime: "asc" }],
+    orderBy: [{ round: "asc" }, { bracketPosition: "asc" }, { startTime: "asc" }],
   });
 
   return matches;

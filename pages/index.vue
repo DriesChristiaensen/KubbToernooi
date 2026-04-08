@@ -14,6 +14,7 @@ interface Match {
   scoreA: number | null;
   scoreB: number | null;
   koWinnerId: string | null;
+  bracketPosition: number | null;
   field: { id: string; name: string };
   teamA: { id: string; name: string };
   teamB: { id: string; name: string } | null;
@@ -291,7 +292,9 @@ const koRounds = computed(() => {
   return rounds
     .sort((a, b) => a - b)
     .map((r) => {
-      const matches = koMatches.value.filter((m) => m.round === r);
+      const matches = koMatches.value
+        .filter((m) => m.round === r)
+        .sort((a, b) => (a.bracketPosition ?? 0) - (b.bracketPosition ?? 0));
       return { round: r, label: getRoundLabel(max - r), matches };
     });
 });
