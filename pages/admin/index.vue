@@ -251,7 +251,7 @@ function handleImportFile(event: Event) {
         </div>
       </div>
 
-      <div></div>
+      <div/>
 
       <!-- Row 4: Schedule -->
       <NuxtLink
@@ -344,7 +344,7 @@ function handleImportFile(event: Event) {
             type="password"
             :placeholder="nl.auth.password"
             class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
-          />
+          >
           <button
             :disabled="importLoading"
             class="rounded bg-error px-4 py-2 font-medium text-white hover:bg-red-700 disabled:opacity-50"
@@ -365,7 +365,7 @@ function handleImportFile(event: Event) {
             accept=".json"
             class="hidden"
             @change="handleImportFile"
-          />
+          >
         </label>
       </template>
     </div>

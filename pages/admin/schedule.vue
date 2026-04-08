@@ -631,11 +631,11 @@ onMounted(async () => {
       <template v-if="viewMode === 'field'">
         <div v-for="group in matchesByField" :key="group.field.id" class="mb-6">
           <h3 class="mb-2 font-semibold text-text">{{ group.field.name }}</h3>
-          <table class="w-full text-sm">
+          <table class="w-full table-fixed text-sm">
             <thead>
               <tr class="border-b border-gray-200 text-left text-text-light">
-                <th class="pb-1 pr-4">{{ nl.admin.schedule.timeLabel }}</th>
-                <th class="pb-1 pr-4">{{ nl.admin.schedule.teamAHeader }}</th>
+                <th class="w-36 pb-1 pr-4">{{ nl.admin.schedule.timeLabel }}</th>
+                <th class="w-2/5 pb-1 pr-4">{{ nl.admin.schedule.teamAHeader }}</th>
                 <th class="pb-1">{{ nl.admin.schedule.teamBHeader }}</th>
               </tr>
             </thead>
@@ -667,11 +667,11 @@ onMounted(async () => {
       <template v-else-if="viewMode === 'team'">
         <div v-for="group in matchesByTeam" :key="group.teamName" class="mb-6">
           <h3 class="mb-2 font-semibold text-text">{{ group.teamName }}</h3>
-          <table class="w-full text-sm">
+          <table class="w-full table-fixed text-sm">
             <thead>
               <tr class="border-b border-gray-200 text-left text-text-light">
-                <th class="pb-1 pr-4">{{ nl.admin.schedule.timeLabel }}</th>
-                <th class="pb-1 pr-4">{{ nl.admin.schedule.fieldLabel }}</th>
+                <th class="w-36 pb-1 pr-4">{{ nl.admin.schedule.timeLabel }}</th>
+                <th class="w-28 pb-1 pr-4">{{ nl.admin.schedule.fieldLabel }}</th>
                 <th class="pb-1">{{ nl.admin.schedule.opponent }}</th>
               </tr>
             </thead>
