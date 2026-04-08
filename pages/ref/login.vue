@@ -65,9 +65,9 @@ function cancelPasswordSetup() {
 <template>
   <div class="flex min-h-screen items-center justify-center bg-background px-4">
     <div class="w-full max-w-sm rounded-lg bg-surface p-8 shadow-lg">
-      <h1 class="mb-6 text-center text-heading text-text">
+      <NuxtLink to="/" class="mb-6 block text-center text-heading text-primary hover:opacity-80">
         {{ nl.common.appName }}
-      </h1>
+      </NuxtLink>
 
       <div v-if="showPasswordSetupConfirm" class="text-center">
         <p class="mb-6 text-sm text-text">

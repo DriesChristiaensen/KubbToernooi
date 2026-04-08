@@ -13,6 +13,7 @@ function close() {
 </script>
 
 <template>
+  <template v-if="loggedIn">
   <button
     class="fixed bottom-4 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg md:hidden"
     :aria-label="isOpen ? 'Menu sluiten' : 'Menu openen'"
@@ -59,13 +60,6 @@ function close() {
     >
       {{ nl.nav.schedule }}
     </NuxtLink>
-    <NuxtLink
-      to="/standings"
-      class="block px-4 py-2 text-sm text-text hover:bg-background"
-      @click="close"
-    >
-      {{ nl.nav.standings }}
-    </NuxtLink>
     <template v-if="loggedIn">
       <hr class="my-2 border-gray-100">
       <span class="block px-4 py-1 text-xs text-text-muted">{{ user?.name }}</span>
@@ -77,4 +71,5 @@ function close() {
       </button>
     </template>
   </nav>
+  </template>
 </template>
