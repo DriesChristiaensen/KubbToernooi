@@ -6,19 +6,54 @@ definePageMeta({ middleware: ["auth", "admin-tournament-guard"], layout: "admin"
 
 const tournamentType = ref<string | null>(null);
 const teamCount = ref(0);
+const fieldCount = ref(0);
 const poolCount = ref(0);
 
 const hasTournament = computed(() => tournamentType.value !== null);
 const isPoolBased = computed(() => tournamentType.value === "POOLS" || tournamentType.value === "COMBINATION");
 const isKoBased = computed(() => tournamentType.value === "KNOCKOUT" || tournamentType.value === "COMBINATION");
 const hasEnoughTeams = computed(() => teamCount.value >= 2);
+const hasField = computed(() => fieldCount.value >= 1);
 const hasPool = computed(() => poolCount.value >= 1);
+
+const d = nl.admin.dashboardDisabled;
+
+const teamsEnabled = computed(() => hasTournament.value);
+const fieldsEnabled = computed(() => hasTournament.value);
+const poolsEnabled = computed(() => isPoolBased.value && hasEnoughTeams.value);
+const koEnabled = computed(() => isKoBased.value && hasEnoughTeams.value && hasField.value);
+const scheduleEnabled = computed(() => isPoolBased.value && hasEnoughTeams.value && hasField.value && hasPool.value);
+
+const teamsReason = computed(() => !hasTournament.value ? d.needsTournament : "");
+const fieldsReason = computed(() => !hasTournament.value ? d.needsTournament : "");
+const poolsReason = computed(() => {
+  if (!hasTournament.value) return d.needsTournament;
+  if (!isPoolBased.value) return d.needsPoolType;
+  if (!hasEnoughTeams.value) return d.needsTeams;
+  return "";
+});
+const koReason = computed(() => {
+  if (!hasTournament.value) return d.needsTournament;
+  if (!isKoBased.value) return d.needsKoType;
+  if (!hasEnoughTeams.value) return d.needsTeams;
+  if (!hasField.value) return d.needsFields;
+  return "";
+});
+const scheduleReason = computed(() => {
+  if (!hasTournament.value) return d.needsTournament;
+  if (!isPoolBased.value) return d.needsPoolType;
+  if (!hasEnoughTeams.value) return d.needsTeams;
+  if (!hasField.value) return d.needsFields;
+  if (!hasPool.value) return d.needsPool;
+  return "";
+});
 
 onMounted(async () => {
   try {
     const data = await $fetch("/api/admin/dashboard");
     tournamentType.value = data.type;
     teamCount.value = data.teamCount;
+    fieldCount.value = data.fieldCount;
     poolCount.value = data.poolCount;
   } catch {
     // Dashboard data unavailable; buttons stay in default state
@@ -119,9 +154,9 @@ function handleImportFile(event: Event) {
           <h2 class="text-subheading text-text">{{ nl.admin.referees.title }}</h2>
         </NuxtLink>
 
-        <!-- Row 2: Teams (enabled if tournament exists) -->
+        <!-- Row 2: Teams -->
         <NuxtLink
-          v-if="hasTournament"
+          v-if="teamsEnabled"
           to="/admin/teams"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
@@ -130,14 +165,17 @@ function handleImportFile(event: Event) {
         <div
           v-else
           aria-disabled="true"
-          class="cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 opacity-40 shadow-sm"
+          class="group relative cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 shadow-sm"
         >
-          <h2 class="text-subheading text-text">{{ nl.admin.teams.title }}</h2>
+          <h2 class="text-subheading text-text opacity-40">{{ nl.admin.teams.title }}</h2>
+          <div class="pointer-events-none invisible absolute bottom-full left-0 z-10 mb-2 max-w-xs rounded bg-gray-800 px-3 py-1.5 text-xs text-white group-hover:visible">
+            {{ teamsReason }}
+          </div>
         </div>
 
-        <!-- Row 2: Fields (enabled if tournament exists) -->
+        <!-- Row 2: Fields -->
         <NuxtLink
-          v-if="hasTournament"
+          v-if="fieldsEnabled"
           to="/admin/fields"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
@@ -146,14 +184,17 @@ function handleImportFile(event: Event) {
         <div
           v-else
           aria-disabled="true"
-          class="cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 opacity-40 shadow-sm"
+          class="group relative cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 shadow-sm"
         >
-          <h2 class="text-subheading text-text">{{ nl.admin.fields.title }}</h2>
+          <h2 class="text-subheading text-text opacity-40">{{ nl.admin.fields.title }}</h2>
+          <div class="pointer-events-none invisible absolute bottom-full left-0 z-10 mb-2 max-w-xs rounded bg-gray-800 px-3 py-1.5 text-xs text-white group-hover:visible">
+            {{ fieldsReason }}
+          </div>
         </div>
 
-        <!-- Row 3: Pools (enabled if pool/combo tournament with ≥2 teams) -->
+        <!-- Row 3: Pools -->
         <NuxtLink
-          v-if="isPoolBased && hasEnoughTeams"
+          v-if="poolsEnabled"
           to="/admin/pools"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
@@ -162,14 +203,17 @@ function handleImportFile(event: Event) {
         <div
           v-else
           aria-disabled="true"
-          class="cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 opacity-40 shadow-sm"
+          class="group relative cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 shadow-sm"
         >
-          <h2 class="text-subheading text-text">{{ nl.admin.pools.title }}</h2>
+          <h2 class="text-subheading text-text opacity-40">{{ nl.admin.pools.title }}</h2>
+          <div class="pointer-events-none invisible absolute bottom-full left-0 z-10 mb-2 max-w-xs rounded bg-gray-800 px-3 py-1.5 text-xs text-white group-hover:visible">
+            {{ poolsReason }}
+          </div>
         </div>
 
-        <!-- Row 3: KO-bracket (enabled if ko/combo tournament with ≥2 teams) -->
+        <!-- Row 3: KO-bracket -->
         <NuxtLink
-          v-if="isKoBased && hasEnoughTeams"
+          v-if="koEnabled"
           to="/admin/ko-bracket"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
@@ -178,14 +222,17 @@ function handleImportFile(event: Event) {
         <div
           v-else
           aria-disabled="true"
-          class="cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 opacity-40 shadow-sm"
+          class="group relative cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 shadow-sm"
         >
-          <h2 class="text-subheading text-text">{{ nl.admin.koBracket.title }}</h2>
+          <h2 class="text-subheading text-text opacity-40">{{ nl.admin.koBracket.title }}</h2>
+          <div class="pointer-events-none invisible absolute bottom-full left-0 z-10 mb-2 max-w-xs rounded bg-gray-800 px-3 py-1.5 text-xs text-white group-hover:visible">
+            {{ koReason }}
+          </div>
         </div>
 
-        <!-- Row 4: Schedule (enabled if pool/combo tournament with ≥2 teams and ≥1 pool) -->
+        <!-- Row 4: Schedule (full-width) -->
         <NuxtLink
-          v-if="isPoolBased && hasEnoughTeams && hasPool"
+          v-if="scheduleEnabled"
           to="/admin/schedule"
           class="col-span-2 rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
@@ -194,9 +241,12 @@ function handleImportFile(event: Event) {
         <div
           v-else
           aria-disabled="true"
-          class="col-span-2 cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 opacity-40 shadow-sm"
+          class="group relative col-span-2 cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 shadow-sm"
         >
-          <h2 class="text-subheading text-text">{{ nl.admin.schedule.title }}</h2>
+          <h2 class="text-subheading text-text opacity-40">{{ nl.admin.schedule.title }}</h2>
+          <div class="pointer-events-none invisible absolute bottom-full left-0 z-10 mb-2 max-w-xs rounded bg-gray-800 px-3 py-1.5 text-xs text-white group-hover:visible">
+            {{ scheduleReason }}
+          </div>
         </div>
       </nav>
 

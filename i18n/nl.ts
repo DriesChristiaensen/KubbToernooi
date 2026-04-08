@@ -42,6 +42,14 @@ export const nl = {
 
   admin: {
     dashboard: "Admin Dashboard",
+    dashboardDisabled: {
+      needsTournament: "Maak eerst een toernooi aan",
+      needsTeams: "Voeg minimaal 2 teams toe",
+      needsFields: "Voeg eerst velden toe",
+      needsPool: "Maak minimaal 1 poule aan",
+      needsPoolType: "Alleen beschikbaar voor poule- of combinatietoernooien",
+      needsKoType: "Alleen beschikbaar voor knock-out of combinatietoernooien",
+    },
     teams: {
       title: "Teams",
       addButton: "Team toevoegen",

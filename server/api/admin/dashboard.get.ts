@@ -2,7 +2,7 @@ import { prisma } from "~/server/utils/prisma";
 
 /**
  * Get admin dashboard summary for enabling/disabling navigation cards.
- * @returns {{ type: string|null, teamCount: number, poolCount: number }}
+ * @returns {{ type: string|null, teamCount: number, fieldCount: number, poolCount: number }}
  */
 export default defineEventHandler(async () => {
   const tournament = await prisma.tournament.findFirst({
@@ -11,13 +11,14 @@ export default defineEventHandler(async () => {
   });
 
   if (!tournament) {
-    return { type: null, teamCount: 0, poolCount: 0 };
+    return { type: null, teamCount: 0, fieldCount: 0, poolCount: 0 };
   }
 
-  const [teamCount, poolCount] = await Promise.all([
+  const [teamCount, fieldCount, poolCount] = await Promise.all([
     prisma.team.count({ where: { tournamentId: tournament.id } }),
+    prisma.field.count({ where: { tournamentId: tournament.id } }),
     prisma.pool.count({ where: { tournamentId: tournament.id } }),
   ]);
 
-  return { type: tournament.type, teamCount, poolCount };
+  return { type: tournament.type, teamCount, fieldCount, poolCount };
 });
