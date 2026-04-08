@@ -1,8 +1,30 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { nl } from "~/i18n/nl";
 
 definePageMeta({ middleware: ["auth", "admin-tournament-guard"], layout: "admin" });
+
+const tournamentType = ref<string | null>(null);
+const teamCount = ref(0);
+const poolCount = ref(0);
+
+const hasTournament = computed(() => tournamentType.value !== null);
+const isPoolBased = computed(() => tournamentType.value === "POOLS" || tournamentType.value === "COMBINATION");
+const isKoBased = computed(() => tournamentType.value === "KNOCKOUT" || tournamentType.value === "COMBINATION");
+const hasEnoughTeams = computed(() => teamCount.value >= 2);
+const hasPool = computed(() => poolCount.value >= 1);
+
+onMounted(async () => {
+  try {
+    const data = await $fetch("/api/admin/dashboard");
+    tournamentType.value = data.type;
+    teamCount.value = data.teamCount;
+    poolCount.value = data.poolCount;
+  } catch {
+    // Dashboard data unavailable; buttons stay in default state
+  }
+});
+
 const exportLoading = ref(false);
 const exportError = ref("");
 
@@ -79,61 +101,103 @@ function handleImportFile(event: Event) {
     <h1 class="mb-4 text-heading text-text">
       {{ nl.admin.dashboard }}
     </h1>
-      <nav class="grid gap-4 md:grid-cols-2">
+      <!-- Setup navigation grid: row 1=tournament+refs, row 2=teams+fields, row 3=pools+ko, row 4=schedule -->
+      <nav class="grid grid-cols-2 gap-4">
+        <!-- Row 1: Tournament (always enabled) -->
         <NuxtLink
-          to="/admin/teams"
+          to="/admin/tournament"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
-          <h2 class="text-subheading text-text">
-            {{ nl.admin.teams.title }}
-          </h2>
+          <h2 class="text-subheading text-text">{{ nl.admin.tournament.title }}</h2>
         </NuxtLink>
-        <NuxtLink
-          to="/admin/fields"
-          class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
-        >
-          <h2 class="text-subheading text-text">
-            {{ nl.admin.fields.title }}
-          </h2>
-        </NuxtLink>
-        <NuxtLink
-          to="/admin/pools"
-          class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
-        >
-          <h2 class="text-subheading text-text">
-            {{ nl.admin.pools.title }}
-          </h2>
-        </NuxtLink>
+
+        <!-- Row 1: Referees (always enabled) -->
         <NuxtLink
           to="/admin/referees"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
           <h2 class="text-subheading text-text">{{ nl.admin.referees.title }}</h2>
         </NuxtLink>
+
+        <!-- Row 2: Teams (enabled if tournament exists) -->
         <NuxtLink
-          to="/admin/tournament"
+          v-if="hasTournament"
+          to="/admin/teams"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
-          <h2 class="text-subheading text-text">
-            {{ nl.admin.tournament.title }}
-          </h2>
+          <h2 class="text-subheading text-text">{{ nl.admin.teams.title }}</h2>
         </NuxtLink>
+        <div
+          v-else
+          aria-disabled="true"
+          class="cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 opacity-40 shadow-sm"
+        >
+          <h2 class="text-subheading text-text">{{ nl.admin.teams.title }}</h2>
+        </div>
+
+        <!-- Row 2: Fields (enabled if tournament exists) -->
         <NuxtLink
-          to="/admin/schedule"
+          v-if="hasTournament"
+          to="/admin/fields"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
-          <h2 class="text-subheading text-text">
-            {{ nl.admin.schedule.title }}
-          </h2>
+          <h2 class="text-subheading text-text">{{ nl.admin.fields.title }}</h2>
         </NuxtLink>
+        <div
+          v-else
+          aria-disabled="true"
+          class="cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 opacity-40 shadow-sm"
+        >
+          <h2 class="text-subheading text-text">{{ nl.admin.fields.title }}</h2>
+        </div>
+
+        <!-- Row 3: Pools (enabled if pool/combo tournament with ≥2 teams) -->
         <NuxtLink
+          v-if="isPoolBased && hasEnoughTeams"
+          to="/admin/pools"
+          class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
+        >
+          <h2 class="text-subheading text-text">{{ nl.admin.pools.title }}</h2>
+        </NuxtLink>
+        <div
+          v-else
+          aria-disabled="true"
+          class="cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 opacity-40 shadow-sm"
+        >
+          <h2 class="text-subheading text-text">{{ nl.admin.pools.title }}</h2>
+        </div>
+
+        <!-- Row 3: KO-bracket (enabled if ko/combo tournament with ≥2 teams) -->
+        <NuxtLink
+          v-if="isKoBased && hasEnoughTeams"
           to="/admin/ko-bracket"
           class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
         >
-          <h2 class="text-subheading text-text">
-            {{ nl.admin.koBracket.title }}
-          </h2>
+          <h2 class="text-subheading text-text">{{ nl.admin.koBracket.title }}</h2>
         </NuxtLink>
+        <div
+          v-else
+          aria-disabled="true"
+          class="cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 opacity-40 shadow-sm"
+        >
+          <h2 class="text-subheading text-text">{{ nl.admin.koBracket.title }}</h2>
+        </div>
+
+        <!-- Row 4: Schedule (enabled if pool/combo tournament with ≥2 teams and ≥1 pool) -->
+        <NuxtLink
+          v-if="isPoolBased && hasEnoughTeams && hasPool"
+          to="/admin/schedule"
+          class="col-span-2 rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
+        >
+          <h2 class="text-subheading text-text">{{ nl.admin.schedule.title }}</h2>
+        </NuxtLink>
+        <div
+          v-else
+          aria-disabled="true"
+          class="col-span-2 cursor-not-allowed rounded-lg border border-gray-200 bg-surface p-6 opacity-40 shadow-sm"
+        >
+          <h2 class="text-subheading text-text">{{ nl.admin.schedule.title }}</h2>
+        </div>
       </nav>
 
       <div class="mt-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
