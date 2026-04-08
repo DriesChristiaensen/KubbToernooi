@@ -445,82 +445,41 @@ const koFinalMatch = computed(() => {
         </p>
 
         <template v-else>
-          <!-- Row 2: Sub-tab row (Wedstrijden / Standen) -->
-          <div
-            v-if="activeMainTab !== 'eindstand'"
-            class="mb-3 inline-flex overflow-hidden rounded border border-gray-300"
-          >
-            <button
-              :class="
-                activeSubTab === 'matches'
-                  ? 'bg-primary text-white'
-                  : 'bg-white text-text hover:bg-gray-50'
-              "
-              class="border-r border-gray-300 px-3 py-1.5 text-sm"
-              @click="activeSubTab = 'matches'"
-            >
-              {{ s.tabMatches }}
-            </button>
-            <button
-              :class="
-                activeSubTab === 'standings'
-                  ? 'bg-primary text-white'
-                  : 'bg-white text-text hover:bg-gray-50'
-              "
-              class="px-3 py-1.5 text-sm"
-              @click="activeSubTab = 'standings'"
-            >
-              {{ s.tabStandings }}
-            </button>
-          </div>
-
-          <!-- Favourite team filter -->
-          <div
-            class="inline-flex items-center justify-self-end gap-2 float-end"
-          >
-            <template v-if="favTeamName">
-              <span
-                v-if="activeMainTab === 'eindstand' || (activeMainTab === 'ko' && activeSubTab === 'standings')"
-                class="rounded bg-fav px-3 py-1.5 text-sm text-white"
-              >
-                Favoriete team: {{ favTeamName }}
-              </span>
-              <button
-                v-else
-                :class="
-                  myTeamOnly
-                    ? 'bg-fav text-white'
-                    : 'border border-fav-border text-fav-text hover:bg-fav-light'
-                "
-                class="rounded px-3 py-1.5 text-sm"
-                @click="myTeamOnly = !myTeamOnly"
-              >
-                {{ s.myTeam }}: {{ favTeamName }}
-              </button>
-              <button
-                class="text-sm text-text-light underline"
-                @click="clearFavTeam"
-              >
-                {{ s.clearTeam }}
-              </button>
-            </template>
-            <button
-              v-else
-              class="rounded border border-gray-300 px-3 py-1.5 text-sm text-text-light hover:bg-background"
-              @click="showTeamPicker = true"
-            >
-              {{ s.chooseTeam }}
-            </button>
-          </div>
-
-          <!-- Row 3: Filter row (only when Matches sub-tab is active) -->
-          <div
-            v-if="activeMainTab !== 'eindstand' && activeSubTab === 'matches'"
-            class="mb-4 flex flex-wrap items-center justify-between gap-2"
-          >
-            <!-- Status filter button group -->
+          <!-- Filters area: all filters stacked vertically on mobile -->
+          <div class="mb-3 flex flex-col gap-2">
+            <!-- Row 1: Sub-tab row (Wedstrijden / Standen) -->
             <div
-              class="inline-flex overflow-hidden rounded border border-gray-300"
+              v-if="activeMainTab !== 'eindstand'"
+              class="flex w-fit overflow-hidden rounded border border-gray-300"
+            >
+              <button
+                :class="
+                  activeSubTab === 'matches'
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-text hover:bg-gray-50'
+                "
+                class="border-r border-gray-300 px-3 py-1.5 text-sm"
+                @click="activeSubTab = 'matches'"
+              >
+                {{ s.tabMatches }}
+              </button>
+              <button
+                :class="
+                  activeSubTab === 'standings'
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-text hover:bg-gray-50'
+                "
+                class="px-3 py-1.5 text-sm"
+                @click="activeSubTab = 'standings'"
+              >
+                {{ s.tabStandings }}
+              </button>
+            </div>
+
+            <!-- Row 2: Status filter (only when Matches sub-tab is active) -->
+            <div
+              v-if="activeMainTab !== 'eindstand' && activeSubTab === 'matches'"
+              class="flex w-fit overflow-hidden rounded border border-gray-300"
             >
               <button
                 v-for="(opt, idx) in statusOpts"
@@ -535,6 +494,43 @@ const koFinalMatch = computed(() => {
                 @click="statusFilter = opt.key"
               >
                 {{ opt.label }}
+              </button>
+            </div>
+
+            <!-- Row 3: Favourite team filter -->
+            <div class="flex items-center gap-2">
+              <template v-if="favTeamName">
+                <span
+                  v-if="activeMainTab === 'eindstand' || (activeMainTab === 'ko' && activeSubTab === 'standings')"
+                  class="rounded bg-fav px-3 py-1.5 text-sm text-white"
+                >
+                  Favoriete team: {{ favTeamName }}
+                </span>
+                <button
+                  v-else
+                  :class="
+                    myTeamOnly
+                      ? 'bg-fav text-white'
+                      : 'border border-fav-border text-fav-text hover:bg-fav-light'
+                  "
+                  class="rounded px-3 py-1.5 text-sm"
+                  @click="myTeamOnly = !myTeamOnly"
+                >
+                  {{ s.myTeam }}: {{ favTeamName }}
+                </button>
+                <button
+                  class="text-sm text-text-light underline"
+                  @click="clearFavTeam"
+                >
+                  {{ s.clearTeam }}
+                </button>
+              </template>
+              <button
+                v-else
+                class="rounded border border-gray-300 px-3 py-1.5 text-sm text-text-light hover:bg-background"
+                @click="showTeamPicker = true"
+              >
+                {{ s.chooseTeam }}
               </button>
             </div>
           </div>
