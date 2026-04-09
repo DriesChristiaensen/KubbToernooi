@@ -23,6 +23,14 @@ export const nl = {
     search: "Zoeken",
     noResults: "Geen resultaten gevonden",
     error: "Er is een fout opgetreden",
+    saving: "Bezig met opslaan...",
+    deleting: "Bezig met verwijderen...",
+    generating: "Bezig met genereren...",
+    importing: "Bezig met importeren...",
+    submitting: "Bezig...",
+    draftTooltip: "Publiceer het toernooi eerst",
+    fillRequired: "Vul alle verplichte velden in",
+    noChanges: "Geen wijzigingen om op te slaan",
   },
 
   auth: {
@@ -154,6 +162,7 @@ export const nl = {
         "Poule-beheer is niet beschikbaar voor dit toernooitype.",
       qualifyGlobally: "Kwalificatie globaal bepalen",
       qualifyGloballyHint: "Het totaal aantal doorstromende teams wordt ingesteld in het KO-schema",
+      teamAlreadyAssigned: "Al ingedeeld in een andere poule",
     },
     referees: {
       title: "Scheidsrechters",
@@ -319,6 +328,9 @@ export const nl = {
       overallRanking: "Eindklassement",
       noTournament: "Er is momenteel geen toernooi bezig",
       noScheduleLive: "Er wordt nog aan het speelschema gewerkt",
+      tabDisabledTournament: "Toernooi is nog niet live",
+      tabDisabledPool: "Poule-schema is nog niet live",
+      tabDisabledKo: "KO-schema is nog niet live",
       winner: "Winnaar",
       round: "Ronde",
       poolMatchLabel: "wedstrijd Poule",

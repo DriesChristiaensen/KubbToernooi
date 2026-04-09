@@ -435,13 +435,18 @@ onMounted(async () => {
             >
               {{ nl.admin.tournament.wizardBack }}
             </button>
-            <button
-              :disabled="!step2Valid || createLoading"
-              class="rounded bg-success px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50"
-              @click="createTournament"
-            >
-              {{ nl.admin.tournament.wizardCreate }}
-            </button>
+            <div class="group relative">
+              <button
+                :disabled="!step2Valid || createLoading"
+                class="rounded bg-success px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50"
+                @click="createTournament"
+              >
+                {{ nl.admin.tournament.wizardCreate }}
+              </button>
+              <div v-if="!step2Valid || createLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                {{ createLoading ? nl.common.submitting : nl.common.fillRequired }}
+              </div>
+            </div>
             <button
               class="rounded bg-secondary px-4 py-2 font-medium text-white hover:opacity-80"
               @click="cancelWizard"
@@ -466,14 +471,19 @@ onMounted(async () => {
           <div><dt class="text-text-light">{{ nl.admin.tournament.statusLabel }}</dt><dd class="font-medium" :class="tournament.status === 'LIVE' ? 'text-success' : 'text-warning'">{{ tournament.status === 'LIVE' ? nl.admin.tournament.statusLive : nl.admin.tournament.statusDraft }}</dd></div>
         </dl>
         <div class="flex flex-wrap gap-2">
-          <button
-            :disabled="publishLoading"
-            :class="tournament.status === 'LIVE' ? 'bg-secondary' : 'bg-success'"
-            class="rounded px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50"
-            @click="togglePublish"
-          >
-            {{ tournament.status === 'LIVE' ? nl.admin.tournament.unpublish : nl.admin.tournament.publish }}
-          </button>
+          <div class="group relative">
+            <button
+              :disabled="publishLoading"
+              :class="tournament.status === 'LIVE' ? 'bg-secondary' : 'bg-success'"
+              class="rounded px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50"
+              @click="togglePublish"
+            >
+              {{ tournament.status === 'LIVE' ? nl.admin.tournament.unpublish : nl.admin.tournament.publish }}
+            </button>
+            <div v-if="publishLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+              {{ nl.common.submitting }}
+            </div>
+          </div>
           <button
             class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
             @click="openWizard"
@@ -527,20 +537,30 @@ onMounted(async () => {
                 <p class="text-xs text-text-light">{{ typeOptions.find(o => o.value === t.type)?.label }}</p>
               </div>
               <div class="flex gap-2">
-                <button
-                  :disabled="restoreLoading === t.id"
-                  class="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary-dark disabled:opacity-50"
-                  @click="restoreTournament(t.id)"
-                >
-                  {{ nl.admin.tournament.restoreButton }}
-                </button>
-                <button
-                  :disabled="deleteLoading === t.id"
-                  class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
-                  @click="deleteTournament(t.id)"
-                >
-                  {{ nl.admin.tournament.deleteButton }}
-                </button>
+                <div class="group relative">
+                  <button
+                    :disabled="restoreLoading === t.id"
+                    class="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary-dark disabled:opacity-50"
+                    @click="restoreTournament(t.id)"
+                  >
+                    {{ nl.admin.tournament.restoreButton }}
+                  </button>
+                  <div v-if="restoreLoading === t.id" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                    {{ nl.common.submitting }}
+                  </div>
+                </div>
+                <div class="group relative">
+                  <button
+                    :disabled="deleteLoading === t.id"
+                    class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                    @click="deleteTournament(t.id)"
+                  >
+                    {{ nl.admin.tournament.deleteButton }}
+                  </button>
+                  <div v-if="deleteLoading === t.id" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                    {{ nl.common.deleting }}
+                  </div>
+                </div>
               </div>
             </li>
           </ul>

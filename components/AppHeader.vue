@@ -9,7 +9,8 @@ const { logout } = useAuth()
 <template>
   <header class="bg-primary">
     <div class="mx-auto flex max-w-content items-center justify-between px-4 py-3">
-      <NuxtLink to="/" class="text-lg font-bold text-white">
+      <NuxtLink to="/" class="flex items-center gap-2 text-lg font-bold text-white">
+        <img src="/KubbKing.png" alt="Kubb King logo" class="h-8 w-auto" />
         {{ nl.common.appName }}
       </NuxtLink>
 

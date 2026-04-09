@@ -278,13 +278,18 @@ onMounted(() => {
             >
               {{ nl.ref.matches.editScore }}
             </button>
-            <button
-              :disabled="saving === match.id"
-              class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
-              @click="deleteScore(match)"
-            >
-              {{ nl.ref.matches.deleteScore }}
-            </button>
+            <div class="group relative">
+              <button
+                :disabled="saving === match.id"
+                class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                @click="deleteScore(match)"
+              >
+                {{ nl.ref.matches.deleteScore }}
+              </button>
+              <div v-if="saving === match.id" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                {{ nl.common.submitting }}
+              </div>
+            </div>
           </div>
         </template>
 
@@ -323,18 +328,23 @@ onMounted(() => {
             </div>
 
             <!-- T9.2: Save button with success feedback -->
-            <button
-              :disabled="!isDirty(match) || saving === match.id"
-              :class="saveSuccess === match.id
-                ? 'bg-success text-white'
-                : 'bg-primary text-white hover:bg-primary-dark'"
-              class="rounded px-4 py-2 text-sm font-medium disabled:opacity-50 transition-colors"
-              :aria-label="saveSuccess === match.id ? nl.common.save : nl.ref.matches.saveScore"
-              @click="tryToSave(match)"
-            >
-              <span v-if="saveSuccess === match.id">✓</span>
-              <span v-else>{{ nl.ref.matches.saveScore }}</span>
-            </button>
+            <div class="group relative">
+              <button
+                :disabled="!isDirty(match) || saving === match.id"
+                :class="saveSuccess === match.id
+                  ? 'bg-success text-white'
+                  : 'bg-primary text-white hover:bg-primary-dark'"
+                class="rounded px-4 py-2 text-sm font-medium disabled:opacity-50 transition-colors"
+                :aria-label="saveSuccess === match.id ? nl.common.save : nl.ref.matches.saveScore"
+                @click="tryToSave(match)"
+              >
+                <span v-if="saveSuccess === match.id">✓</span>
+                <span v-else>{{ nl.ref.matches.saveScore }}</span>
+              </button>
+              <div v-if="!isDirty(match) || saving === match.id" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                {{ saving === match.id ? nl.common.saving : nl.common.noChanges }}
+              </div>
+            </div>
 
             <button
               v-if="hasExistingScore(match)"

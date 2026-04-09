@@ -241,17 +241,22 @@ onMounted(fetchData);
             <p class="font-semibold text-text">{{ nl.admin.pools.qualifyGlobally }}</p>
             <p class="text-sm text-text-light">{{ nl.admin.pools.qualifyGloballyHint }}</p>
           </div>
-          <button
-            :disabled="qualifyGloballyLoading"
-            :class="tournament?.qualifyGlobally ? 'bg-primary' : 'bg-gray-300'"
-            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
-            @click="toggleQualifyGlobally"
-          >
-            <span
-              :class="tournament?.qualifyGlobally ? 'translate-x-6' : 'translate-x-1'"
-              class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-            />
-          </button>
+          <div class="group relative">
+            <button
+              :disabled="qualifyGloballyLoading"
+              :class="tournament?.qualifyGlobally ? 'bg-primary' : 'bg-gray-300'"
+              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
+              @click="toggleQualifyGlobally"
+            >
+              <span
+                :class="tournament?.qualifyGlobally ? 'translate-x-6' : 'translate-x-1'"
+                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+              />
+            </button>
+            <div v-if="qualifyGloballyLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+              {{ nl.common.saving }}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -274,13 +279,18 @@ onMounted(fetchData);
               class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
             >
           </div>
-          <button
-            :disabled="poolGenLoading"
-            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-            @click="generatePools(false)"
-          >
-            {{ nl.admin.pools.generateButton }}
-          </button>
+          <div class="group relative">
+            <button
+              :disabled="poolGenLoading"
+              class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              @click="generatePools(false)"
+            >
+              {{ nl.admin.pools.generateButton }}
+            </button>
+            <div v-if="poolGenLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+              {{ nl.common.generating }}
+            </div>
+          </div>
         </div>
         <p v-if="poolGenError" class="mb-2 text-sm text-error">
           {{ poolGenError }}
@@ -341,23 +351,26 @@ onMounted(fetchData);
               {{ nl.admin.pools.assignTeams }}
             </p>
             <div class="mb-3 flex flex-wrap gap-2">
-              <button
-                v-for="team in allTeams"
-                :key="team.id"
-                :disabled="isTeamDisabled(team.id) || assignLoading"
-                :aria-pressed="editingSelectedTeamIds.includes(team.id)"
-                :class="[
-                  editingSelectedTeamIds.includes(team.id)
-                    ? 'bg-primary text-white'
-                    : isTeamDisabled(team.id) || assignLoading
-                      ? 'cursor-not-allowed bg-gray-100 text-gray-400'
-                      : 'bg-white text-text hover:bg-gray-50 border-gray-300',
-                  'rounded border px-3 py-1 text-sm font-medium transition-colors disabled:opacity-50'
-                ]"
-                @click="toggleTeam(team.id)"
-              >
-                {{ team.name }}
-              </button>
+              <div v-for="team in allTeams" :key="team.id" class="group relative">
+                <button
+                  :disabled="isTeamDisabled(team.id) || assignLoading"
+                  :aria-pressed="editingSelectedTeamIds.includes(team.id)"
+                  :class="[
+                    editingSelectedTeamIds.includes(team.id)
+                      ? 'bg-primary text-white'
+                      : isTeamDisabled(team.id) || assignLoading
+                        ? 'cursor-not-allowed bg-gray-100 text-gray-400'
+                        : 'bg-white text-text hover:bg-gray-50 border-gray-300',
+                    'rounded border px-3 py-1 text-sm font-medium transition-colors disabled:opacity-50'
+                  ]"
+                  @click="toggleTeam(team.id)"
+                >
+                  {{ team.name }}
+                </button>
+                <div v-if="isTeamDisabled(team.id) || assignLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                  {{ assignLoading ? nl.common.saving : nl.admin.pools.teamAlreadyAssigned }}
+                </div>
+              </div>
             </div>
 
             <p v-if="assignError" class="mb-2 text-sm text-error">
@@ -368,13 +381,18 @@ onMounted(fetchData);
             </p>
 
             <div class="flex gap-2">
-              <button
-                :disabled="assignLoading"
-                class="rounded bg-success px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
-                @click="saveAssignment"
-              >
-                {{ nl.admin.pools.saveAssignment }}
-              </button>
+              <div class="group relative">
+                <button
+                  :disabled="assignLoading"
+                  class="rounded bg-success px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
+                  @click="saveAssignment"
+                >
+                  {{ nl.admin.pools.saveAssignment }}
+                </button>
+                <div v-if="assignLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                  {{ nl.common.saving }}
+                </div>
+              </div>
               <button
                 class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
                 @click="cancelAssign"
@@ -408,13 +426,18 @@ onMounted(fetchData);
                 >
                   {{ nl.admin.pools.assignTeams }}
                 </button>
-                <button
-                  :disabled="deleteLoading.has(pool.id)"
-                  class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
-                  @click="deletePool(pool)"
-                >
-                  {{ nl.common.delete }}
-                </button>
+                <div class="group relative">
+                  <button
+                    :disabled="deleteLoading.has(pool.id)"
+                    class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                    @click="deletePool(pool)"
+                  >
+                    {{ nl.common.delete }}
+                  </button>
+                  <div v-if="deleteLoading.has(pool.id)" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                    {{ nl.common.deleting }}
+                  </div>
+                </div>
               </div>
             </div>
           </template>

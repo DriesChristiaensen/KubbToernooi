@@ -75,13 +75,18 @@ function cancelPasswordSetup() {
           {{ nl.auth.noPasswordSet }}
         </p>
         <div class="flex gap-3">
-          <button
-            :disabled="isLoading"
-            class="flex-1 rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-            @click="confirmPasswordSetup"
-          >
-            {{ nl.common.confirm }}
-          </button>
+          <div class="group relative flex-1">
+            <button
+              :disabled="isLoading"
+              class="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              @click="confirmPasswordSetup"
+            >
+              {{ nl.common.confirm }}
+            </button>
+            <div v-if="isLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+              {{ nl.common.submitting }}
+            </div>
+          </div>
           <button
             class="flex-1 rounded bg-secondary px-4 py-2 font-medium text-white hover:opacity-80"
             @click="cancelPasswordSetup"
@@ -125,13 +130,18 @@ function cancelPasswordSetup() {
           {{ error }}
         </p>
 
-        <button
-          type="submit"
-          :disabled="isLoading"
-          class="w-full rounded bg-primary px-4 py-2 font-medium text-white transition-colors hover:bg-primary-dark disabled:opacity-50"
-        >
-          {{ isLoading ? nl.common.loading : nl.auth.login }}
-        </button>
+        <div class="group relative w-full">
+          <button
+            type="submit"
+            :disabled="isLoading"
+            class="w-full rounded bg-primary px-4 py-2 font-medium text-white transition-colors hover:bg-primary-dark disabled:opacity-50"
+          >
+            {{ isLoading ? nl.common.loading : nl.auth.login }}
+          </button>
+          <div v-if="isLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+            {{ nl.common.submitting }}
+          </div>
+        </div>
       </form>
     </div>
   </div>

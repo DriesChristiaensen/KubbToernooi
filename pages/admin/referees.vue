@@ -132,23 +132,33 @@ onMounted(fetchReferees)
         >
           <span class="font-medium text-text">{{ referee.name }}</span>
           <div class="flex gap-2">
-            <button
-              :disabled="resetLoading.has(referee.id)"
-              :class="resetSuccess.has(referee.id) ? 'bg-success' : 'bg-secondary hover:opacity-80'"
-              class="rounded px-3 py-1 text-sm text-white transition-colors disabled:opacity-50"
-              :aria-label="resetSuccess.has(referee.id) ? nl.common.save : nl.auth.resetPassword"
-              @click="resetPassword(referee.id)"
-            >
-              <span v-if="resetSuccess.has(referee.id)">✓</span>
-              <span v-else>{{ nl.auth.resetPassword }}</span>
-            </button>
-            <button
-              :disabled="deleteLoading.has(referee.id)"
-              class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
-              @click="deleteReferee(referee.id)"
-            >
-              {{ nl.common.delete }}
-            </button>
+            <div class="group relative">
+              <button
+                :disabled="resetLoading.has(referee.id)"
+                :class="resetSuccess.has(referee.id) ? 'bg-success' : 'bg-secondary hover:opacity-80'"
+                class="rounded px-3 py-1 text-sm text-white transition-colors disabled:opacity-50"
+                :aria-label="resetSuccess.has(referee.id) ? nl.common.save : nl.auth.resetPassword"
+                @click="resetPassword(referee.id)"
+              >
+                <span v-if="resetSuccess.has(referee.id)">✓</span>
+                <span v-else>{{ nl.auth.resetPassword }}</span>
+              </button>
+              <div v-if="resetLoading.has(referee.id)" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                {{ nl.common.submitting }}
+              </div>
+            </div>
+            <div class="group relative">
+              <button
+                :disabled="deleteLoading.has(referee.id)"
+                class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                @click="deleteReferee(referee.id)"
+              >
+                {{ nl.common.delete }}
+              </button>
+              <div v-if="deleteLoading.has(referee.id)" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                {{ nl.common.deleting }}
+              </div>
+            </div>
           </div>
         </li>
         <li v-if="referees.length === 0" class="text-text-light">

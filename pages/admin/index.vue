@@ -311,13 +311,18 @@ function handleImportFile(event: Event) {
       <p v-if="exportError" class="mb-2 text-sm text-error">
         {{ exportError }}
       </p>
-      <button
-        :disabled="exportLoading"
-        class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-        @click="downloadExport"
-      >
-        {{ nl.admin.export.button }}
-      </button>
+      <div class="group relative inline-block">
+        <button
+          :disabled="exportLoading"
+          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+          @click="downloadExport"
+        >
+          {{ nl.admin.export.button }}
+        </button>
+        <div v-if="exportLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+          {{ nl.common.submitting }}
+        </div>
+      </div>
     </div>
 
     <div
@@ -345,13 +350,18 @@ function handleImportFile(event: Event) {
             :placeholder="nl.auth.password"
             class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
           >
-          <button
-            :disabled="importLoading"
-            class="rounded bg-error px-4 py-2 font-medium text-white hover:bg-red-700 disabled:opacity-50"
-            @click="submitImport(importPassword)"
-          >
-            {{ nl.common.confirm }}
-          </button>
+          <div class="group relative">
+            <button
+              :disabled="importLoading"
+              class="rounded bg-error px-4 py-2 font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              @click="submitImport(importPassword)"
+            >
+              {{ nl.common.confirm }}
+            </button>
+            <div v-if="importLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+              {{ nl.common.importing }}
+            </div>
+          </div>
         </div>
       </template>
 

@@ -502,13 +502,18 @@ onMounted(async () => {
           </div>
         </div>
         <div class="mt-4 flex gap-2">
-          <button
-            :disabled="editSaving"
-            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-            @click="saveEdit"
-          >
-            {{ nl.admin.koBracket.saveMatch }}
-          </button>
+          <div class="group relative">
+            <button
+              :disabled="editSaving"
+              class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              @click="saveEdit"
+            >
+              {{ nl.admin.koBracket.saveMatch }}
+            </button>
+            <div v-if="editSaving" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+              {{ nl.common.saving }}
+            </div>
+          </div>
           <button
             class="rounded border border-gray-300 px-4 py-2 text-text hover:bg-gray-100"
             @click="editMatchId = null"
@@ -547,13 +552,18 @@ onMounted(async () => {
             min="2"
             class="w-24 rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
           >
-          <button
-            :disabled="globalQtSaving"
-            class="rounded bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-            @click="saveGlobalQualifyingTeams"
-          >
-            {{ nl.admin.koBracket.globalQualifyingTeamsSave }}
-          </button>
+          <div class="group relative">
+            <button
+              :disabled="globalQtSaving"
+              class="rounded bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              @click="saveGlobalQualifyingTeams"
+            >
+              {{ nl.admin.koBracket.globalQualifyingTeamsSave }}
+            </button>
+            <div v-if="globalQtSaving" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+              {{ nl.common.saving }}
+            </div>
+          </div>
           <span v-if="globalQtSuccess" class="text-sm text-success">{{ globalQtSuccess }}</span>
           <span v-if="globalQtError" class="text-sm text-error">{{ globalQtError }}</span>
         </div>
@@ -601,14 +611,18 @@ onMounted(async () => {
         </button>
       </div>
 
-      <button
-        v-else
-        :disabled="generateLoading"
-        class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-        @click="generate()"
-      >
-        {{ hasStructure ? nl.admin.koBracket.newGenerate : nl.admin.koBracket.generate }}
-      </button>
+      <div v-else class="group relative inline-block">
+        <button
+          :disabled="generateLoading"
+          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+          @click="generate()"
+        >
+          {{ hasStructure ? nl.admin.koBracket.newGenerate : nl.admin.koBracket.generate }}
+        </button>
+        <div v-if="generateLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+          {{ nl.common.generating }}
+        </div>
+      </div>
     </div>
 
     <!-- Step 2: Fill teams (only if structure exists and teams not yet filled) -->
@@ -650,18 +664,23 @@ onMounted(async () => {
       <h2 class="mb-3 font-semibold text-text">
         {{ nl.admin.koBracket.statusSection }}
       </h2>
-      <button
-        :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
-        :class="tournament.koScheduleLive ? 'bg-success' : 'bg-warning'"
-        class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
-        @click="toggleKoPhase"
-      >
-        {{
-          tournament.koScheduleLive
-            ? nl.admin.koBracket.koScheduleLive
-            : nl.admin.koBracket.koScheduleDraft
-        }}
-      </button>
+      <div class="group relative inline-block">
+        <button
+          :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
+          :class="tournament.koScheduleLive ? 'bg-success' : 'bg-warning'"
+          class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
+          @click="toggleKoPhase"
+        >
+          {{
+            tournament.koScheduleLive
+              ? nl.admin.koBracket.koScheduleLive
+              : nl.admin.koBracket.koScheduleDraft
+          }}
+        </button>
+        <div v-if="phaseToggleLoading || tournament.status === 'DRAFT'" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+          {{ phaseToggleLoading ? nl.common.submitting : nl.common.draftTooltip }}
+        </div>
+      </div>
       <p v-if="phaseToggleError" class="mt-2 text-sm text-error">
         {{ phaseToggleError }}
       </p>

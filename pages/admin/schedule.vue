@@ -542,13 +542,18 @@ onMounted(async () => {
         {{ generateSuccess }}
       </p>
       <div class="flex flex-wrap gap-3">
-        <button
-          :disabled="generateLoading"
-          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-          @click="generateSchedule(false)"
-        >
-          {{ nl.admin.schedule.generate }}
-        </button>
+        <div class="group relative">
+          <button
+            :disabled="generateLoading"
+            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+            @click="generateSchedule(false)"
+          >
+            {{ nl.admin.schedule.generate }}
+          </button>
+          <div v-if="generateLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+            {{ nl.common.generating }}
+          </div>
+        </div>
         <template v-if="showOverwrite">
           <button
             class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
@@ -582,18 +587,23 @@ onMounted(async () => {
         {{ nl.admin.schedule.statusSection }}
       </h2>
       <div class="flex flex-wrap gap-2">
-        <button
-          :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
-          :class="tournament.poolScheduleLive ? 'bg-success' : 'bg-warning'"
-          class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
-          @click="togglePhase('poolScheduleLive')"
-        >
-          {{
-            tournament.poolScheduleLive
-              ? nl.admin.schedule.poolScheduleLive
-              : nl.admin.schedule.poolScheduleDraft
-          }}
-        </button>
+        <div class="group relative">
+          <button
+            :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
+            :class="tournament.poolScheduleLive ? 'bg-success' : 'bg-warning'"
+            class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
+            @click="togglePhase('poolScheduleLive')"
+          >
+            {{
+              tournament.poolScheduleLive
+                ? nl.admin.schedule.poolScheduleLive
+                : nl.admin.schedule.poolScheduleDraft
+            }}
+          </button>
+          <div v-if="phaseToggleLoading || tournament.status === 'DRAFT'" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+            {{ phaseToggleLoading ? nl.common.submitting : nl.common.draftTooltip }}
+          </div>
+        </div>
       </div>
       <p v-if="phaseToggleError" class="mt-2 text-sm text-error">
         {{ phaseToggleError }}
@@ -637,13 +647,18 @@ onMounted(async () => {
           >
         </div>
         <div class="flex items-end">
-          <button
-            :disabled="timeShiftLoading"
-            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-            @click="applyTimeShift"
-          >
-            {{ nl.admin.schedule.shiftApply }}
-          </button>
+          <div class="group relative">
+            <button
+              :disabled="timeShiftLoading"
+              class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+              @click="applyTimeShift"
+            >
+              {{ nl.admin.schedule.shiftApply }}
+            </button>
+            <div v-if="timeShiftLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+              {{ nl.common.submitting }}
+            </div>
+          </div>
         </div>
       </div>
       <p v-if="timeShiftError" class="mt-2 text-sm text-error">

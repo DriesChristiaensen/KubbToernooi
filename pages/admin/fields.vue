@@ -169,13 +169,18 @@ onMounted(fetchFields);
           class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none disabled:opacity-50"
         >
       </div>
-      <button
-        type="submit"
-        :disabled="loading"
-        class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-      >
-        {{ nl.admin.fields.addButton }}
-      </button>
+      <div class="group relative">
+        <button
+          type="submit"
+          :disabled="loading"
+          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+        >
+          {{ nl.admin.fields.addButton }}
+        </button>
+        <div v-if="loading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+          {{ nl.common.saving }}
+        </div>
+      </div>
     </form>
 
     <p v-if="error" class="mb-4 text-sm text-error">
@@ -202,13 +207,18 @@ onMounted(fetchFields);
             class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
           >
         </div>
-        <button
-          :disabled="generateLoading"
-          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-          @click="generateFields(false)"
-        >
-          {{ nl.admin.fields.generateButton }}
-        </button>
+        <div class="group relative">
+          <button
+            :disabled="generateLoading"
+            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+            @click="generateFields(false)"
+          >
+            {{ nl.admin.fields.generateButton }}
+          </button>
+          <div v-if="generateLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+            {{ nl.common.generating }}
+          </div>
+        </div>
       </div>
       <p v-if="generateError" class="mt-2 text-sm text-error">
         {{ generateError }}
@@ -255,13 +265,18 @@ onMounted(fetchFields);
               required
               class="flex-1 rounded border border-gray-300 px-3 py-1 text-text focus:border-primary focus:outline-none"
             >
-            <button
-              type="submit"
-              :disabled="loading"
-              class="rounded bg-success px-3 py-1 text-sm text-white hover:opacity-80 disabled:opacity-50"
-            >
-              {{ nl.common.save }}
-            </button>
+            <div class="group relative">
+              <button
+                type="submit"
+                :disabled="loading"
+                class="rounded bg-success px-3 py-1 text-sm text-white hover:opacity-80 disabled:opacity-50"
+              >
+                {{ nl.common.save }}
+              </button>
+              <div v-if="loading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                {{ nl.common.saving }}
+              </div>
+            </div>
             <button
               type="button"
               class="rounded bg-secondary px-3 py-1 text-sm text-white hover:opacity-80"
@@ -280,13 +295,18 @@ onMounted(fetchFields);
             >
               {{ nl.common.edit }}
             </button>
-            <button
-              :disabled="deleteLoading.has(field.id)"
-              class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
-              @click="deleteField(field)"
-            >
-              {{ nl.common.delete }}
-            </button>
+            <div class="group relative">
+              <button
+                :disabled="deleteLoading.has(field.id)"
+                class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                @click="deleteField(field)"
+              >
+                {{ nl.common.delete }}
+              </button>
+              <div v-if="deleteLoading.has(field.id)" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                {{ nl.common.deleting }}
+              </div>
+            </div>
           </div>
         </template>
       </li>

@@ -317,6 +317,13 @@ function isTabDisabled(tab: { key: "pool" | "ko" | "eindstand" }): boolean {
   return false;
 }
 
+function tabDisabledTooltip(tab: { key: "pool" | "ko" | "eindstand" }): string {
+  if (!tournamentLive.value) return nl.public.schedule.tabDisabledTournament;
+  if (tab.key === "pool") return nl.public.schedule.tabDisabledPool;
+  if (tab.key === "ko") return nl.public.schedule.tabDisabledKo;
+  return "";
+}
+
 const currentTabScheduleIsLive = computed(() => {
   if (!tournamentLive.value || !tournamentType.value) return false;
   if (activeMainTab.value === "eindstand") return showEindstand.value;
@@ -420,23 +427,30 @@ const koFinalMatch = computed(() => {
           v-else-if="mainTabs.length > 1"
           class="mb-3 inline-flex overflow-hidden rounded border border-gray-300 mr-2"
         >
-          <button
+          <div
             v-for="(tab, idx) in mainTabs"
             :key="tab.key"
-            :disabled="isTabDisabled(tab)"
-            :class="[
-              activeMainTab === tab.key
-                ? 'bg-primary text-white'
-                : isTabDisabled(tab)
-                  ? 'cursor-not-allowed bg-white text-gray-400'
-                  : 'bg-white text-text hover:bg-gray-50',
-              idx < mainTabs.length - 1 ? 'border-r border-gray-300' : '',
-            ]"
-            class="px-4 py-2 text-sm font-medium"
-            @click="!isTabDisabled(tab) && (activeMainTab = tab.key)"
+            class="group relative"
           >
-            {{ tab.label }}
-          </button>
+            <button
+              :disabled="isTabDisabled(tab)"
+              :class="[
+                activeMainTab === tab.key
+                  ? 'bg-primary text-white'
+                  : isTabDisabled(tab)
+                    ? 'cursor-not-allowed bg-white text-gray-400'
+                    : 'bg-white text-text hover:bg-gray-50',
+                idx < mainTabs.length - 1 ? 'border-r border-gray-300' : '',
+              ]"
+              class="px-4 py-2 text-sm font-medium"
+              @click="!isTabDisabled(tab) && (activeMainTab = tab.key)"
+            >
+              {{ tab.label }}
+            </button>
+            <div v-if="isTabDisabled(tab)" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+              {{ tabDisabledTooltip(tab) }}
+            </div>
+          </div>
         </div>
 
         <!-- No schedule live for current tab -->

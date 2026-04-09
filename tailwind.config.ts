@@ -36,7 +36,7 @@ export default {
           light: "#FDF2F8",
           border: "#FBCFE8",
           text: "#DB2777",
-          "match-bg": "#F8F1F6",
+          "match-bg": "#f3dfe8",
           "match-border": "#EDCFE4",
         },
         background: "#dcffce",
