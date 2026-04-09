@@ -1,7 +1,7 @@
 <template>
   <div class="flex min-h-screen flex-col bg-background">
     <AppHeader />
-    <div class="relative z-10 flex-1 pb-20 md:pb-10">
+    <div class="relative z-10 flex-1 pt-14 pb-20 md:pt-0 md:pb-10">
       <slot />
     </div>
     <img

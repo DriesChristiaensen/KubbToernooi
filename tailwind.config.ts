@@ -12,22 +12,22 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#59aa35",
-          light: "#7ef54b",
-          dark: "#305d1d",
+          DEFAULT: "#559A32",
+          light: "#7EF54B",
+          dark: "#305D1D",
         },
         secondary: {
-          DEFAULT: "#a8ed89",
-          light: "#c0f0a8",
-          dark: "#6bbf4a",
+          DEFAULT: "#DAAF76",
+          light: "#F0E6C8",
+          dark: "#6BBF4A",
         },
         accent: {
-          DEFAULT: "#d7a566",
-          light: "#ffd5a1",
-          dark: "#8a6a41",
+          DEFAULT: "#F55705",
+          light: "#FFD5A1",
+          dark: "#8A6A41",
         },
-        highlight: "#f45201",
-        header: "#1e1e1e",
+        highlight: "#F55705",
+        header: "#192E0F",
         success: "#16A34A",
         warning: "#EAB308",
         error: "#DC2626",
@@ -36,19 +36,22 @@ export default {
           light: "#FDF2F8",
           border: "#FBCFE8",
           text: "#DB2777",
-          "match-bg": "#f3dfe8",
+          "match-bg": "#F3DFE8",
           "match-border": "#EDCFE4",
         },
-        background: "#dcffce",
-        surface: "#FFFFFF",
+        background: "#DDF7CA",
+        surface: "#FFFEFC",
         text: {
-          DEFAULT: "#3d6e24",
-          light: "#488a27",
-          muted: "#547c3f",
+          DEFAULT: "#335C1E",
+          light: "#4e8e2c",
+          muted: "#537649",
         },
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        // https://fonts.google.com/specimen/Nunito
+        sans: ["Nunito", "system-ui", "-apple-system", "sans-serif"],
+        // https://fonts.google.com/specimen/Fredoka
+        display: ["Fredoka", "system-ui", "sans-serif"],
       },
       fontSize: {
         display: ["2.25rem", { lineHeight: "2.5rem", fontWeight: "700" }],

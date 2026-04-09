@@ -7,7 +7,7 @@ const { logout } = useAuth()
 </script>
 
 <template>
-  <header class="bg-primary">
+  <header class="fixed left-0 right-0 top-0 z-50 bg-primary md:relative md:left-auto md:right-auto md:top-auto md:z-auto">
     <div class="mx-auto flex max-w-content items-center justify-between px-4 py-3">
       <NuxtLink to="/" class="flex items-center gap-2 text-lg font-bold text-white">
         <img src="/KubbKing.png" alt="Kubb King logo" class="h-8 w-auto" />

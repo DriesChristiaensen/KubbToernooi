@@ -14,13 +14,14 @@ const TEAM_NAMES = [
   "De Houten Reuzen",
 ];
 
-const TOURNAMENT_START = new Date("2025-08-15T09:00:00Z");
+const POOL_START = new Date("2026-04-08T09:00:00Z");
+const KO_START = new Date("2026-04-11T09:00:00Z");
 const MATCH_DURATION = 15;
 const BREAK_TIME = 5;
 const SLOT_MS = (MATCH_DURATION + BREAK_TIME) * 60 * 1000;
 
-function slotTime(slot: number): Date {
-  return new Date(TOURNAMENT_START.getTime() + slot * SLOT_MS);
+function slotTime(slot: number, base: Date): Date {
+  return new Date(base.getTime() + slot * SLOT_MS);
 }
 
 const BYE = "";
@@ -63,13 +64,14 @@ async function createBase(
   type: "POOLS" | "KNOCKOUT" | "COMBINATION",
   name: string,
   fieldCount: number,
+  startTime: Date,
 ) {
   const tournament = await prisma.tournament.create({
     data: {
       name,
       type,
       status: "DRAFT",
-      startTime: TOURNAMENT_START,
+      startTime,
       matchDuration: MATCH_DURATION,
       breakTime: BREAK_TIME,
       pointsWin: 3,
@@ -101,6 +103,7 @@ async function createPools(
   fields: { id: string }[],
   teamsAdvancing: number,
   slotOffset: number,
+  base: Date = POOL_START,
 ) {
   const half = Math.floor(teams.length / 2);
   const pools = [
@@ -134,7 +137,7 @@ async function createPools(
           data: {
             phase: "POOL",
             round: roundIdx + 1,
-            startTime: slotTime(slot),
+            startTime: slotTime(slot, base),
             tournamentId,
             fieldId: fields[i % fields.length]!.id,
             poolId: pool.id,
@@ -160,8 +163,9 @@ async function seedPool() {
 
   const { tournament, teams, fields } = await createBase(
     "POOLS",
-    "Kubb Pouletoernooi 2025",
+    "Kubb Pouletoernooi 2026",
     3,
+    POOL_START,
   );
 
   const totalSlots = await createPools(tournament.id, teams, fields, 2, 0);
@@ -181,8 +185,9 @@ async function seedKo() {
 
   const { tournament, teams, fields } = await createBase(
     "KNOCKOUT",
-    "Kubb Knock-out Toernooi 2025",
+    "Kubb Knock-out Toernooi 2026",
     4,
+    KO_START,
   );
 
   // Round 1: seed 1v8, 2v7, 3v6, 4v5
@@ -199,7 +204,7 @@ async function seedKo() {
       data: {
         phase: "KO",
         round: 1,
-        startTime: slotTime(i % fields.length === 0 && i > 0 ? 1 : 0),
+        startTime: slotTime(i % fields.length === 0 && i > 0 ? 1 : 0, KO_START),
         tournamentId: tournament.id,
         fieldId: fields[i % fields.length]!.id,
         teamAId,
@@ -227,8 +232,9 @@ async function seedCombined() {
 
   const { tournament, teams, fields } = await createBase(
     "COMBINATION",
-    "Kubb Combinatietoernooi 2025",
+    "Kubb Combinatietoernooi 2026",
     3,
+    POOL_START,
   );
 
   const totalSlots = await createPools(tournament.id, teams, fields, 2, 0);
@@ -254,7 +260,7 @@ async function seedEmpty() {
       name: "Kubb Toernooi",
       type: "COMBINATION",
       status: "DRAFT",
-      startTime: TOURNAMENT_START,
+      startTime: POOL_START,
       matchDuration: MATCH_DURATION,
       breakTime: BREAK_TIME,
       pointsWin: 3,
@@ -276,8 +282,9 @@ async function seedCombinedPoolsPlayed() {
 
   const { tournament, teams, fields } = await createBase(
     "COMBINATION",
-    "Kubb Combinatietoernooi 2025",
+    "Kubb Combinatietoernooi 2026",
     3,
+    POOL_START,
   );
 
   await createPools(tournament.id, teams, fields, 2, 0);
@@ -349,8 +356,9 @@ async function seedCombinedFinished() {
 
   const { tournament, teams, fields } = await createBase(
     "COMBINATION",
-    "Kubb Combinatietoernooi 2025",
+    "Kubb Combinatietoernooi 2026",
     3,
+    POOL_START,
   );
 
   const poolSlotsUsed = await createPools(tournament.id, teams, fields, 2, 0);
@@ -436,16 +444,15 @@ async function seedCombinedFinished() {
     qualifiedTeams.push(...top2.map((s) => s.teamId));
   }
 
-  // Create KO bracket: Semi-finals and final
+  // Create KO bracket: Semi-finals and final (played on KO day: 2026-04-11)
   // Semi 1: Pool A #1 vs Pool B #2
   // Semi 2: Pool B #1 vs Pool A #2
-  const koStartSlot = poolSlotsUsed;
 
   const finalMatch = await prisma.match.create({
     data: {
       phase: "KO",
       round: 2,
-      startTime: slotTime(koStartSlot + 1),
+      startTime: slotTime(1, KO_START),
       tournamentId: tournament.id,
       fieldId: fields[0]!.id,
       status: "PLAYED",
@@ -458,7 +465,7 @@ async function seedCombinedFinished() {
     data: {
       phase: "KO",
       round: 1,
-      startTime: slotTime(koStartSlot),
+      startTime: slotTime(0, KO_START),
       tournamentId: tournament.id,
       fieldId: fields[0]!.id,
       teamAId: qualifiedTeams[0], // Pool A #1
@@ -475,7 +482,7 @@ async function seedCombinedFinished() {
     data: {
       phase: "KO",
       round: 1,
-      startTime: slotTime(koStartSlot),
+      startTime: slotTime(0, KO_START),
       tournamentId: tournament.id,
       fieldId: fields[1]!.id,
       teamAId: qualifiedTeams[2], // Pool B #1
