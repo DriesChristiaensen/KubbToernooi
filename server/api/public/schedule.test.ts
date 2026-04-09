@@ -36,8 +36,12 @@ describe("GET /api/public/schedule", () => {
     expect(mockMatchFindMany).not.toHaveBeenCalled();
   });
 
-  it("returns empty array when tournament is DRAFT", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1, status: "DRAFT" });
+  it("returns empty array when no phases are live", async () => {
+    mockTournamentFindFirst.mockResolvedValue({
+      id: "t1",
+      poolScheduleLive: false,
+      koScheduleLive: false,
+    });
 
     const result = await handler(createMockEvent());
 
@@ -45,18 +49,23 @@ describe("GET /api/public/schedule", () => {
     expect(mockMatchFindMany).not.toHaveBeenCalled();
   });
 
-  it("returns matches when tournament is LIVE", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1, status: "LIVE" });
+  it("returns pool matches when poolScheduleLive is true", async () => {
+    mockTournamentFindFirst.mockResolvedValue({
+      id: "t1",
+      status: "LIVE",
+      poolScheduleLive: true,
+      koScheduleLive: false,
+    });
     const matches = [
       {
-        id: 1,
+        id: "m1",
         phase: "POOL",
         round: 1,
         startTime: new Date("2025-06-01T09:00:00Z"),
         status: "SCHEDULED",
-        field: { id: 1, name: "Veld 1" },
-        teamA: { id: 1, name: "Team A" },
-        teamB: { id: 2, name: "Team B" },
+        field: { id: "f1", name: "Veld 1" },
+        teamA: { id: "ta1", name: "Team A" },
+        teamB: { id: "tb2", name: "Team B" },
       },
     ];
     mockMatchFindMany.mockResolvedValue(matches);
@@ -66,18 +75,44 @@ describe("GET /api/public/schedule", () => {
     expect(mockMatchFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          field: { tournamentId: 1 },
+          field: { tournamentId: "t1" },
+          phase: { in: ["POOL"] },
           teamAId: { not: null },
           teamBId: { not: null },
         },
       }),
     );
     expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({ id: 1, phase: "POOL" });
+    expect(result[0]).toMatchObject({ id: "m1", phase: "POOL" });
+  });
+
+  it("returns both phases when both are live", async () => {
+    mockTournamentFindFirst.mockResolvedValue({
+      id: "t1",
+      status: "LIVE",
+      poolScheduleLive: true,
+      koScheduleLive: true,
+    });
+    mockMatchFindMany.mockResolvedValue([]);
+
+    await handler(createMockEvent());
+
+    expect(mockMatchFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          phase: { in: ["POOL", "KO"] },
+        }),
+      }),
+    );
   });
 
   it("returns matches ordered by startTime", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1, status: "LIVE" });
+    mockTournamentFindFirst.mockResolvedValue({
+      id: "t1",
+      status: "LIVE",
+      poolScheduleLive: true,
+      koScheduleLive: false,
+    });
     mockMatchFindMany.mockResolvedValue([]);
 
     await handler(createMockEvent());
@@ -87,5 +122,13 @@ describe("GET /api/public/schedule", () => {
         orderBy: [{ startTime: "asc" }, { id: "asc" }],
       }),
     );
+  });
+
+  it("queries isActive tournament", async () => {
+    mockTournamentFindFirst.mockResolvedValue(null);
+
+    await handler(createMockEvent());
+
+    expect(mockTournamentFindFirst).toHaveBeenCalledWith({ where: { isActive: true } });
   });
 });

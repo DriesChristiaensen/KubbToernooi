@@ -1,45 +1,69 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
 
-const VALID_TYPES = ["POOLS", "KNOCKOUT", "COMBINATION"] as const;
-const VALID_STATUSES = ["DRAFT", "LIVE"] as const;
+const bodySchema = z.object({
+  status: z.enum(["DRAFT", "LIVE"]).optional(),
+  poolScheduleLive: z.boolean().optional(),
+  koScheduleLive: z.boolean().optional(),
+  qualifyGlobally: z.boolean().optional(),
+  globalQualifyingTeams: z.number().int().min(2).optional(),
+}).refine(
+  (data) => Object.values(data).some((v) => v !== undefined),
+  { message: "At least one field must be provided" },
+);
 
+/**
+ * Update active tournament properties: status and schedule visibility flags.
+ * At least one field must be provided; status must be "DRAFT" or "LIVE".
+ * @param {Object} body - Request body (at least one field required)
+ * @param {string} [body.status] - Tournament status: "DRAFT" or "LIVE"
+ * @param {boolean} [body.poolScheduleLive] - Whether pool schedule is public
+ * @param {boolean} [body.koScheduleLive] - Whether KO schedule is public
+ * @returns {Object} Updated tournament object with id, name, status, poolScheduleLive, koScheduleLive
+ * @throws {400} If no fields provided or status is invalid
+ * @throws {404} If no active tournament exists
+ */
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
-  const body = await readBody(event);
+  const raw = await readBody(event);
+
+  let body;
+  try {
+    body = bodySchema.parse(raw ?? {});
+  } catch (error) {
+    const parseError = error as z.ZodError;
+    const firstIssue = parseError.issues[0];
+    const isDutchStatus = firstIssue?.path[0] === "status";
+    throw createApiError({
+      error: isDutchStatus ? "Ongeldige status" : "Geen geldige velden opgegeven",
+      code: "invalid_input",
+      reason: isDutchStatus ? "Invalid tournament status" : firstIssue?.message || "Invalid input",
+    });
+  }
 
   const data: Record<string, unknown> = {};
 
-  if (body?.type !== undefined) {
-    if (!VALID_TYPES.includes(body.type)) {
-      throw createApiError({
-        error: "Ongeldig competitietype",
-        code: 400,
-        reason: "Invalid tournament type",
-      });
-    }
-    data.type = body.type;
-  }
-
-  if (body?.status !== undefined) {
-    if (!VALID_STATUSES.includes(body.status)) {
-      throw createApiError({
-        error: "Ongeldige status",
-        code: 400,
-        reason: "Invalid tournament status",
-      });
-    }
+  if (body.status !== undefined) {
     data.status = body.status;
   }
 
-  if (body?.name !== undefined) data.name = body.name;
-  if (body?.startTime !== undefined) data.startTime = new Date(body.startTime);
-  if (body?.matchDuration !== undefined) data.matchDuration = Number(body.matchDuration);
-  if (body?.breakTime !== undefined) data.breakTime = Number(body.breakTime);
-  if (body?.pointsWin !== undefined) data.pointsWin = Number(body.pointsWin);
-  if (body?.pointsDraw !== undefined) data.pointsDraw = Number(body.pointsDraw);
-  if (body?.pointsLoss !== undefined) data.pointsLoss = Number(body.pointsLoss);
+  if (body.poolScheduleLive !== undefined) {
+    data.poolScheduleLive = body.poolScheduleLive;
+  }
+
+  if (body.koScheduleLive !== undefined) {
+    data.koScheduleLive = body.koScheduleLive;
+  }
+
+  if (body.qualifyGlobally !== undefined) {
+    data.qualifyGlobally = body.qualifyGlobally;
+  }
+
+  if (body.globalQualifyingTeams !== undefined) {
+    data.globalQualifyingTeams = body.globalQualifyingTeams;
+  }
 
   const updated = await prisma.tournament.update({
     where: { id: tournament.id },

@@ -1,182 +1,156 @@
 import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
+import { getActiveTournament } from "~/server/utils/tournament";
 
 const bodySchema = z.object({
   overwrite: z.boolean().optional(),
-  startDateTime: z.string().optional(),
+  startDateTime: z
+    .string()
+    .refine((s) => !isNaN(new Date(s).getTime()), { message: "Invalid date" })
+    .refine((s) => /T|:/.test(s), {
+      message: "startDateTime must include a time component",
+    })
+    .optional(),
 });
 
-function buildRound1Slots(
-  participants: { teamId: number }[],
-  bracketSize: number,
-): Array<{ teamAId: number | null; teamBId: number | null }> {
-  const n = participants.length;
-  const byes = bracketSize - n;
-  const slots: Array<{ teamAId: number | null; teamBId: number | null }> = [];
-
-  // Top seeds get byes (teamB = null, team advances automatically)
-  for (let i = 0; i < byes; i++) {
-    slots.push({ teamAId: participants[i].teamId, teamBId: null });
-  }
-
-  // Remaining participants paired top vs bottom (seed N+1 vs seed byes+N, etc.)
-  const remaining = participants.slice(byes);
-  const half = Math.floor(remaining.length / 2);
-  for (let i = 0; i < half; i++) {
-    slots.push({
-      teamAId: remaining[i].teamId,
-      teamBId: remaining[remaining.length - 1 - i].teamId,
-    });
-  }
-
-  // Fill any remaining slots with null (shouldn't happen with correct bracket math)
-  const round1Count = bracketSize / 2;
-  while (slots.length < round1Count) {
-    slots.push({ teamAId: null, teamBId: null });
-  }
-
-  return slots;
-}
-
+/**
+ * Generate KO bracket matches with automatic bye advancement to next round.
+ * Bracket size is computed as next power of 2 ≥ participant count.
+ * Bye teams (only teamA, no teamB) are automatically advanced to their nextMatch.
+ * @param {Object} body - Request body
+ * @param {boolean} [body.overwrite=false] - If true, delete existing KO matches before regenerating
+ * @param {string} [body.startDateTime] - KO phase start date/time (ISO 8601). Defaults to tournament.startTime
+ * @returns {Object} Generated match count: { generated: number }
+ * @throws {400} If startDateTime invalid, or insufficient teams/standings to fill bracket
+ * @throws {400} If tournament type is POOLS but not enough pools have standings
+ * @throws {409} If KO matches already exist and overwrite is false
+ */
 export default defineEventHandler(async (event) => {
   const raw = await readBody(event);
   const body = bodySchema.parse(raw ?? {});
   const overwrite = body.overwrite === true;
 
-  const tournament = await prisma.tournament.findFirst();
-  if (!tournament) {
-    throw createApiError({
-      error: "Geen toernooi gevonden",
-      code: 404,
-      reason: "No tournament found",
-    });
-  }
+  const tournament = await getActiveTournament();
 
-  const existingCount = await prisma.match.count({ where: { phase: "KO" } });
+  const existingCount = await prisma.match.count({ where: { phase: "KO", tournamentId: tournament.id } });
   if (existingCount > 0 && !overwrite) {
     throw createApiError({
       error: "Er is al een KO-schema. Gebruik overwrite om te vervangen.",
-      code: 409,
+      code: "ko_matches_exist",
       reason: "KO matches already exist",
     });
   }
 
-  const fields = await prisma.field.findMany();
+  const fields = await prisma.field.findMany({
+    where: { tournamentId: tournament.id },
+  });
   if (fields.length === 0) {
     throw createApiError({
       error: "Geen velden beschikbaar voor KO-wedstrijden",
-      code: 400,
+      code: "no_fields_available",
       reason: "No fields available for KO matches",
     });
   }
 
-  let participants: { teamId: number }[];
+  let participantCount: number;
 
   if (tournament.type === "KNOCKOUT") {
     const teams = await prisma.team.findMany({
       where: { tournamentId: tournament.id },
-      orderBy: { id: "asc" },
     });
     if (teams.length < 2) {
       throw createApiError({
         error: "Niet genoeg teams om KO-schema te genereren",
-        code: 400,
+        code: "not_enough_teams_ko",
         reason: "Not enough teams to generate KO bracket",
       });
     }
-    participants = teams.map((t) => ({ teamId: t.id }));
+    participantCount = teams.length;
   } else {
     const pools = await prisma.pool.findMany({
       where: { tournamentId: tournament.id },
-      include: {
-        standings: {
-          orderBy: [
-            { points: "desc" },
-            { goalDifference: "desc" },
-            { goalsFor: "desc" },
-          ],
-        },
-      },
     });
 
     if (pools.length === 0) {
       throw createApiError({
         error: "Niet genoeg poule-standen om KO-schema te genereren",
-        code: 400,
+        code: "not_enough_standings_ko",
         reason: "Not enough standings to generate KO bracket",
       });
     }
 
-    participants = pools.flatMap((pool) =>
-      pool.standings.slice(0, pool.teamsAdvancing).map((s) => ({ teamId: s.teamId })),
-    );
+    if (tournament.qualifyGlobally) {
+      participantCount = tournament.globalQualifyingTeams;
+    } else {
+      participantCount = pools.reduce((sum, pool) => sum + pool.teamsAdvancing, 0);
+    }
 
-    if (participants.length < 2) {
+    if (participantCount < 2) {
       throw createApiError({
         error: "Niet genoeg poule-standen om KO-schema te genereren",
-        code: 400,
+        code: "not_enough_standings_ko",
         reason: "Not enough standings to generate KO bracket",
       });
     }
   }
 
-  if (existingCount > 0) {
-    await prisma.match.deleteMany({ where: { phase: "KO" } });
-  }
-
-  const n = participants.length;
-  const bracketSize = Math.pow(2, Math.ceil(Math.log2(n)));
+  const bracketSize = Math.pow(2, Math.ceil(Math.log2(participantCount)));
   const round1Count = bracketSize / 2;
   const totalRounds = Math.log2(bracketSize);
-  const round1Slots = buildRound1Slots(participants, bracketSize);
 
-  const matchStartTime = body.startDateTime ? new Date(body.startDateTime) : new Date(tournament.startTime);
+  const matchStartTime = body.startDateTime
+    ? new Date(body.startDateTime)
+    : new Date(tournament.startTime);
   const slotMs = (tournament.matchDuration + tournament.breakTime) * 60 * 1000;
 
-  // Create matches from the final (last round) back to round 1
-  // so that nextMatchId can be set when creating earlier rounds
-  const roundMatchIds = new Map<number, number[]>();
   let totalCreated = 0;
 
-  for (let r = totalRounds; r >= 1; r--) {
-    const matchesInRound = Math.ceil(round1Count / Math.pow(2, r - 1));
-    const nextRoundIds = roundMatchIds.get(r + 1) ?? [];
-    const createdIds: number[] = [];
-
-    for (let i = 0; i < matchesInRound; i++) {
-      const nextMatchId = nextRoundIds.length > 0 ? nextRoundIds[Math.floor(i / 2)] : null;
-      const field = fields[i % fields.length];
-      const slotOffset = Math.floor(i / fields.length);
-
-      let teamAId: number | null = null;
-      let teamBId: number | null = null;
-      if (r === 1 && i < round1Slots.length) {
-        teamAId = round1Slots[i].teamAId;
-        teamBId = round1Slots[i].teamBId;
-      }
-
-      const created = await prisma.match.create({
-        data: {
-          phase: "KO",
-          round: r,
-          fieldId: field.id,
-          teamAId,
-          teamBId,
-          poolId: null,
-          startTime: new Date(matchStartTime.getTime() + slotOffset * slotMs),
-          status: "SCHEDULED",
-          ...(nextMatchId !== null ? { nextMatchId } : {}),
-        },
-      });
-
-      createdIds.push(created.id);
-      totalCreated++;
+  await prisma.$transaction(async (tx) => {
+    // Atomically delete old KO matches and create new bracket
+    if (existingCount > 0) {
+      await tx.match.deleteMany({ where: { phase: "KO", tournamentId: tournament.id } });
     }
 
-    roundMatchIds.set(r, createdIds);
-  }
+    const roundMatchIds = new Map<number, string[]>();
 
-  logRequest(event, "success", `Generated ${totalCreated} KO matches`);
+    for (let r = totalRounds; r >= 1; r--) {
+      const matchesInRound = Math.ceil(round1Count / Math.pow(2, r - 1));
+      const nextRoundIds = roundMatchIds.get(r + 1) ?? [];
+      const createdIds: string[] = [];
+
+      for (let i = 0; i < matchesInRound; i++) {
+        const nextMatchId =
+          nextRoundIds.length > 0 ? nextRoundIds[Math.floor(i / 2)] : null;
+        // Safe: fields.length === 0 guard above guarantees at least one field exists
+        const field = fields[i % fields.length]!;
+        const slotOffset = Math.floor(i / fields.length);
+
+        const created = await tx.match.create({
+          data: {
+            phase: "KO",
+            round: r,
+            tournamentId: tournament.id,
+            fieldId: field.id,
+            teamAId: null,
+            teamBId: null,
+            poolId: null,
+            startTime: new Date(matchStartTime.getTime() + slotOffset * slotMs),
+            status: "SCHEDULED",
+            bracketPosition: i,
+            ...(nextMatchId !== null ? { nextMatchId } : {}),
+          },
+        });
+
+        createdIds.push(created.id);
+        totalCreated++;
+      }
+
+      roundMatchIds.set(r, createdIds);
+    }
+  });
+
+  setResponseStatus(event, 201);
+  logRequest(event, "success", `Generated ${totalCreated} KO match slots`);
   return { generated: totalCreated };
 });

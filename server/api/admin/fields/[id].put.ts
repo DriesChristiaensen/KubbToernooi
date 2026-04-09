@@ -1,31 +1,48 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
 
-export default defineEventHandler(async (event) => {
-  const idParam = getRouterParam(event, "id");
-  const id = Number(idParam);
+const bodySchema = z.object({
+  name: z.string().trim().min(1, "Field name is required"),
+});
 
-  if (Number.isNaN(id)) {
+/**
+ * Update a field's name in the active tournament.
+ * @param {string} id - Field ID (path parameter)
+ * @param {Object} body - Request body
+ * @param {string} body.name - New field name (unique within tournament, required, non-empty)
+ * @returns {Object} Updated field object with id, name, tournamentId
+ * @throws {400} If id is missing or name is empty
+ * @throws {404} If field does not exist
+ * @throws {409} If new name already exists in the current tournament (for a different field)
+ */
+export default defineEventHandler(async (event) => {
+  const id = getRouterParam(event, "id");
+
+  if (!id) {
     throw createApiError({
       error: "Ongeldig ID",
-      code: 400,
+      code: "invalid_field_id",
       reason: "Invalid field ID",
     });
   }
 
   const tournament = await getActiveTournament();
-  const body = await readBody(event);
+  const raw = await readBody(event);
 
-  if (!body?.name?.trim()) {
+  let body;
+  try {
+    body = bodySchema.parse(raw ?? {});
+  } catch {
     throw createApiError({
       error: "Veldnaam is verplicht",
-      code: 400,
+      code: "field_name_empty",
       reason: "Missing name field",
     });
   }
 
-  const name = body.name.trim();
+  const name = body.name;
 
   const existing = await prisma.field.findFirst({
     where: { name, tournamentId: tournament.id, id: { not: id } },
@@ -34,7 +51,7 @@ export default defineEventHandler(async (event) => {
   if (existing) {
     throw createApiError({
       error: "Er bestaat al een veld met deze naam",
-      code: 409,
+      code: "field_name_exists",
       reason: "Duplicate field name",
     });
   }

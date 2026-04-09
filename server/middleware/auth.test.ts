@@ -2,11 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockGetUserSession = vi.hoisted(() => vi.fn())
 
+const codeToStatusCode: Record<string, number> = {
+  unauthorized: 403,
+};
+
 vi.stubGlobal('getUserSession', mockGetUserSession)
 vi.stubGlobal('getRequestURL', (event: any) => new URL(event._url))
 vi.stubGlobal('createApiError', ({ error, code, reason }: any) => {
   const err = new Error(reason) as any
-  err.statusCode = code
+  err.statusCode = typeof code === 'string' ? (codeToStatusCode[code] ?? 500) : code
   err.data = { error, code, reason, stacktrace: {} }
   return err
 })
@@ -54,7 +58,7 @@ describe('auth middleware', () => {
     })
 
     it('rejects REFEREE role with 403', async () => {
-      mockGetUserSession.mockResolvedValue({ user: { id: 2, name: 'Ref', role: 'REFEREE' } })
+      mockGetUserSession.mockResolvedValue({ user: { id: 'u2', name: 'Ref', role: 'REFEREE' } })
       const event = createMockEvent('http://localhost/api/admin/teams')
 
       await expect(authMiddleware(event)).rejects.toMatchObject({
@@ -63,7 +67,7 @@ describe('auth middleware', () => {
     })
 
     it('allows ADMIN role and sets event.context.user', async () => {
-      const adminUser = { id: 1, name: 'Admin', role: 'ADMIN' }
+      const adminUser = { id: 'u1', name: 'Admin', role: 'ADMIN' }
       mockGetUserSession.mockResolvedValue({ user: adminUser })
       const event = createMockEvent('http://localhost/api/admin/teams')
 
@@ -83,7 +87,7 @@ describe('auth middleware', () => {
     })
 
     it('allows REFEREE role and sets event.context.user', async () => {
-      const refUser = { id: 2, name: 'Ref', role: 'REFEREE' }
+      const refUser = { id: 'u2', name: 'Ref', role: 'REFEREE' }
       mockGetUserSession.mockResolvedValue({ user: refUser })
       const event = createMockEvent('http://localhost/api/ref/matches')
 
@@ -92,7 +96,7 @@ describe('auth middleware', () => {
     })
 
     it('allows ADMIN role on referee routes', async () => {
-      const adminUser = { id: 1, name: 'Admin', role: 'ADMIN' }
+      const adminUser = { id: 'u1', name: 'Admin', role: 'ADMIN' }
       mockGetUserSession.mockResolvedValue({ user: adminUser })
       const event = createMockEvent('http://localhost/api/ref/matches')
 

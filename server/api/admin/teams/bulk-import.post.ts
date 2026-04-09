@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
@@ -9,18 +10,47 @@ function parseCSV(csv: string): string[] {
     .filter((name) => name.length > 0);
 }
 
+const bodySchema = z.object({
+  csv: z.string().optional(),
+  names: z.array(z.string()).optional(),
+});
+
+/**
+ * Bulk import teams into the active tournament from CSV or name array.
+ * Either csv or names must be provided. CSV format: one team name per line (quotes optional).
+ * Enforces uniqueness within the import and against existing teams in the tournament.
+ * @param {Object} body - Request body
+ * @param {string} [body.csv] - Comma-separated or newline-separated team names
+ * @param {string[]} [body.names] - Array of team names (alternative to csv)
+ * @returns {Object} Count of imported teams: { imported: number }
+ * @throws {400} If neither csv nor names provided, or list is empty
+ * @throws {400} If duplicate names exist within the import list
+ * @throws {404} If no active tournament exists
+ * @throws {409} If any team name already exists in the current tournament
+ */
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
-  const body = await readBody(event);
+  const raw = await readBody(event);
+
+  let body;
+  try {
+    body = bodySchema.parse(raw ?? {});
+  } catch {
+    throw createApiError({
+      error: "Voer teams in via CSV of namenlijst",
+      code: "invalid_input",
+      reason: "Invalid input format",
+    });
+  }
 
   const names: string[] = body?.csv
     ? parseCSV(body.csv)
-    : (body?.names ?? []).map((n: string) => n.trim()).filter((n: string) => n.length > 0);
+    : (body?.names ?? []).map((n) => n.trim()).filter((n) => n.length > 0);
 
   if (names.length === 0) {
     throw createApiError({
       error: "Voer minstens één teamnaam in",
-      code: 400,
+      code: "invalid_input",
       reason: "Empty names list",
     });
   }
@@ -29,7 +59,7 @@ export default defineEventHandler(async (event) => {
   if (unique.size !== names.length) {
     throw createApiError({
       error: "Dubbele namen in de lijst",
-      code: 409,
+      code: "invalid_input",
       reason: "Duplicates within list",
     });
   }
@@ -44,7 +74,7 @@ export default defineEventHandler(async (event) => {
   if (conflicts.length > 0) {
     throw createApiError({
       error: `Deze teams bestaan al: ${conflicts.join(", ")}`,
-      code: 409,
+      code: "team_name_exists",
       reason: "Duplicates in database",
     });
   }
@@ -53,6 +83,7 @@ export default defineEventHandler(async (event) => {
     data: names.map((name) => ({ name, tournamentId: tournament.id })),
   });
 
+  setResponseStatus(event, 201);
   logRequest(event, "success", `Bulk imported ${result.count} teams`);
   return { imported: result.count };
 });

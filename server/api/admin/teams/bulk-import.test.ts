@@ -52,7 +52,7 @@ describe("POST /api/admin/teams/bulk-import", () => {
   });
 
   it("returns 400 when names list is empty", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ names: [] });
 
     await expect(bulkImportHandler(createMockEvent())).rejects.toThrow(
@@ -61,7 +61,7 @@ describe("POST /api/admin/teams/bulk-import", () => {
   });
 
   it("returns 400 when all names are blank after trimming", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ names: ["  ", "", "\t"] });
 
     await expect(bulkImportHandler(createMockEvent())).rejects.toThrow(
@@ -70,7 +70,7 @@ describe("POST /api/admin/teams/bulk-import", () => {
   });
 
   it("returns 409 when duplicate names exist within the list", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({
       names: ["Team A", "Team B", "Team A"],
     });
@@ -82,9 +82,9 @@ describe("POST /api/admin/teams/bulk-import", () => {
   });
 
   it("returns 409 when a name already exists in the DB", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ names: ["Team A", "Team B"] });
-    mockTeamFindMany.mockResolvedValue([{ id: 1, name: "Team A" }]);
+    mockTeamFindMany.mockResolvedValue([{ id: "ta1", name: "Team A" }]);
 
     await expect(bulkImportHandler(createMockEvent())).rejects.toThrow(
       "Duplicates in database",
@@ -92,7 +92,7 @@ describe("POST /api/admin/teams/bulk-import", () => {
   });
 
   it("creates all teams and returns count", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ names: ["Team A", "Team B"] });
     mockTeamFindMany.mockResolvedValue([]);
     mockTeamCreateMany.mockResolvedValue({ count: 2 });
@@ -101,15 +101,15 @@ describe("POST /api/admin/teams/bulk-import", () => {
 
     expect(mockTeamCreateMany).toHaveBeenCalledWith({
       data: [
-        { name: "Team A", tournamentId: 1 },
-        { name: "Team B", tournamentId: 1 },
+        { name: "Team A", tournamentId: "t1" },
+        { name: "Team B", tournamentId: "t1" },
       ],
     });
     expect(result).toEqual({ imported: 2 });
   });
 
   it("parses CSV and extracts first column", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({
       csv: "Team A,extra\nTeam B,extra\n",
     });
@@ -120,15 +120,15 @@ describe("POST /api/admin/teams/bulk-import", () => {
 
     expect(mockTeamCreateMany).toHaveBeenCalledWith({
       data: [
-        { name: "Team A", tournamentId: 1 },
-        { name: "Team B", tournamentId: 1 },
+        { name: "Team A", tournamentId: "t1" },
+        { name: "Team B", tournamentId: "t1" },
       ],
     });
     expect(result).toEqual({ imported: 2 });
   });
 
   it("returns 400 when CSV has no valid names", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ csv: ",extra\n,other\n" });
 
     await expect(bulkImportHandler(createMockEvent())).rejects.toThrow(

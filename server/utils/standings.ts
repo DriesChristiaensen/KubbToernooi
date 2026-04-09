@@ -1,17 +1,25 @@
 import { prisma } from "~/server/utils/prisma";
 
-export async function recalculatePoolStandings(poolId: number): Promise<void> {
+/**
+ * Recalculate all standings for a pool based on played matches.
+ * Uses tournament's point system (pointsWin, pointsDraw, pointsLoss).
+ * Atomically replaces all standings for the pool in a single transaction.
+ * @param {string} poolId - Pool ID
+ * @returns {Promise<void>}
+ */
+export async function recalculatePoolStandings(poolId: string): Promise<void> {
   const [poolTeams, playedMatches, tournament] = await Promise.all([
     prisma.poolTeam.findMany({ where: { poolId } }),
     prisma.match.findMany({ where: { poolId, status: "PLAYED" } }),
-    prisma.tournament.findFirst({ orderBy: { id: "desc" } }),
+    prisma.tournament.findFirst({ where: { isActive: true }, orderBy: { createdAt: "desc" } }),
   ]);
 
   const pointsWin = tournament?.pointsWin ?? 3;
   const pointsDraw = tournament?.pointsDraw ?? 1;
   const pointsLoss = tournament?.pointsLoss ?? 0;
 
-  for (const pt of poolTeams) {
+  // Compute all standings in memory
+  const standingsData = poolTeams.map((pt) => {
     const teamMatches = playedMatches.filter(
       (m) => m.teamAId === pt.teamId || m.teamBId === pt.teamId,
     );
@@ -35,30 +43,25 @@ export async function recalculatePoolStandings(poolId: number): Promise<void> {
 
     const points = won * pointsWin + drawn * pointsDraw + lost * pointsLoss;
 
-    await prisma.standing.upsert({
-      where: { poolId_teamId: { poolId, teamId: pt.teamId } },
-      update: {
-        played: teamMatches.length,
-        won,
-        drawn,
-        lost,
-        goalsFor,
-        goalsAgainst,
-        goalDifference: goalsFor - goalsAgainst,
-        points,
-      },
-      create: {
-        poolId,
-        teamId: pt.teamId,
-        played: teamMatches.length,
-        won,
-        drawn,
-        lost,
-        goalsFor,
-        goalsAgainst,
-        goalDifference: goalsFor - goalsAgainst,
-        points,
-      },
+    return {
+      poolId,
+      teamId: pt.teamId,
+      played: teamMatches.length,
+      won,
+      drawn,
+      lost,
+      goalsFor,
+      goalsAgainst,
+      goalDifference: goalsFor - goalsAgainst,
+      points,
+    };
+  });
+
+  // Batch delete old standings and recreate them in a single transaction
+  await prisma.$transaction(async (tx) => {
+    await tx.standing.deleteMany({ where: { poolId } });
+    await tx.standing.createMany({
+      data: standingsData,
     });
-  }
+  });
 }

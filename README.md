@@ -20,6 +20,37 @@ yarn install
 bun install
 ```
 
+## Database Seeding
+
+Seed the database with test data:
+
+```bash
+# Empty tournament (no teams, no fields)
+npm run seed:empty
+
+# Pool tournament only
+npm run seed:pool
+
+# Knockout tournament only
+npm run seed:ko
+
+# Combination tournament (pools only, no KO bracket)
+npm run seed:combined
+
+# Combination tournament with pool matches played (ready for KO generation)
+npm run seed:combined-pools-played
+
+# Combination tournament fully finished (pools + KO bracket with all matches played)
+npm run seed:combined-finished
+
+# Clear all tournament data
+npm run seed:clear
+```
+
+All seeders create an admin account with credentials:
+- Username: `Admin`
+- Password: `admin!`
+
 ## Development Server
 
 Start the development server on `http://localhost:3000`:

@@ -27,24 +27,26 @@ describe("GET /api/public/standings", () => {
     const result = await handler(createMockEvent());
 
     expect(result).toEqual([]);
+    expect(mockPoolFindMany).not.toHaveBeenCalled();
   });
 
-  it("returns empty array when tournament is DRAFT", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1, status: "DRAFT" });
+  it("returns empty array when poolScheduleLive is false", async () => {
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1", poolScheduleLive: false });
 
     const result = await handler(createMockEvent());
 
     expect(result).toEqual([]);
+    expect(mockPoolFindMany).not.toHaveBeenCalled();
   });
 
-  it("returns pools with standings when LIVE", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1, status: "LIVE" });
+  it("returns pools with standings when poolScheduleLive is true", async () => {
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1", poolScheduleLive: true });
     const pools = [
       {
-        id: 10,
+        id: "p10",
         name: "Poule A",
         standings: [
-          { teamId: 1, team: { name: "Team A" }, points: 3, won: 1 },
+          { teamId: "ta1", team: { name: "Team A" }, points: 3, won: 1 },
         ],
       },
     ];
@@ -53,9 +55,17 @@ describe("GET /api/public/standings", () => {
     const result = await handler(createMockEvent());
 
     expect(mockPoolFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { tournamentId: 1 } }),
+      expect.objectContaining({ where: { tournamentId: "t1" } }),
     );
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ name: "Poule A" });
+  });
+
+  it("queries isActive tournament", async () => {
+    mockTournamentFindFirst.mockResolvedValue(null);
+
+    await handler(createMockEvent());
+
+    expect(mockTournamentFindFirst).toHaveBeenCalledWith({ where: { isActive: true } });
   });
 });

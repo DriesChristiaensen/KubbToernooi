@@ -2,16 +2,16 @@
 import { ref, onMounted } from "vue";
 import { nl } from "~/i18n/nl";
 
-definePageMeta({ middleware: "auth" });
+definePageMeta({ middleware: ["auth", "admin-tournament-guard"], layout: "admin" });
 
 interface Team {
-  id: number;
+  id: string;
   name: string;
 }
 
 const teams = ref<Team[]>([]);
 const newName = ref("");
-const editingId = ref<number | null>(null);
+const editingId = ref<string | null>(null);
 const editingName = ref("");
 const error = ref("");
 const loading = ref(false);
@@ -21,11 +21,7 @@ const bulkText = ref("");
 const bulkError = ref("");
 const bulkSuccess = ref("");
 const bulkLoading = ref(false);
-
-const csvFile = ref<File | null>(null);
-const csvError = ref("");
-const csvSuccess = ref("");
-const csvLoading = ref(false);
+const deleteLoading = ref<Set<string>>(new Set());
 
 async function fetchTeams() {
   try {
@@ -71,7 +67,7 @@ async function saveEdit() {
   error.value = "";
   loading.value = true;
   try {
-    await $fetch(`/api/admin/teams/${editingId.value}` as string, {
+    await $fetch(`/api/admin/teams/${editingId.value}`, {
       method: "PUT",
       body: { name: editingName.value.trim() },
     });
@@ -89,12 +85,15 @@ async function saveEdit() {
 async function deleteTeam(team: Team) {
   if (!confirm(nl.admin.teams.deleteConfirm)) return;
   error.value = "";
+  deleteLoading.value = new Set([...deleteLoading.value, team.id]);
   try {
-    await $fetch(`/api/admin/teams/${team.id}` as string, { method: "DELETE" });
+    await $fetch(`/api/admin/teams/${team.id}`, { method: "DELETE" });
     await fetchTeams();
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
     error.value = fetchErr?.data?.data?.error || nl.common.error;
+  } finally {
+    deleteLoading.value = new Set([...deleteLoading.value].filter(x => x !== team.id));
   }
 }
 
@@ -126,48 +125,19 @@ async function bulkImport() {
   }
 }
 
-function onCsvChange(event: Event) {
-  const input = event.target as HTMLInputElement;
-  csvFile.value = input.files?.[0] ?? null;
-}
-
-async function importCsv() {
-  csvError.value = "";
-  csvSuccess.value = "";
-  if (!csvFile.value) return;
-  const text = await csvFile.value.text();
-  csvLoading.value = true;
-  try {
-    const result = await $fetch<{ imported: number }>(
-      "/api/admin/teams/bulk-import",
-      { method: "POST", body: { csv: text } },
-    );
-    csvFile.value = null;
-    csvSuccess.value = `${result.imported} ${nl.admin.teams.imported}`;
-    await fetchTeams();
-  } catch (err: unknown) {
-    const fetchErr = err as { data?: { data?: { error?: string } } };
-    csvError.value = fetchErr?.data?.data?.error || nl.common.error;
-  } finally {
-    csvLoading.value = false;
-  }
-}
-
 onMounted(fetchTeams);
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
-    <header class="flex items-center gap-4 bg-primary-dark p-4">
-      <NuxtLink to="/admin" class="text-white hover:underline">
+  <main class="mx-auto max-w-content p-4">
+    <div class="mb-4 flex items-center gap-3">
+      <NuxtLink to="/admin" class="text-sm text-text-light hover:text-primary">
         &larr; {{ nl.common.back }}
       </NuxtLink>
-      <h1 class="text-lg font-bold text-white">
+      <h1 class="text-lg font-bold text-text">
         {{ nl.admin.teams.title }}
       </h1>
-    </header>
-
-    <main class="mx-auto max-w-content p-4">
+    </div>
       <form
         class="mb-6 flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-sm md:flex-row md:items-end"
         @submit.prevent="addTeam"
@@ -183,17 +153,23 @@ onMounted(fetchTeams);
             v-model="newName"
             type="text"
             required
+            :disabled="loading"
             :placeholder="nl.admin.teams.namePlaceholder"
-            class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none disabled:opacity-50"
           >
         </div>
-        <button
-          type="submit"
-          :disabled="loading"
-          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-        >
-          {{ nl.admin.teams.addButton }}
-        </button>
+        <div class="group relative">
+          <button
+            type="submit"
+            :disabled="loading"
+            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+          >
+            {{ nl.admin.teams.addButton }}
+          </button>
+          <div v-if="loading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+            {{ nl.common.saving }}
+          </div>
+        </div>
       </form>
 
       <p v-if="error" class="mb-4 text-sm text-error">
@@ -216,38 +192,18 @@ onMounted(fetchTeams);
         <p v-if="bulkSuccess" class="mb-2 text-sm text-success">
           {{ bulkSuccess }}
         </p>
-        <button
-          :disabled="bulkLoading"
-          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-          @click="bulkImport"
-        >
-          {{ nl.admin.teams.bulkImport }}
-        </button>
-      </section>
-
-      <section class="mb-6 rounded-lg bg-surface p-4 shadow-sm">
-        <h2 class="mb-3 font-semibold text-text">
-          {{ nl.admin.teams.csvUpload }}
-        </h2>
-        <input
-          type="file"
-          accept=".csv,text/csv"
-          class="mb-3 block text-sm text-text"
-          @change="onCsvChange"
-        >
-        <p v-if="csvError" class="mb-2 text-sm text-error">
-          {{ csvError }}
-        </p>
-        <p v-if="csvSuccess" class="mb-2 text-sm text-success">
-          {{ csvSuccess }}
-        </p>
-        <button
-          :disabled="csvLoading || !csvFile"
-          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-          @click="importCsv"
-        >
-          {{ nl.admin.teams.csvUpload }}
-        </button>
+        <div class="group relative">
+          <button
+            :disabled="bulkLoading"
+            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+            @click="bulkImport"
+          >
+            {{ nl.admin.teams.bulkImport }}
+          </button>
+          <div v-if="bulkLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+            {{ nl.common.importing }}
+          </div>
+        </div>
       </section>
 
       <p v-if="isLoading" class="text-text">
@@ -270,13 +226,18 @@ onMounted(fetchTeams);
                 required
                 class="flex-1 rounded border border-gray-300 px-3 py-1 text-text focus:border-primary focus:outline-none"
               >
-              <button
-                type="submit"
-                :disabled="loading"
-                class="rounded bg-success px-3 py-1 text-sm text-white hover:opacity-80 disabled:opacity-50"
-              >
-                {{ nl.common.save }}
-              </button>
+              <div class="group relative">
+                <button
+                  type="submit"
+                  :disabled="loading"
+                  class="rounded bg-success px-3 py-1 text-sm text-white hover:opacity-80 disabled:opacity-50"
+                >
+                  {{ nl.common.save }}
+                </button>
+                <div v-if="loading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                  {{ nl.common.saving }}
+                </div>
+              </div>
               <button
                 type="button"
                 class="rounded bg-secondary px-3 py-1 text-sm text-white hover:opacity-80"
@@ -295,12 +256,18 @@ onMounted(fetchTeams);
               >
                 {{ nl.common.edit }}
               </button>
-              <button
-                class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700"
-                @click="deleteTeam(team)"
-              >
-                {{ nl.common.delete }}
-              </button>
+              <div class="group relative">
+                <button
+                  :disabled="deleteLoading.has(team.id)"
+                  class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                  @click="deleteTeam(team)"
+                >
+                  {{ nl.common.delete }}
+                </button>
+                <div v-if="deleteLoading.has(team.id)" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                  {{ nl.common.deleting }}
+                </div>
+              </div>
             </div>
           </template>
         </li>
@@ -308,6 +275,5 @@ onMounted(fetchTeams);
           {{ nl.common.noResults }}
         </li>
       </ul>
-    </main>
-  </div>
+  </main>
 </template>

@@ -16,8 +16,8 @@ vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
   return err;
 });
 
-vi.mock("~/server/utils/prisma", () => ({
-  prisma: {
+vi.mock("~/server/utils/prisma", () => {
+  const mockPrisma: any = {
     tournament: { findFirst: mockTournamentFindFirst },
     pool: { findMany: mockPoolFindMany },
     field: { findMany: mockFieldFindMany },
@@ -26,32 +26,34 @@ vi.mock("~/server/utils/prisma", () => ({
       createMany: mockMatchCreateMany,
       deleteMany: mockMatchDeleteMany,
     },
-  },
-}));
+  };
+  mockPrisma.$transaction = vi.fn((callback: any) => callback(mockPrisma));
+  return { prisma: mockPrisma };
+});
 
 vi.mock("~/server/utils/logger", () => ({ logRequest: vi.fn() }));
 
 const { default: handler } = await import("./generate.post");
 
 const baseTournament = {
-  id: 1,
+  id: "t1",
   startTime: new Date("2025-06-01T09:00:00Z"),
   matchDuration: 15,
   breakTime: 5,
 };
 
 const twoTeamPool = {
-  id: 10,
-  poolTeams: [{ teamId: 1 }, { teamId: 2 }],
+  id: "p10",
+  poolTeams: [{ teamId: "t1" }, { teamId: "t2" }],
 };
 
 const fourTeamPool = {
-  id: 10,
-  poolTeams: [{ teamId: 1 }, { teamId: 2 }, { teamId: 3 }, { teamId: 4 }],
+  id: "p10",
+  poolTeams: [{ teamId: "t1" }, { teamId: "t2" }, { teamId: "t3" }, { teamId: "t4" }],
 };
 
-const oneField = [{ id: 100 }];
-const twoFields = [{ id: 100 }, { id: 101 }];
+const oneField = [{ id: "f100" }];
+const twoFields = [{ id: "f100" }, { id: "f101" }];
 
 function createMockEvent() {
   return { _url: "/api/admin/schedule/generate", context: {} } as any;
@@ -109,8 +111,8 @@ describe("POST /api/admin/schedule/generate", () => {
       data: expect.arrayContaining([
         expect.objectContaining({
           phase: "POOL",
-          fieldId: 100,
-          poolId: 10,
+          fieldId: "f100",
+          poolId: "p10",
           status: "SCHEDULED",
         }),
       ]),
@@ -190,5 +192,69 @@ describe("POST /api/admin/schedule/generate", () => {
 
     const data: any[] = mockMatchCreateMany.mock.calls[0][0].data;
     expect(data[0].startTime).toEqual(baseTournament.startTime);
+  });
+
+  it("balances pool completion ratios for unequal pools (T19)", async () => {
+    // Pool A: 4 teams → 6 matches. Pool B: 6 teams → 15 matches. 4 fields.
+    const poolA = { id: "pA", poolTeams: [{ teamId: "a1" }, { teamId: "a2" }, { teamId: "a3" }, { teamId: "a4" }] };
+    const poolB = { id: "pB", poolTeams: [{ teamId: "b1" }, { teamId: "b2" }, { teamId: "b3" }, { teamId: "b4" }, { teamId: "b5" }, { teamId: "b6" }] };
+    const fourFields = [{ id: "f1" }, { id: "f2" }, { id: "f3" }, { id: "f4" }];
+
+    mockTournamentFindFirst.mockResolvedValue(baseTournament);
+    vi.mocked(readBody).mockResolvedValue({});
+    mockMatchCount.mockResolvedValue(0);
+    mockPoolFindMany.mockResolvedValue([poolA, poolB]);
+    mockFieldFindMany.mockResolvedValue(fourFields);
+    mockMatchCreateMany.mockResolvedValue({ count: 21 });
+
+    await handler(createMockEvent());
+
+    const data: any[] = mockMatchCreateMany.mock.calls[0][0].data;
+    expect(data).toHaveLength(21);
+
+    // At any point in the schedule, Pool A and Pool B should be close in completion ratio.
+    // Verify by checking that Pool A's matches are spread across the full schedule window
+    // rather than all bunched at the start.
+    const poolAData = data.filter((m: any) => m.poolId === "pA");
+    const poolBData = data.filter((m: any) => m.poolId === "pB");
+    expect(poolAData).toHaveLength(6);
+    expect(poolBData).toHaveLength(15);
+
+    // Key property: Pool A (smaller) should NOT finish all its matches before Pool B
+    // reaches its later rounds. With priority-queue scheduling, Pool A's rounds are
+    // interleaved proportionally, so Pool A must have at least one match in the last
+    // third of unique time slots.
+    const allTimes = [...new Set(data.map((m: any) => m.startTime.getTime()))].sort((a, b) => a - b);
+    const lastThirdStart = allTimes[Math.floor(allTimes.length * 0.6)];
+    const poolAInLastThird = poolAData.filter((m: any) => m.startTime.getTime() >= lastThirdStart).length;
+    expect(poolAInLastThird).toBeGreaterThanOrEqual(1);
+  });
+
+  it("allows round mixing when sufficient fields are available (T7.2)", async () => {
+    const poolA = { id: "pA", poolTeams: [{ teamId: "a1" }, { teamId: "a2" }, { teamId: "a3" }, { teamId: "a4" }] };
+    const poolB = { id: "pB", poolTeams: [{ teamId: "b1" }, { teamId: "b2" }, { teamId: "b3" }, { teamId: "b4" }] };
+    const poolC = { id: "pC", poolTeams: [{ teamId: "c1" }, { teamId: "c2" }, { teamId: "c3" }, { teamId: "c4" }] };
+    const fourFields = [{ id: "f1" }, { id: "f2" }, { id: "f3" }, { id: "f4" }];
+
+    mockTournamentFindFirst.mockResolvedValue(baseTournament);
+    vi.mocked(readBody).mockResolvedValue({});
+    mockMatchCount.mockResolvedValue(0);
+    mockPoolFindMany.mockResolvedValue([poolA, poolB, poolC]);
+    mockFieldFindMany.mockResolvedValue(fourFields);
+    mockMatchCreateMany.mockResolvedValue({ count: 18 });
+
+    await handler(createMockEvent());
+
+    const data: any[] = mockMatchCreateMany.mock.calls[0][0].data;
+    expect(data).toHaveLength(18);
+
+    // Group matches by start time and verify round mixing occurs
+    const byTime = new Map<string, number[]>();
+    for (const m of data) {
+      const t = m.startTime.toISOString();
+      byTime.set(t, [...(byTime.get(t) ?? []), m.round]);
+    }
+    const hasMixedSlot = [...byTime.values()].some((rounds) => new Set(rounds).size > 1);
+    expect(hasMixedSlot).toBe(true);
   });
 });

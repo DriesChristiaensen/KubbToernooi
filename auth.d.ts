@@ -1,6 +1,6 @@
 declare module '#auth-utils' {
   interface User {
-    id: number
+    id: string
     name: string
     role: 'ADMIN' | 'REFEREE'
   }

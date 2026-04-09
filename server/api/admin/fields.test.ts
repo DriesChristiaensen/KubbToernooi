@@ -7,13 +7,26 @@ const mockFieldDelete = vi.hoisted(() => vi.fn());
 const mockFieldFindFirst = vi.hoisted(() => vi.fn());
 const mockTournamentFindFirst = vi.hoisted(() => vi.fn());
 
+// Map error codes to HTTP status codes (must match server/utils/errors.ts)
+const codeToStatusCode: Record<string, number> = {
+  field_name_empty: 400,
+  field_name_exists: 409,
+  field_not_found: 404,
+  invalid_field_id: 400,
+  invalid_input: 400,
+  tournament_not_found: 404,
+  unexpected_error: 500,
+};
+
 vi.stubGlobal("defineEventHandler", (handler: any) => handler);
 vi.stubGlobal("readBody", vi.fn());
 vi.stubGlobal("getRouterParam", vi.fn());
 vi.stubGlobal("getQuery", vi.fn());
+vi.stubGlobal("setResponseStatus", vi.fn());
 vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
+  const statusCode = codeToStatusCode[code] ?? 500;
   const err = new Error(reason) as any;
-  err.statusCode = code;
+  err.statusCode = statusCode;
   err.data = { error, code, reason, stacktrace: {} };
   return err;
 });
@@ -39,8 +52,8 @@ vi.mock("~/server/utils/logger", () => ({
 
 const { default: getFieldsHandler } = await import("./fields.get");
 const { default: createFieldHandler } = await import("./fields.post");
-const { default: updateFieldHandler } = await import("./fields.[id].put");
-const { default: deleteFieldHandler } = await import("./fields.[id].delete");
+const { default: updateFieldHandler } = await import("./fields/[id].put");
+const { default: deleteFieldHandler } = await import("./fields/[id].delete");
 
 function createMockEvent(overrides: any = {}) {
   return {
@@ -62,16 +75,16 @@ describe("GET /api/admin/fields", () => {
   });
 
   it("returns all fields for the tournament", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     mockFieldFindMany.mockResolvedValue([
-      { id: 1, name: "Veld 1", tournamentId: 1 },
-      { id: 2, name: "Veld 2", tournamentId: 1 },
+      { id: "f1", name: "Veld 1", tournamentId: "t1" },
+      { id: "f2", name: "Veld 2", tournamentId: "t1" },
     ]);
 
     const result = await getFieldsHandler(createMockEvent());
 
     expect(mockFieldFindMany).toHaveBeenCalledWith({
-      where: { tournamentId: 1 },
+      where: { tournamentId: "t1" },
       orderBy: { name: "asc" },
     });
     expect(result).toHaveLength(2);
@@ -82,7 +95,7 @@ describe("POST /api/admin/fields", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 400 when name is missing", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ name: "" });
 
     await expect(createFieldHandler(createMockEvent())).rejects.toThrow(
@@ -91,9 +104,9 @@ describe("POST /api/admin/fields", () => {
   });
 
   it("returns 409 when field name already exists", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ name: "Veld 1" });
-    mockFieldFindFirst.mockResolvedValue({ id: 1, name: "Veld 1" });
+    mockFieldFindFirst.mockResolvedValue({ id: "f1", name: "Veld 1" });
 
     await expect(createFieldHandler(createMockEvent())).rejects.toThrow(
       "Duplicate field name",
@@ -101,19 +114,19 @@ describe("POST /api/admin/fields", () => {
   });
 
   it("creates a field successfully", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ name: "Veld 1" });
     mockFieldFindFirst.mockResolvedValue(null);
     mockFieldCreate.mockResolvedValue({
-      id: 1,
+      id: "f1",
       name: "Veld 1",
-      tournamentId: 1,
+      tournamentId: "t1",
     });
 
     const result = await createFieldHandler(createMockEvent());
 
     expect(mockFieldCreate).toHaveBeenCalledWith({
-      data: { name: "Veld 1", tournamentId: 1 },
+      data: { name: "Veld 1", tournamentId: "t1" },
     });
     expect(result).toMatchObject({ name: "Veld 1" });
   });
@@ -123,7 +136,7 @@ describe("PUT /api/admin/fields/:id", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 400 for invalid ID", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("abc");
+    vi.mocked(getRouterParam).mockReturnValue("");
 
     await expect(updateFieldHandler(createMockEvent())).rejects.toThrow(
       "Invalid field ID",
@@ -131,8 +144,8 @@ describe("PUT /api/admin/fields/:id", () => {
   });
 
   it("returns 400 when name is missing", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    vi.mocked(getRouterParam).mockReturnValue("f1");
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ name: "" });
 
     await expect(updateFieldHandler(createMockEvent())).rejects.toThrow(
@@ -141,10 +154,10 @@ describe("PUT /api/admin/fields/:id", () => {
   });
 
   it("returns 409 when new name is a duplicate", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    vi.mocked(getRouterParam).mockReturnValue("f1");
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ name: "Veld 2" });
-    mockFieldFindFirst.mockResolvedValue({ id: 2, name: "Veld 2" });
+    mockFieldFindFirst.mockResolvedValue({ id: "f2", name: "Veld 2" });
 
     await expect(updateFieldHandler(createMockEvent())).rejects.toThrow(
       "Duplicate field name",
@@ -152,20 +165,20 @@ describe("PUT /api/admin/fields/:id", () => {
   });
 
   it("updates field name successfully", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("1");
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    vi.mocked(getRouterParam).mockReturnValue("f1");
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ name: "Veld 2" });
     mockFieldFindFirst.mockResolvedValue(null);
     mockFieldUpdate.mockResolvedValue({
-      id: 1,
+      id: "f1",
       name: "Veld 2",
-      tournamentId: 1,
+      tournamentId: "t1",
     });
 
     const result = await updateFieldHandler(createMockEvent());
 
     expect(mockFieldUpdate).toHaveBeenCalledWith({
-      where: { id: 1 },
+      where: { id: "f1" },
       data: { name: "Veld 2" },
     });
     expect(result).toMatchObject({ name: "Veld 2" });
@@ -176,20 +189,28 @@ describe("DELETE /api/admin/fields/:id", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 400 for invalid ID", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("abc");
+    vi.mocked(getRouterParam).mockReturnValue("");
 
     await expect(deleteFieldHandler(createMockEvent())).rejects.toThrow(
       "Invalid field ID",
     );
   });
 
+  it("returns 404 when field does not exist", async () => {
+    vi.mocked(getRouterParam).mockReturnValue("f999");
+    mockFieldFindFirst.mockResolvedValue(null);
+
+    await expect(deleteFieldHandler(createMockEvent())).rejects.toThrow("Field not found");
+  });
+
   it("deletes a field successfully", async () => {
-    vi.mocked(getRouterParam).mockReturnValue("3");
-    mockFieldDelete.mockResolvedValue({ id: 3 });
+    vi.mocked(getRouterParam).mockReturnValue("f3");
+    mockFieldFindFirst.mockResolvedValue({ id: "f3", name: "Veld 3" });
+    mockFieldDelete.mockResolvedValue({ id: "f3" });
 
     const result = await deleteFieldHandler(createMockEvent());
 
-    expect(mockFieldDelete).toHaveBeenCalledWith({ where: { id: 3 } });
-    expect(result).toEqual({ success: true });
+    expect(mockFieldDelete).toHaveBeenCalledWith({ where: { id: "f3" } });
+    expect(result).toEqual(null);
   });
 });

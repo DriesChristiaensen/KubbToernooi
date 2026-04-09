@@ -1,16 +1,35 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
 
+const bodySchema = z.object({
+  count: z.number().int().positive(),
+  overwrite: z.boolean().optional(),
+});
+
+/**
+ * Generate multiple fields for the active tournament.
+ * Creates fields named "Veld 1", "Veld 2", etc. Uses names in Dutch by convention.
+ * @param {Object} body - Request body
+ * @param {number} body.count - Number of fields to generate (required, positive integer)
+ * @param {boolean} [body.overwrite=false] - If true, delete existing fields before generating
+ * @returns {Object} Count of generated fields: { generated: number }
+ * @throws {400} If count is invalid (not a positive integer)
+ * @throws {404} If no active tournament exists
+ * @throws {409} If fields already exist and overwrite is false
+ */
 export default defineEventHandler(async (event) => {
   const tournament = await getActiveTournament();
-  const body = await readBody(event);
+  const raw = await readBody(event);
 
-  const count = Number(body?.count);
-  if (!Number.isInteger(count) || count <= 0) {
+  let body;
+  try {
+    body = bodySchema.parse(raw ?? {});
+  } catch {
     throw createApiError({
       error: "Aantal is verplicht en moet een positief getal zijn",
-      code: 400,
+      code: "invalid_input",
       reason: "Invalid count",
     });
   }
@@ -19,25 +38,28 @@ export default defineEventHandler(async (event) => {
     where: { tournamentId: tournament.id },
   });
 
-  if (existing.length > 0 && !body?.overwrite) {
+  if (existing.length > 0 && !body.overwrite) {
     throw createApiError({
       error: "Er bestaan al velden. Wil je doorgaan?",
-      code: 409,
+      code: "invalid_input",
       reason: "Fields already exist",
     });
   }
 
-  if (body?.overwrite) {
-    await prisma.field.deleteMany({ where: { tournamentId: tournament.id } });
-  }
-
-  const data = Array.from({ length: count }, (_, i) => ({
+  const data = Array.from({ length: body.count }, (_, i) => ({
     name: `Veld ${i + 1}`,
     tournamentId: tournament.id,
   }));
 
-  const result = await prisma.field.createMany({ data });
+  const result = await prisma.$transaction(async (tx) => {
+    // Atomically delete old fields and create new ones
+    if (body.overwrite) {
+      await tx.field.deleteMany({ where: { tournamentId: tournament.id } });
+    }
+    return tx.field.createMany({ data });
+  });
 
+  setResponseStatus(event, 201);
   logRequest(event, "success", `Generated ${result.count} fields`);
   return { generated: result.count };
 });

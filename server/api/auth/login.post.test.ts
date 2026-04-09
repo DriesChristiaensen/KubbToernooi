@@ -2,9 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import bcrypt from 'bcrypt'
 
 const mockPrismaUserFindFirst = vi.hoisted(() => vi.fn())
+const mockPrismaUserUpdate = vi.hoisted(() => vi.fn())
 const mockReplaceUserSession = vi.hoisted(() => vi.fn())
 const mockCheckRateLimit = vi.hoisted(() => vi.fn())
 const mockResetRateLimitForIp = vi.hoisted(() => vi.fn())
+
+const codeToStatusCode: Record<string, number> = {
+  invalid_input: 400,
+  password_required: 409,
+  invalid_password: 401,
+  rate_limit_exceeded: 429,
+};
 
 vi.stubGlobal('defineEventHandler', (handler: any) => handler)
 vi.stubGlobal('readBody', vi.fn())
@@ -12,7 +20,7 @@ vi.stubGlobal('getRequestIP', vi.fn().mockReturnValue('127.0.0.1'))
 vi.stubGlobal('replaceUserSession', mockReplaceUserSession)
 vi.stubGlobal('createApiError', ({ error, code, reason }: any) => {
   const err = new Error(reason) as any
-  err.statusCode = code
+  err.statusCode = typeof code === 'string' ? (codeToStatusCode[code] ?? 500) : code
   err.data = { error, code, reason, stacktrace: {} }
   return err
 })
@@ -21,6 +29,7 @@ vi.mock('~/server/utils/prisma', () => ({
   prisma: {
     user: {
       findFirst: mockPrismaUserFindFirst,
+      update: mockPrismaUserUpdate,
     },
   },
 }))
@@ -61,23 +70,23 @@ describe('POST /api/auth/login', () => {
     it('authenticates admin with correct password', async () => {
       const hashedPassword = await bcrypt.hash('admin123', 10)
       mockPrismaUserFindFirst.mockResolvedValue({
-        id: 1, name: 'Admin', role: 'ADMIN', password: hashedPassword,
+        id: 'u1', name: 'Admin', role: 'ADMIN', password: hashedPassword,
       })
       const event = createMockEvent({ password: 'admin123' })
 
       const result = await loginHandler(event)
 
       expect(mockReplaceUserSession).toHaveBeenCalledWith(event, {
-        user: { id: 1, name: 'Admin', role: 'ADMIN' },
+        user: { id: 'u1', name: 'Admin', role: 'ADMIN' },
         loggedInAt: expect.any(Number),
       })
-      expect(result).toEqual({ user: { id: 1, name: 'Admin', role: 'ADMIN' } })
+      expect(result).toEqual({ user: { id: 'u1', name: 'Admin', role: 'ADMIN' } })
     })
 
     it('rejects admin with wrong password', async () => {
       const hashedPassword = await bcrypt.hash('admin123', 10)
       mockPrismaUserFindFirst.mockResolvedValue({
-        id: 1, name: 'Admin', role: 'ADMIN', password: hashedPassword,
+        id: 'u1', name: 'Admin', role: 'ADMIN', password: hashedPassword,
       })
       const event = createMockEvent({ password: 'wrongpassword' })
 
@@ -94,29 +103,58 @@ describe('POST /api/auth/login', () => {
         statusCode: 401,
       })
     })
+
+    it('returns needsPasswordSetup when admin has no password', async () => {
+      mockPrismaUserFindFirst.mockResolvedValue({
+        id: 'u1', name: 'Admin', role: 'ADMIN', password: null,
+      })
+      const event = createMockEvent({ password: 'newpass' })
+
+      const result = await loginHandler(event)
+
+      expect(result).toEqual({ needsPasswordSetup: true })
+      expect(mockReplaceUserSession).not.toHaveBeenCalled()
+    })
+
+    it('sets password and creates session when admin has no password and setPassword is true', async () => {
+      mockPrismaUserFindFirst.mockResolvedValue({
+        id: 'u1', name: 'Admin', role: 'ADMIN', password: null,
+      })
+      mockPrismaUserUpdate.mockResolvedValue({ id: 'u1', name: 'Admin', role: 'ADMIN' })
+      const event = createMockEvent({ password: 'newpass', setPassword: true })
+
+      const result = await loginHandler(event)
+
+      expect(mockPrismaUserUpdate).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: { password: expect.any(String) },
+      })
+      expect(mockReplaceUserSession).toHaveBeenCalled()
+      expect(result).toMatchObject({ user: { id: 'u1', name: 'Admin', role: 'ADMIN' } })
+    })
   })
 
   describe('referee login (name + password)', () => {
     it('authenticates referee with correct name and password', async () => {
       const hashedPassword = await bcrypt.hash('ref456', 10)
       mockPrismaUserFindFirst.mockResolvedValue({
-        id: 2, name: 'Jan', role: 'REFEREE', password: hashedPassword,
+        id: 'u2', name: 'Jan', role: 'REFEREE', password: hashedPassword,
       })
       const event = createMockEvent({ name: 'Jan', password: 'ref456' })
 
       const result = await loginHandler(event)
 
       expect(mockReplaceUserSession).toHaveBeenCalledWith(event, {
-        user: { id: 2, name: 'Jan', role: 'REFEREE' },
+        user: { id: 'u2', name: 'Jan', role: 'REFEREE' },
         loggedInAt: expect.any(Number),
       })
-      expect(result).toEqual({ user: { id: 2, name: 'Jan', role: 'REFEREE' } })
+      expect(result).toEqual({ user: { id: 'u2', name: 'Jan', role: 'REFEREE' } })
     })
 
     it('rejects referee with wrong password', async () => {
       const hashedPassword = await bcrypt.hash('ref456', 10)
       mockPrismaUserFindFirst.mockResolvedValue({
-        id: 2, name: 'Jan', role: 'REFEREE', password: hashedPassword,
+        id: 'u2', name: 'Jan', role: 'REFEREE', password: hashedPassword,
       })
       const event = createMockEvent({ name: 'Jan', password: 'wrongpass' })
 
@@ -133,6 +171,45 @@ describe('POST /api/auth/login', () => {
         statusCode: 401,
       })
     })
+
+    it('returns needsPasswordSetup when referee has no password', async () => {
+      mockPrismaUserFindFirst.mockResolvedValue({
+        id: 'u2', name: 'Jan', role: 'REFEREE', password: null,
+      })
+      const event = createMockEvent({ name: 'Jan', password: 'newpass' })
+
+      const result = await loginHandler(event)
+
+      expect(result).toEqual({ needsPasswordSetup: true })
+      expect(mockReplaceUserSession).not.toHaveBeenCalled()
+    })
+
+    it('sets password and creates session when setPassword is true and password is null', async () => {
+      mockPrismaUserFindFirst.mockResolvedValue({
+        id: 'u2', name: 'Jan', role: 'REFEREE', password: null,
+      })
+      mockPrismaUserUpdate.mockResolvedValue({ id: 'u2', name: 'Jan', role: 'REFEREE' })
+      const event = createMockEvent({ name: 'Jan', password: 'newpass', setPassword: true })
+
+      const result = await loginHandler(event)
+
+      expect(mockPrismaUserUpdate).toHaveBeenCalledWith({
+        where: { id: 'u2' },
+        data: { password: expect.any(String) },
+      })
+      expect(mockReplaceUserSession).toHaveBeenCalled()
+      expect(result).toMatchObject({ user: { id: 'u2', name: 'Jan', role: 'REFEREE' } })
+    })
+
+    it('rejects setPassword when referee already has a password', async () => {
+      const hashedPassword = await bcrypt.hash('existing', 10)
+      mockPrismaUserFindFirst.mockResolvedValue({
+        id: 'u2', name: 'Jan', role: 'REFEREE', password: hashedPassword,
+      })
+      const event = createMockEvent({ name: 'Jan', password: 'newpass', setPassword: true })
+
+      await expect(loginHandler(event)).rejects.toMatchObject({ statusCode: 409 })
+    })
   })
 
   it('returns 429 when rate limit exceeded', async () => {
@@ -147,7 +224,7 @@ describe('POST /api/auth/login', () => {
   it('resets rate limit for ip on successful login', async () => {
     const hashedPassword = await bcrypt.hash('admin123', 10)
     mockPrismaUserFindFirst.mockResolvedValue({
-      id: 1, name: 'Admin', role: 'ADMIN', password: hashedPassword,
+      id: 'u1', name: 'Admin', role: 'ADMIN', password: hashedPassword,
     })
     const event = createMockEvent({ password: 'admin123' })
 

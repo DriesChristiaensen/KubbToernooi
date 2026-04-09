@@ -13,15 +13,23 @@ vi.stubGlobal("createApiError", ({ error, code, reason }: any) => {
   return err;
 });
 
-vi.mock("~/server/utils/prisma", () => ({
-  prisma: {
+vi.mock("~/server/utils/prisma", () => {
+  const mockPrisma: any = {
     tournament: { findFirst: mockTournamentFindFirst },
     match: {
       findMany: mockMatchFindMany,
       update: mockMatchUpdate,
     },
-  },
-}));
+  };
+  mockPrisma.$transaction = vi.fn((callbackOrArray: any) => {
+    // Handle both callback form and array form of $transaction
+    if (Array.isArray(callbackOrArray)) {
+      return Promise.all(callbackOrArray);
+    }
+    return callbackOrArray(mockPrisma);
+  });
+  return { prisma: mockPrisma };
+});
 
 vi.mock("~/server/utils/logger", () => ({ logRequest: vi.fn() }));
 
@@ -46,25 +54,25 @@ describe("POST /api/admin/schedule/time-shift", () => {
   });
 
   it("returns 400 when fromTime is missing", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ offsetMinutes: 10 });
 
-    await expect(handler(createMockEvent())).rejects.toThrow("fromTime is required");
+    await expect(handler(createMockEvent())).rejects.toThrow("Invalid input");
   });
 
   it("returns 400 when offsetMinutes is missing", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ fromTime: t1.toISOString() });
 
-    await expect(handler(createMockEvent())).rejects.toThrow("offsetMinutes is required");
+    await expect(handler(createMockEvent())).rejects.toThrow("Invalid input");
   });
 
   it("shifts matches at or after fromTime by the offset", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ fromTime: t2.toISOString(), offsetMinutes: 15 });
     mockMatchFindMany.mockResolvedValue([
-      { id: 2, startTime: t2 },
-      { id: 3, startTime: t3 },
+      { id: "m2", startTime: t2 },
+      { id: "m3", startTime: t3 },
     ]);
     mockMatchUpdate.mockResolvedValue({});
 
@@ -80,31 +88,31 @@ describe("POST /api/admin/schedule/time-shift", () => {
   });
 
   it("updates each match with the correct new start time", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ fromTime: t2.toISOString(), offsetMinutes: 15 });
-    mockMatchFindMany.mockResolvedValue([{ id: 2, startTime: t2 }]);
+    mockMatchFindMany.mockResolvedValue([{ id: "m2", startTime: t2 }]);
     mockMatchUpdate.mockResolvedValue({});
 
     await handler(createMockEvent());
 
     const expectedTime = new Date(t2.getTime() + 15 * 60 * 1000);
     expect(mockMatchUpdate).toHaveBeenCalledWith({
-      where: { id: 2 },
+      where: { id: "m2" },
       data: { startTime: expectedTime },
     });
   });
 
   it("applies negative offset correctly", async () => {
-    mockTournamentFindFirst.mockResolvedValue({ id: 1 });
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1" });
     vi.mocked(readBody).mockResolvedValue({ fromTime: t2.toISOString(), offsetMinutes: -10 });
-    mockMatchFindMany.mockResolvedValue([{ id: 2, startTime: t2 }]);
+    mockMatchFindMany.mockResolvedValue([{ id: "m2", startTime: t2 }]);
     mockMatchUpdate.mockResolvedValue({});
 
     const result = await handler(createMockEvent());
 
     const expectedTime = new Date(t2.getTime() - 10 * 60 * 1000);
     expect(mockMatchUpdate).toHaveBeenCalledWith({
-      where: { id: 2 },
+      where: { id: "m2" },
       data: { startTime: expectedTime },
     });
     expect(result).toMatchObject({ shifted: 1 });
