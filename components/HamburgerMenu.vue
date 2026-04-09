@@ -15,7 +15,7 @@ function close() {
 <template>
   <template v-if="loggedIn">
   <button
-    class="fixed bottom-4 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg md:hidden"
+    class="fixed bottom-10 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg md:hidden"
     :aria-label="isOpen ? 'Menu sluiten' : 'Menu openen'"
     @click="isOpen = !isOpen"
   >
@@ -35,7 +35,7 @@ function close() {
 
   <nav
     v-if="isOpen"
-    class="fixed bottom-20 right-4 z-50 w-48 rounded-lg bg-surface py-2 shadow-xl md:hidden"
+    class="fixed bottom-[6.5rem] right-4 z-50 w-48 rounded-lg bg-surface py-2 shadow-xl md:hidden"
   >
     <NuxtLink
       v-if="loggedIn && user?.role === 'ADMIN'"

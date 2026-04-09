@@ -561,8 +561,8 @@ const koFinalMatch = computed(() => {
                   :key="match.id"
                   :class="
                     isFavTeamMatch(match)
-                      ? 'border-fav-match-border bg-fav-match-bg'
-                      : 'border-gray-200 bg-surface'
+                      ? 'border-fav-match-border bg-fav-match-bg/80'
+                      : 'border-gray-200 bg-surface/80'
                   "
                   class="rounded-lg border p-3 shadow-sm"
                 >
@@ -620,7 +620,7 @@ const koFinalMatch = computed(() => {
                   {{ nl.public.standings.pool }}: {{ pool.name }}
                 </h3>
                 <div
-                  class="overflow-x-auto rounded-lg border border-gray-200 bg-surface shadow-sm"
+                  class="overflow-x-auto rounded-lg border border-gray-200 bg-surface/80 shadow-sm"
                 >
                   <table class="w-full table-fixed text-sm">
                     <colgroup>
@@ -632,7 +632,7 @@ const koFinalMatch = computed(() => {
                       <col class="w-[10%]" />
                       <col class="w-[10%]" />
                     </colgroup>
-                    <thead class="border-b border-gray-200 bg-gray-50">
+                    <thead class="border-b border-gray-200 bg-gray-50/80">
                       <tr>
                         <th class="px-3 py-2 text-left font-medium text-text">
                           {{ nl.public.standings.team }}
@@ -663,10 +663,10 @@ const koFinalMatch = computed(() => {
                         :key="st.teamId"
                         :class="
                           isFavTeam(st.teamId)
-                            ? 'bg-fav-light'
+                            ? 'bg-fav-light/80'
                             : idx % 2 === 0
                               ? ''
-                              : 'bg-gray-50'
+                              : 'bg-gray-50/80'
                         "
                       >
                         <td
@@ -728,8 +728,8 @@ const koFinalMatch = computed(() => {
                     :key="match.id"
                     :class="
                       isFavTeamMatch(match)
-                        ? 'border-fav-match-border bg-fav-match-bg'
-                        : 'border-gray-200 bg-surface'
+                        ? 'border-fav-match-border bg-fav-match-bg/80'
+                        : 'border-gray-200 bg-surface/80'
                     "
                     class="rounded-lg border p-3 shadow-sm"
                   >
@@ -806,8 +806,8 @@ const koFinalMatch = computed(() => {
                         class="flex w-full flex-col gap-2 rounded-lg border p-3 shadow-sm"
                         :class="
                           isFavTeamMatch(match)
-                            ? 'border-fav-match-border bg-fav-match-bg'
-                            : 'border-gray-200 bg-surface'
+                            ? 'border-fav-match-border bg-fav-match-bg/80'
+                            : 'border-gray-200 bg-surface/80'
                         "
                       >
                         <div
@@ -896,7 +896,7 @@ const koFinalMatch = computed(() => {
               <!-- Winner card -->
               <div
                 v-if="koFinalMatch"
-                class="mb-4 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
+                class="mb-4 rounded-lg border border-gray-200 bg-surface/80 p-4 shadow-sm"
               >
                 <p class="mb-1 text-sm font-medium text-text-light">
                   {{ s.winner }}
@@ -941,8 +941,8 @@ const koFinalMatch = computed(() => {
                         class="flex w-full flex-col gap-2 rounded-lg border p-3 shadow-sm"
                         :class="
                           isFavTeamMatch(match)
-                            ? 'border-fav-match-border bg-fav-match-bg'
-                            : 'border-gray-200 bg-surface'
+                            ? 'border-fav-match-border bg-fav-match-bg/80'
+                            : 'border-gray-200 bg-surface/80'
                         "
                       >
                         <span class="min-w-0 font-semibold">
@@ -986,7 +986,7 @@ const koFinalMatch = computed(() => {
             <template v-if="tournamentType === 'POOLS'">
               <p class="mb-2 font-semibold text-text">{{ s.overallRanking }}</p>
               <div
-                class="overflow-x-auto rounded-lg border border-gray-200 bg-surface shadow-sm"
+                class="overflow-x-auto rounded-lg border border-gray-200 bg-surface/80 shadow-sm"
               >
                 <table class="w-full table-fixed text-sm">
                   <colgroup>
@@ -996,7 +996,7 @@ const koFinalMatch = computed(() => {
                     <col class="w-[13%]" />
                     <col class="w-[14%]" />
                   </colgroup>
-                  <thead class="border-b border-gray-200 bg-gray-50">
+                  <thead class="border-b border-gray-200 bg-gray-50/80">
                     <tr>
                       <th class="px-2 py-2 text-center font-medium text-text">
                         #
@@ -1021,10 +1021,10 @@ const koFinalMatch = computed(() => {
                       :key="st.teamId"
                       :class="
                         isFavTeam(st.teamId)
-                          ? 'bg-fav-light'
+                          ? 'bg-fav-light/80'
                           : idx % 2 === 0
                             ? ''
-                            : 'bg-gray-50'
+                            : 'bg-gray-50/80'
                       "
                     >
                       <td class="px-2 py-2 text-center text-text-light">
@@ -1066,7 +1066,7 @@ const koFinalMatch = computed(() => {
                   {{ nl.public.standings.pool }}: {{ pool.name }}
                 </h3>
                 <div
-                  class="overflow-x-auto rounded-lg border border-gray-200 bg-surface shadow-sm"
+                  class="overflow-x-auto rounded-lg border border-gray-200 bg-surface/80 shadow-sm"
                 >
                   <table class="w-full table-fixed text-sm">
                     <colgroup>
@@ -1078,7 +1078,7 @@ const koFinalMatch = computed(() => {
                       <col class="w-[10%]" />
                       <col class="w-[10%]" />
                     </colgroup>
-                    <thead class="border-b border-gray-200 bg-gray-50">
+                    <thead class="border-b border-gray-200 bg-gray-50/80">
                       <tr>
                         <th class="px-3 py-2 text-left font-medium text-text">
                           {{ nl.public.standings.team }}
@@ -1109,10 +1109,10 @@ const koFinalMatch = computed(() => {
                         :key="st.teamId"
                         :class="
                           isFavTeam(st.teamId)
-                            ? 'bg-fav-light'
+                            ? 'bg-fav-light/80'
                             : idx % 2 === 0
                               ? ''
-                              : 'bg-gray-50'
+                              : 'bg-gray-50/80'
                         "
                       >
                         <td
