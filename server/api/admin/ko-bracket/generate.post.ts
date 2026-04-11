@@ -127,6 +127,16 @@ export default defineEventHandler(async (event) => {
     : new Date(tournament.startTime);
   const slotMs = (tournament.matchDuration + tournament.breakTime) * 60 * 1000;
 
+  // Precompute cumulative slot offset for each round so later rounds start after earlier ones
+  const roundSlotOffsets = new Map<number, number>();
+  let cumulativeSlots = 0;
+  for (let r = 1; r <= totalRounds; r++) {
+    roundSlotOffsets.set(r, cumulativeSlots);
+    const matchesInRound = Math.ceil(round1Count / Math.pow(2, r - 1));
+    const slotsInRound = Math.ceil(matchesInRound / fields.length);
+    cumulativeSlots += slotsInRound;
+  }
+
   let totalCreated = 0;
 
   await prisma.$transaction(async (tx) => {
@@ -144,6 +154,8 @@ export default defineEventHandler(async (event) => {
       const nextRoundIds = roundMatchIds.get(r + 1) ?? [];
       const createdIds: string[] = [];
 
+      const roundOffset = roundSlotOffsets.get(r)!;
+
       for (let i = 0; i < matchesInRound; i++) {
         const nextMatchId =
           nextRoundIds.length > 0 ? nextRoundIds[Math.floor(i / 2)] : null;
@@ -160,7 +172,7 @@ export default defineEventHandler(async (event) => {
             teamAId: null,
             teamBId: null,
             poolId: null,
-            startTime: new Date(matchStartTime.getTime() + slotOffset * slotMs),
+            startTime: new Date(matchStartTime.getTime() + (roundOffset + slotOffset) * slotMs),
             status: "SCHEDULED",
             bracketPosition: i,
             koBracket: bracket,

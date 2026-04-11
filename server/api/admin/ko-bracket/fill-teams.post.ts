@@ -10,13 +10,13 @@ const bodySchema = z.object({
 function buildRound1Slots(
   participants: { teamId: string }[],
   bracketSize: number,
-): Array<{ teamAId: string | null; teamBId: string | null }> {
+): Array<{ teamAId: string | null; teamBId: string | null; isByeB: boolean }> {
   const n = participants.length;
   const byes = bracketSize - n;
-  const slots: Array<{ teamAId: string | null; teamBId: string | null }> = [];
+  const slots: Array<{ teamAId: string | null; teamBId: string | null; isByeB: boolean }> = [];
 
   for (let i = 0; i < byes; i++) {
-    slots.push({ teamAId: participants[i].teamId, teamBId: null });
+    slots.push({ teamAId: participants[i].teamId, teamBId: null, isByeB: true });
   }
 
   const remaining = participants.slice(byes);
@@ -25,12 +25,13 @@ function buildRound1Slots(
     slots.push({
       teamAId: remaining[i].teamId,
       teamBId: remaining[remaining.length - 1 - i].teamId,
+      isByeB: false,
     });
   }
 
   const round1Count = bracketSize / 2;
   while (slots.length < round1Count) {
-    slots.push({ teamAId: null, teamBId: null });
+    slots.push({ teamAId: null, teamBId: null, isByeB: false });
   }
 
   return slots;
@@ -175,29 +176,29 @@ export default defineEventHandler(async (event) => {
   let filled = 0;
 
   await prisma.$transaction(async (tx) => {
-    // Clear all bracket teams and reset bye statuses before refilling
+    // Clear all bracket teams and reset bye flags before refilling
     await tx.match.updateMany({
       where: { phase: "KO", tournamentId: tournament.id, koBracket: bracket },
-      data: { teamAId: null, teamBId: null, status: "SCHEDULED" },
+      data: { teamAId: null, teamBId: null, status: "SCHEDULED", isByeA: false, isByeB: false },
     });
 
     // Atomically fill round-1 teams and auto-advance byes
     for (let i = 0; i < round1Matches.length; i++) {
-      const slot = slots[i] ?? { teamAId: null, teamBId: null };
+      const slot = slots[i] ?? { teamAId: null, teamBId: null, isByeB: false };
       await tx.match.update({
         where: { id: round1Matches[i].id },
-        data: { teamAId: slot.teamAId, teamBId: slot.teamBId },
+        data: { teamAId: slot.teamAId, teamBId: slot.teamBId, isByeB: slot.isByeB },
       });
       filled++;
     }
 
-    // Auto-advance bye teams (teamAId set, teamBId null) to their next-round match
+    // Auto-advance bye teams to their next-round match
     for (let i = 0; i < round1Matches.length; i++) {
-      const slot = slots[i] ?? { teamAId: null, teamBId: null };
+      const slot = slots[i] ?? { teamAId: null, teamBId: null, isByeB: false };
       // Safe: loop bound (i < round1Matches.length) guarantees this element exists
       const match = round1Matches[i]!;
 
-      if (slot.teamAId && !slot.teamBId && match.nextMatchId) {
+      if (slot.isByeB && slot.teamAId && match.nextMatchId) {
         const siblings = await tx.match.findMany({
           where: { nextMatchId: match.nextMatchId },
           orderBy: { id: "asc" },

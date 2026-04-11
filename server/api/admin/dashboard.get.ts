@@ -20,5 +20,5 @@ export default defineEventHandler(async () => {
     prisma.pool.count({ where: { tournamentId: tournament.id } }),
   ]);
 
-  return { type: tournament.type, teamCount, fieldCount, poolCount };
+  return { type: tournament.type, teamCount, fieldCount, poolCount, isLive: tournament.status === "LIVE" };
 });

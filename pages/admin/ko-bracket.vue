@@ -38,6 +38,8 @@ interface KoMatch {
   nextMatchId: string | null;
   bracketPosition: number | null;
   field: { id: string; name: string };
+  isByeA: boolean;
+  isByeB: boolean;
 }
 
 const matches = ref<KoMatch[]>([]);
@@ -200,9 +202,8 @@ function startEdit(match: KoMatch) {
   editMatchId.value = match.id;
   editStartTime.value = new Date(match.startTime);
   editFieldId.value = match.field.id;
-  const isByeMatch = match.status === "PLAYED";
-  editTeamAId.value = match.teamAId ?? (isByeMatch ? "BYE" : "");
-  editTeamBId.value = match.teamBId ?? (isByeMatch ? "BYE" : "");
+  editTeamAId.value = match.isByeA ? "BYE" : (match.teamAId ?? "");
+  editTeamBId.value = match.isByeB ? "BYE" : (match.teamBId ?? "");
   editError.value = "";
   editSuccess.value = "";
 }
@@ -788,47 +789,49 @@ onMounted(async () => {
           <template v-for="idx in matchCount(r)" :key="`r${r}-m${idx}`">
             <div
               :style="{ gridRow: r, gridColumn: `span ${spanCount(r)}` }"
-              class="flex flex-col rounded border border-gray-200 bg-background p-3"
+              :class="getMatch(r, idx)?.scoreA !== null && getMatch(r, idx)?.scoreB !== null ? 'bg-primary text-white' : 'bg-background'"
+              class="flex flex-col rounded border border-gray-200 p-3"
             >
-              <div class="mb-2 text-xs font-semibold text-primary">
+              <div :class="getMatch(r, idx)?.scoreA !== null && getMatch(r, idx)?.scoreB !== null ? 'text-white/80' : 'text-primary'" class="mb-2 text-xs font-semibold">
                 {{ getRoundLabel(matchCount(r)) }}
               </div>
               <template v-if="getMatch(r, idx)">
-                <span class="text-sm font-medium text-text">
-                  {{ getMatch(r, idx)!.teamA?.name ?? nl.admin.koBracket.tbd }}
-                </span>
-                <template
-                  v-if="
-                    getMatch(r, idx)!.teamAId !== null &&
-                    getMatch(r, idx)!.teamBId === null
-                  "
-                >
-                  <span
-                    class="my-1 rounded bg-primary/10 px-2 py-0.5 text-center text-xs font-medium text-primary"
-                  >
-                    {{ r === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.waitingForOpponent }}
+                <template v-if="getMatch(r, idx)!.isByeB">
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white' : 'text-text'" class="text-sm font-medium">
+                    {{ getMatch(r, idx)!.teamA?.name ?? nl.admin.koBracket.tbd }}
+                  </span>
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'" class="my-1 rounded px-2 py-0.5 text-center text-xs font-medium">
+                    {{ nl.admin.koBracket.bye }}
+                  </span>
+                </template>
+                <template v-else-if="getMatch(r, idx)!.isByeA">
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'" class="my-1 rounded px-2 py-0.5 text-center text-xs font-medium">
+                    {{ nl.admin.koBracket.bye }}
+                  </span>
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white' : 'text-text'" class="text-sm font-medium">
+                    {{ getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd }}
                   </span>
                 </template>
                 <template v-else>
-                  <span class="my-1 text-center text-xs text-text-light"
-                    >vs</span
-                  >
-                  <span class="text-sm font-medium text-text">
-                    {{
-                      getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd
-                    }}
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white' : 'text-text'" class="text-sm font-medium">
+                    {{ getMatch(r, idx)!.teamA?.name ?? nl.admin.koBracket.tbd }}
+                  </span>
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white/60' : 'text-text-light'" class="my-1 text-center text-xs">vs</span>
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white' : 'text-text'" class="text-sm font-medium">
+                    {{ getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd }}
                   </span>
                 </template>
-                <div class="mt-2 text-xs text-text-light">
+                <div :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white/70' : 'text-text-light'" class="mt-2 text-xs">
                   {{ getMatch(r, idx)!.field.name }}
                 </div>
-                <div class="mt-1 text-xs text-text-light">
+                <div :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white/70' : 'text-text-light'" class="mt-1 text-xs">
                   {{ new Date(getMatch(r, idx)!.startTime).toLocaleString("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) }}
                 </div>
                 <div class="mt-1 text-right">
                   <button
-                    v-if="getMatch(r, idx)!.status !== 'PLAYED' || getMatch(r, idx)!.teamAId === null || getMatch(r, idx)!.teamBId === null"
-                    class="text-xs text-primary hover:underline"
+                    v-if="getMatch(r, idx)!.scoreA === null && getMatch(r, idx)!.scoreB === null"
+                    :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white/80 hover:text-white' : 'text-primary hover:underline'"
+                    class="text-xs"
                     @click="startEdit(getMatch(r, idx)!)"
                   >
                     {{ nl.admin.koBracket.editMatch }}

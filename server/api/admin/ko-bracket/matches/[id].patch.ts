@@ -55,12 +55,12 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Allow editing PLAYED matches only if they are bye matches (one slot is null)
-  if (match.status === "PLAYED" && match.teamAId !== null && match.teamBId !== null) {
+  // Block editing only if score is already filled in
+  if (match.scoreA !== null || match.scoreB !== null) {
     throw createApiError({
-      error: "Gespeelde wedstrijden kunnen niet worden aangepast",
+      error: "Wedstrijden met een score kunnen niet worden aangepast",
       code: "invalid_input",
-      reason: "Match already played",
+      reason: "Match already has a score",
     });
   }
 
@@ -78,9 +78,12 @@ export default defineEventHandler(async (event) => {
 
   const isByeA = body.isByeA ?? false;
   const isByeB = body.isByeB ?? false;
-  const wasBye = match.status === "PLAYED" && (match.teamAId === null || match.teamBId === null);
+  const wasBye = match.isByeA || match.isByeB;
   const effectiveTeamAId = body.teamAId !== undefined ? body.teamAId : match.teamAId;
   const effectiveTeamBId = body.teamBId !== undefined ? body.teamBId : match.teamBId;
+
+  updateData.isByeA = isByeA;
+  updateData.isByeB = isByeB;
 
   if (isByeB && effectiveTeamAId) {
     updateData.status = "PLAYED";
@@ -106,7 +109,7 @@ export default defineEventHandler(async (event) => {
           data: isFirst ? { teamAId: advancingTeamId } : { teamBId: advancingTeamId },
         });
       } else if (wasBye && !isByeA && !isByeB) {
-        const prevAdvancedId = match.teamAId ?? match.teamBId;
+        const prevAdvancedId = match.isByeB ? match.teamAId : match.teamBId;
         if (prevAdvancedId) {
           const nextMatch = await tx.match.findFirst({ where: { id: match.nextMatchId } });
           if (nextMatch?.teamAId === prevAdvancedId) {

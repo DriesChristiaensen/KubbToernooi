@@ -67,16 +67,20 @@ const unassignedCount = computed(() =>
   allTeams.value.filter((t) => !assignedTeamIds.value.has(t.id)).length,
 );
 
+const isLive = ref(false);
+
 async function fetchData() {
   try {
-    const [t, p, teams] = await Promise.all([
+    const [t, p, teams, dashboard] = await Promise.all([
       $fetch<Tournament>("/api/admin/tournament"),
       $fetch<Pool[]>("/api/admin/pools"),
       $fetch<Team[]>("/api/admin/teams"),
+      $fetch<{ isLive: boolean }>("/api/admin/dashboard"),
     ]);
     tournament.value = t;
     pools.value = p;
     allTeams.value = teams;
+    isLive.value = dashboard.isLive;
   } catch {
     error.value = nl.common.error;
   } finally {
@@ -428,14 +432,14 @@ onMounted(fetchData);
                 </button>
                 <div class="group relative">
                   <button
-                    :disabled="deleteLoading.has(pool.id)"
-                    class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                    :disabled="deleteLoading.has(pool.id) || isLive"
+                    class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                     @click="deletePool(pool)"
                   >
                     {{ nl.common.delete }}
                   </button>
-                  <div v-if="deleteLoading.has(pool.id)" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
-                    {{ nl.common.deleting }}
+                  <div class="pointer-events-none invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                    {{ isLive ? nl.admin.dashboardDisabled.lockedLive : nl.common.deleting }}
                   </div>
                 </div>
               </div>

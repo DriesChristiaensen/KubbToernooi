@@ -57,6 +57,7 @@ export const nl = {
       needsPool: "Maak minimaal 1 poule aan",
       needsPoolType: "Alleen beschikbaar voor poule- of combinatietoernooien",
       needsKoType: "Alleen beschikbaar voor knock-out of combinatietoernooien",
+      lockedLive: "Niet mogelijk terwijl het toernooi live is",
     },
     teams: {
       title: "Teams",
@@ -195,9 +196,12 @@ export const nl = {
       viewPerTeam: "Per team",
       viewPerSlot: "Per tijdslot",
       switchModeHint: "Klik op een andere wedstrijd om te wisselen",
+      switchEmptySlotHint: "Klik op een leeg veld om de wedstrijd daarheen te verplaatsen",
       switchHighlightHint:
         "Oranje: wisselen veroorzaakt een conflict voor een van de teams",
       swapDisabledHint: "Kan niet wisselen — conflict:",
+      moveSuccess: "Wedstrijd verplaatst",
+      addTimeslot: "Tijdslot toevoegen",
       draftWarning:
         "Sommige wedstrijden zijn al begonnen of de starttijd is al verstreken. Weet je zeker dat je het schema terug naar concept wilt zetten?",
       swapSuccess: "Wedstrijden gewisseld",

@@ -147,6 +147,8 @@ model Match {
   nextMatchId     String?
   bracketPosition Int?
   koBracket       String  @default("A")
+  isByeA          Boolean @default(false)
+  isByeB          Boolean @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 

@@ -130,7 +130,7 @@ async function submitImport(password?: string) {
     const fetchErr = err as {
       data?: { data?: { error?: string; code?: number } };
     };
-    if (fetchErr?.data?.data?.code === 409) {
+    if (fetchErr?.data?.data?.code === "existing_data_overwrite_required") {
       importNeedsPassword.value = true;
       importError.value = nl.admin.import.existingDataWarning;
     } else {
@@ -339,8 +339,20 @@ function handleImportFile(event: Event) {
         {{ importSuccess }}
       </p>
 
+      <label
+        class="inline-block cursor-pointer rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
+      >
+        {{ nl.admin.import.button }}
+        <input
+          type="file"
+          accept=".json"
+          class="hidden"
+          @change="handleImportFile"
+        >
+      </label>
+
       <template v-if="importNeedsPassword">
-        <p class="mb-2 text-sm text-text">
+        <p class="mt-3 mb-2 text-sm text-text">
           {{ nl.admin.import.confirmPassword }}
         </p>
         <div class="flex gap-2">
@@ -363,20 +375,6 @@ function handleImportFile(event: Event) {
             </div>
           </div>
         </div>
-      </template>
-
-      <template v-else>
-        <label
-          class="inline-block cursor-pointer rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
-        >
-          {{ nl.admin.import.button }}
-          <input
-            type="file"
-            accept=".json"
-            class="hidden"
-            @change="handleImportFile"
-          >
-        </label>
       </template>
     </div>
   </main>

@@ -32,6 +32,7 @@ interface Tournament {
   type: string;
   status: string;
   matchDuration: number;
+  breakTime: number;
   poolScheduleLive: boolean;
   koScheduleLive: boolean;
 }
@@ -56,6 +57,7 @@ const switchMatchId = ref<string | null>(null);
 const swapLoading = ref(false);
 const swapError = ref("");
 const swapSuccess = ref("");
+const extraSlots = ref<string[]>([]);
 
 const phaseToggleLoading = ref(false);
 const phaseToggleError = ref("");
@@ -277,9 +279,10 @@ const matchesByTeam = computed(() => {
   );
 });
 
-const uniqueSlots = computed(() =>
-  [...new Set(matches.value.map((m) => m.startTime))].sort(),
-);
+const uniqueSlots = computed(() => {
+  const fromMatches = matches.value.map((m) => m.startTime);
+  return [...new Set([...fromMatches, ...extraSlots.value])].sort();
+});
 
 interface ConflictPair {
   field: string;
@@ -470,6 +473,83 @@ function getMatchForSlot(fieldId: string, slot: string): Match | undefined {
   return matches.value.find(
     (m) => m.field.id === fieldId && m.startTime === slot,
   );
+}
+
+function addTimeslot() {
+  const slots = uniqueSlots.value;
+  if (slots.length === 0) return;
+  const latest = slots[slots.length - 1]!;
+  const slotDuration = (tournament.value?.matchDuration ?? 15) + (tournament.value?.breakTime ?? 5);
+  const next = new Date(
+    new Date(latest).getTime() + slotDuration * 60 * 1000,
+  ).toISOString();
+  if (!extraSlots.value.includes(next)) {
+    extraSlots.value.push(next);
+  }
+}
+
+function wouldMoveToSlotCauseConflict(sm: Match, targetSlot: string): boolean {
+  const targetTime = new Date(targetSlot).getTime();
+  const dur = matchDurationMs.value;
+  for (const m of matches.value) {
+    if (m.id === sm.id) continue;
+    const mTime = new Date(m.startTime).getTime();
+    const involvesSmTeams =
+      m.teamA?.id === sm.teamA?.id ||
+      m.teamB?.id === sm.teamA?.id ||
+      m.teamA?.id === sm.teamB?.id ||
+      m.teamB?.id === sm.teamB?.id;
+    if (involvesSmTeams && Math.abs(mTime - targetTime) < dur) return true;
+  }
+  return false;
+}
+
+function isEmptySlotDisabled(slot: string): boolean {
+  const sm = switchMatch.value;
+  if (!sm || !isSelectedMatchScheduleLive.value) return false;
+  return wouldMoveToSlotCauseConflict(sm, slot);
+}
+
+function emptySlotCellClass(slot: string): string {
+  const sm = switchMatch.value;
+  if (!sm) return "";
+  if (isSelectedMatchScheduleLive.value && wouldMoveToSlotCauseConflict(sm, slot)) {
+    return "w-full rounded p-1 text-left text-xs border border-dashed border-gray-300 text-gray-300 cursor-not-allowed";
+  }
+  if (!isSelectedMatchScheduleLive.value && wouldMoveToSlotCauseConflict(sm, slot)) {
+    return "w-full rounded p-1 text-left text-xs border border-dashed border-orange-400 text-orange-500 hover:bg-orange-50 transition-colors";
+  }
+  return "w-full rounded p-1 text-left text-xs border border-dashed border-primary/40 text-primary/60 hover:border-primary hover:bg-primary/5 transition-colors";
+}
+
+async function moveMatchToSlot(matchId: string, fieldId: string, slot: string) {
+  if (!matchId) return;
+  swapLoading.value = true;
+  swapError.value = "";
+  swapSuccess.value = "";
+  try {
+    await $fetch(`/api/admin/schedule/matches/${matchId}`, {
+      method: "PATCH",
+      body: { fieldId, startTime: slot },
+    });
+    swapSuccess.value = nl.admin.schedule.moveSuccess;
+    switchMatchId.value = null;
+    await fetchMatches();
+    const realSlots = new Set(matches.value.map((m) => m.startTime));
+    extraSlots.value = extraSlots.value.filter((s) => !realSlots.has(s));
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    swapError.value = fetchErr?.data?.data?.error || nl.common.error;
+    switchMatchId.value = null;
+  } finally {
+    swapLoading.value = false;
+  }
+}
+
+function clickEmptySlot(fieldId: string, slot: string) {
+  if (!switchMatchId.value || !switchMatch.value) return;
+  if (isEmptySlotDisabled(slot)) return;
+  moveMatchToSlot(switchMatchId.value, fieldId, slot);
 }
 
 onMounted(async () => {
@@ -717,6 +797,9 @@ onMounted(async () => {
         class="mb-3 space-y-1 rounded-lg border border-primary bg-primary/5 px-4 py-2 text-sm text-primary"
       >
         <div>{{ nl.admin.schedule.switchModeHint }}</div>
+        <div v-if="viewMode === 'slot'" class="text-primary/70">
+          {{ nl.admin.schedule.switchEmptySlotHint }}
+        </div>
         <div v-if="!isSelectedMatchScheduleLive" class="text-orange-500">
           {{ nl.admin.schedule.switchHighlightHint }}
         </div>
@@ -850,11 +933,28 @@ onMounted(async () => {
                       </div>
                     </div>
                   </template>
+                  <template v-else-if="switchMatchId && switchMatch">
+                    <button
+                      :class="emptySlotCellClass(slot)"
+                      :disabled="isEmptySlotDisabled(slot)"
+                      @click="clickEmptySlot(f.id, slot)"
+                    >
+                      —
+                    </button>
+                  </template>
                   <span v-else class="text-text-light">—</span>
                 </td>
               </tr>
             </tbody>
           </table>
+          <div class="mt-3">
+            <button
+              class="rounded border border-dashed border-primary/50 px-3 py-1 text-sm text-primary/70 hover:border-primary hover:bg-primary/5 transition-colors"
+              @click="addTimeslot"
+            >
+              + {{ nl.admin.schedule.addTimeslot }}
+            </button>
+          </div>
         </div>
       </template>
     </section>

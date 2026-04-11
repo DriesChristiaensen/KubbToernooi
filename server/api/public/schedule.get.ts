@@ -29,6 +29,8 @@ export default defineEventHandler(async (_event) => {
     where: {
       tournamentId: tournament.id,
       teamAId: { not: null },
+      isByeA: false,
+      isByeB: false,
       OR: phaseConditions,
     },
     select: {
