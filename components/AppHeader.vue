@@ -32,6 +32,12 @@ const { logout } = useAuth()
         <NuxtLink to="/" class="text-sm text-white/90 hover:text-white">
           {{ nl.nav.schedule }}
         </NuxtLink>
+        <NuxtLink to="/spelregels" class="text-sm text-white/90 hover:text-white">
+          {{ nl.nav.spelregels }}
+        </NuxtLink>
+        <NuxtLink to="/prijslijst" class="text-sm text-white/90 hover:text-white">
+          {{ nl.nav.prijslijst }}
+        </NuxtLink>
         <template v-if="loggedIn">
           <span class="text-sm text-white/70">{{ user?.name }}</span>
           <button

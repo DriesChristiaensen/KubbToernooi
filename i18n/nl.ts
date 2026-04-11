@@ -4,6 +4,8 @@ export const nl = {
     standings: "Standen",
     admin: "Beheer",
     ref: "Scheidsrechter",
+    spelregels: "Spelregels",
+    prijslijst: "Prijslijst",
   },
 
   footer: {
