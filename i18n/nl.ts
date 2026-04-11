@@ -292,6 +292,27 @@ export const nl = {
       existingDataWarning:
         "Er zijn al gegevens aanwezig. Importeren vervangt alle bestaande data.",
     },
+    spelregels: {
+      title: "Spelregels",
+      button: "Regels",
+      addGroup: "Regelgroep toevoegen",
+      addRule: "+ Regel toevoegen",
+      groupTitlePlaceholder: "Groepstitel...",
+      rulePlaceholder: "Regelomschrijving...",
+      deleteGroupConfirm: "Deze groep bevat regels. Weet je zeker dat je de groep en alle regels wilt verwijderen?",
+      noGroups: "Nog geen regelgroepen aangemaakt.",
+    },
+    prijslijst: {
+      title: "Prijslijst",
+      button: "Prijzen",
+      addGroup: "Drankgroep toevoegen",
+      addBeverage: "+ Drank toevoegen",
+      groupTitlePlaceholder: "Groepstitel...",
+      beveragePlaceholder: "Naam...",
+      pricePlaceholder: "0.00",
+      deleteGroupConfirm: "Deze groep bevat dranken. Weet je zeker dat je de groep en alle dranken wilt verwijderen?",
+      noGroups: "Nog geen drankgroepen aangemaakt.",
+    },
   },
 
   ref: {

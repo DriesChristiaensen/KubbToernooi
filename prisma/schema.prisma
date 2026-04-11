@@ -168,6 +168,53 @@ model Match {
   @@index([poolId, status])
 }
 
+model RuleGroup {
+  id          String   @id @default(uuid())
+  orderNumber Int      @unique
+  title       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rules Rule[]
+}
+
+model Rule {
+  id           String    @id @default(uuid())
+  orderNumber  Int
+  text         String
+  ruleGroupId  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  ruleGroup RuleGroup @relation(fields: [ruleGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleGroupId, orderNumber])
+}
+
+model BeverageGroup {
+  id          String     @id @default(uuid())
+  orderNumber Int        @unique
+  title       String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  beverages Beverage[]
+}
+
+model Beverage {
+  id              String        @id @default(uuid())
+  orderNumber     Int
+  text            String
+  price           Float
+  beverageGroupId String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  beverageGroup BeverageGroup @relation(fields: [beverageGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([beverageGroupId, orderNumber])
+}
+
 model Standing {
   id             String   @id @default(uuid())
   poolId         String
