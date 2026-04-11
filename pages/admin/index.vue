@@ -302,80 +302,106 @@ function handleImportFile(event: Event) {
       </div>
     </nav>
 
-    <div
-      class="mt-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
-    >
-      <h2 class="mb-3 font-semibold text-text">
-        {{ nl.admin.export.title }}
-      </h2>
-      <p v-if="exportError" class="mb-2 text-sm text-error">
-        {{ exportError }}
-      </p>
-      <div class="group relative inline-block">
-        <button
-          :disabled="exportLoading"
-          class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-          @click="downloadExport"
-        >
-          {{ nl.admin.export.button }}
-        </button>
-        <div v-if="exportLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
-          {{ nl.common.submitting }}
-        </div>
-      </div>
-    </div>
-
-    <div
-      class="mt-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
-    >
-      <h2 class="mb-3 font-semibold text-text">
-        {{ nl.admin.import.title }}
-      </h2>
-
-      <p v-if="importError" class="mb-2 text-sm text-error">
-        {{ importError }}
-      </p>
-      <p v-if="importSuccess" class="mb-2 text-sm text-success">
-        {{ importSuccess }}
-      </p>
-
-      <label
-        class="inline-block cursor-pointer rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
-      >
-        {{ nl.admin.import.button }}
-        <input
-          type="file"
-          accept=".json"
-          class="hidden"
-          @change="handleImportFile"
-        >
-      </label>
-
-      <template v-if="importNeedsPassword">
-        <p class="mt-3 mb-2 text-sm text-text">
-          {{ nl.admin.import.confirmPassword }}
+    <div class="mt-6 grid grid-cols-4 gap-4">
+      <!-- Export -->
+      <div class="rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+        <h2 class="mb-3 font-semibold text-text">
+          {{ nl.admin.export.title }}
+        </h2>
+        <p v-if="exportError" class="mb-2 text-sm text-error">
+          {{ exportError }}
         </p>
-        <div class="flex gap-2">
-          <input
-            v-model="importPassword"
-            type="password"
-            :placeholder="nl.auth.password"
-            class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+        <div class="group relative inline-block">
+          <button
+            :disabled="exportLoading"
+            class="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark disabled:opacity-50"
+            @click="downloadExport"
           >
-          <div class="group relative">
-            <button
-              :disabled="importLoading"
-              class="rounded bg-error px-4 py-2 font-medium text-white hover:bg-red-700 disabled:opacity-50"
-              @click="submitImport(importPassword)"
-            >
-              {{ nl.common.confirm }}
-            </button>
-            <div v-if="importLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
-              {{ nl.common.importing }}
-            </div>
+            {{ nl.admin.export.button }}
+          </button>
+          <div v-if="exportLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+            {{ nl.common.submitting }}
           </div>
         </div>
-      </template>
+      </div>
+
+      <!-- Import -->
+      <div class="rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+        <h2 class="mb-3 font-semibold text-text">
+          {{ nl.admin.import.title }}
+        </h2>
+
+        <p v-if="importError" class="mb-2 text-sm text-error">
+          {{ importError }}
+        </p>
+        <p v-if="importSuccess" class="mb-2 text-sm text-success">
+          {{ importSuccess }}
+        </p>
+
+        <label
+          class="inline-block cursor-pointer rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
+        >
+          {{ nl.admin.import.button }}
+          <input
+            type="file"
+            accept=".json"
+            class="hidden"
+            @change="handleImportFile"
+          >
+        </label>
+
+        <template v-if="importNeedsPassword">
+          <p class="mt-3 mb-2 text-sm text-text">
+            {{ nl.admin.import.confirmPassword }}
+          </p>
+          <div class="flex gap-2">
+            <input
+              v-model="importPassword"
+              type="password"
+              :placeholder="nl.auth.password"
+              class="rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
+            >
+            <div class="group relative">
+              <button
+                :disabled="importLoading"
+                class="rounded bg-error px-4 py-2 font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                @click="submitImport(importPassword)"
+              >
+                {{ nl.common.confirm }}
+              </button>
+              <div v-if="importLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                {{ nl.common.importing }}
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Regels -->
+      <div class="rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+        <h2 class="mb-3 font-semibold text-text">
+          {{ nl.admin.spelregels.title }}
+        </h2>
+        <NuxtLink
+          to="/admin/spelregels"
+          class="inline-block rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
+        >
+          {{ nl.admin.spelregels.button }}
+        </NuxtLink>
+      </div>
+
+      <!-- Prijzen -->
+      <div class="rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+        <h2 class="mb-3 font-semibold text-text">
+          {{ nl.admin.prijslijst.title }}
+        </h2>
+        <NuxtLink
+          to="/admin/prijslijst"
+          class="inline-block rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-dark"
+        >
+          {{ nl.admin.prijslijst.button }}
+        </NuxtLink>
+      </div>
     </div>
   </main>
 </template>
