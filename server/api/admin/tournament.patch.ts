@@ -7,6 +7,8 @@ const bodySchema = z.object({
   status: z.enum(["DRAFT", "LIVE"]).optional(),
   poolScheduleLive: z.boolean().optional(),
   koScheduleLive: z.boolean().optional(),
+  bKoScheduleLive: z.boolean().optional(),
+  hasBKnockout: z.boolean().optional(),
   qualifyGlobally: z.boolean().optional(),
   globalQualifyingTeams: z.number().int().min(2).optional(),
 }).refine(
@@ -55,6 +57,14 @@ export default defineEventHandler(async (event) => {
 
   if (body.koScheduleLive !== undefined) {
     data.koScheduleLive = body.koScheduleLive;
+  }
+
+  if (body.bKoScheduleLive !== undefined) {
+    data.bKoScheduleLive = body.bKoScheduleLive;
+  }
+
+  if (body.hasBKnockout !== undefined) {
+    data.hasBKnockout = body.hasBKnockout;
   }
 
   if (body.qualifyGlobally !== undefined) {

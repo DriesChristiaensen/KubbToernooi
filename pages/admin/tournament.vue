@@ -52,6 +52,7 @@ const fieldErrors = ref({ name: '' });
 const form = ref({
   name: "",
   type: "COMBINATION",
+  hasBKnockout: false,
   matchDuration: 15,
   breakTime: 5,
   pointsWin: 3,
@@ -159,6 +160,7 @@ async function createTournament() {
         pointsDraw: form.value.pointsDraw,
         pointsLoss: form.value.pointsLoss,
         fieldCount: form.value.fieldCount,
+        hasBKnockout: form.value.type === "COMBINATION" ? form.value.hasBKnockout : false,
       },
     });
     showWizard.value = false;
@@ -324,6 +326,18 @@ onMounted(async () => {
                 {{ opt.label }}
               </option>
             </select>
+          </div>
+
+          <div v-if="form.type === 'COMBINATION'" class="mb-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                v-model="form.hasBKnockout"
+                type="checkbox"
+                class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              >
+              <span class="text-sm font-medium text-text">{{ nl.admin.tournament.hasBKnockout }}</span>
+            </label>
+            <p class="mt-1 text-xs text-text-light">{{ nl.admin.tournament.hasBKnockoutHint }}</p>
           </div>
 
           <div class="mb-3">

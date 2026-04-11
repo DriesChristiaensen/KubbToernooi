@@ -60,6 +60,8 @@ model Tournament {
   pointsLoss       Int              @default(0)
   poolScheduleLive      Boolean          @default(false)
   koScheduleLive        Boolean          @default(false)
+  bKoScheduleLive       Boolean          @default(false)
+  hasBKnockout          Boolean          @default(false)
   qualifyGlobally       Boolean          @default(true)
   globalQualifyingTeams Int              @default(8)
   createdAt             DateTime         @default(now())
@@ -144,6 +146,7 @@ model Match {
   koWinnerId      String?
   nextMatchId     String?
   bracketPosition Int?
+  koBracket       String  @default("A")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 

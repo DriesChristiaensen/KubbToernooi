@@ -1,6 +1,11 @@
+import { z } from "zod";
 import { prisma } from "~/server/utils/prisma";
 import { logRequest } from "~/server/utils/logger";
 import { getActiveTournament } from "~/server/utils/tournament";
+
+const bodySchema = z.object({
+  bracket: z.enum(["A", "B"]).optional().default("A"),
+});
 
 function buildRound1Slots(
   participants: { teamId: string }[],
@@ -34,16 +39,23 @@ function buildRound1Slots(
 /**
  * Fill KO bracket round 1 with teams and auto-advance byes.
  * For KNOCKOUT tournaments, uses all teams. For POOLS tournaments, uses top advancers from each pool.
+ * For bracket "B", uses non-qualifying teams (those that didn't reach the A bracket).
  * Bye teams (teamAId set, teamBId null) are automatically marked as PLAYED and advanced to next round.
+ * @param {Object} body - Request body
+ * @param {string} [body.bracket="A"] - Which bracket to fill: "A" (main KO) or "B" (non-qualifiers)
  * @returns {Object} Count of round-1 matches filled: { filled: number }
  * @throws {404} If no KO matches exist (must generate bracket first) or no active tournament exists
  * @throws {400} If not enough teams/standings to fill the bracket
  */
 export default defineEventHandler(async (event) => {
+  const raw = await readBody(event);
+  const body = bodySchema.parse(raw ?? {});
+  const bracket = body.bracket;
+
   const tournament = await getActiveTournament();
 
   const koMatches = await prisma.match.findMany({
-    where: { phase: "KO", tournamentId: tournament.id },
+    where: { phase: "KO", tournamentId: tournament.id, koBracket: bracket },
     orderBy: [{ round: "asc" }],
   });
 
@@ -105,7 +117,6 @@ export default defineEventHandler(async (event) => {
       const poolsSorted = [...pools].sort((a, b) => {
         const teamCountDiff = b.poolTeams.length - a.poolTeams.length;
         if (teamCountDiff !== 0) return teamCountDiff;
-        // Same team count: compare the (base+1)th team's standings for tiebreaking
         const aNext = a.standings[base];
         const bNext = b.standings[base];
         if (!aNext && !bNext) return a.name.localeCompare(b.name);
@@ -119,16 +130,33 @@ export default defineEventHandler(async (event) => {
         return diff !== 0 ? diff : a.name.localeCompare(b.name);
       });
 
-      participants = poolsSorted.flatMap((pool, i) => {
-        const allocation = base + (i < extras ? 1 : 0);
-        return pool.standings.slice(0, allocation).map((s) => ({ teamId: s.teamId }));
-      });
+      if (bracket === "A") {
+        participants = poolsSorted.flatMap((pool, i) => {
+          const allocation = base + (i < extras ? 1 : 0);
+          return pool.standings.slice(0, allocation).map((s) => ({ teamId: s.teamId }));
+        });
+      } else {
+        // B bracket: teams that didn't qualify for A bracket
+        participants = poolsSorted.flatMap((pool, i) => {
+          const allocation = base + (i < extras ? 1 : 0);
+          return pool.standings.slice(allocation).map((s) => ({ teamId: s.teamId }));
+        });
+      }
     } else {
-      participants = pools.flatMap((pool) =>
-        pool.standings
-          .slice(0, pool.teamsAdvancing)
-          .map((s) => ({ teamId: s.teamId })),
-      );
+      if (bracket === "A") {
+        participants = pools.flatMap((pool) =>
+          pool.standings
+            .slice(0, pool.teamsAdvancing)
+            .map((s) => ({ teamId: s.teamId })),
+        );
+      } else {
+        // B bracket: teams ranked below teamsAdvancing in each pool
+        participants = pools.flatMap((pool) =>
+          pool.standings
+            .slice(pool.teamsAdvancing)
+            .map((s) => ({ teamId: s.teamId })),
+        );
+      }
     }
 
     if (participants.length < 2) {
@@ -147,9 +175,9 @@ export default defineEventHandler(async (event) => {
   let filled = 0;
 
   await prisma.$transaction(async (tx) => {
-    // Clear all KO teams and reset bye statuses before refilling
+    // Clear all bracket teams and reset bye statuses before refilling
     await tx.match.updateMany({
-      where: { phase: "KO", tournamentId: tournament.id },
+      where: { phase: "KO", tournamentId: tournament.id, koBracket: bracket },
       data: { teamAId: null, teamBId: null, status: "SCHEDULED" },
     });
 
@@ -190,7 +218,7 @@ export default defineEventHandler(async (event) => {
   logRequest(
     event,
     "success",
-    `Filled teams into ${filled} KO round-1 matches`,
+    `Filled teams into ${filled} KO round-1 matches (bracket ${bracket})`,
   );
   return { filled };
 });
