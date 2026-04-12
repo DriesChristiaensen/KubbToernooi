@@ -22,6 +22,7 @@ interface Tournament {
   hasBKnockout: boolean;
   qualifyGlobally: boolean;
   globalQualifyingTeams: number;
+  matchDuration: number;
 }
 
 interface KoMatch {
@@ -78,6 +79,21 @@ interface Field {
   name: string;
 }
 const allFields = ref<Field[]>([]);
+
+// Tab: "bracket" | "planner"
+const activeTab = ref<"bracket" | "planner">("bracket");
+
+// Match planner swap state
+const plannerSwitchMatchId = ref<string | null>(null);
+const plannerSwapLoading = ref(false);
+const plannerSwapError = ref("");
+const plannerSwapSuccess = ref("");
+const plannerLiveWarning = ref(false);
+const plannerPendingAction = ref<(() => void) | null>(null);
+
+// Bracket edit live warning
+const editLiveWarning = ref(false);
+const pendingEditMatch = ref<KoMatch | null>(null);
 
 const editMatchId = ref<string | null>(null);
 const editStartTime = ref<Date | null>(null);
@@ -197,6 +213,27 @@ async function fillTeams() {
   }
 }
 
+
+function requestEdit(match: KoMatch) {
+  const isLive = match.status === 'LIVE' || match.status === 'AWAITING_RESULT';
+  if (isLive) {
+    pendingEditMatch.value = match;
+    editLiveWarning.value = true;
+    return;
+  }
+  startEdit(match);
+}
+
+function confirmEditLive() {
+  editLiveWarning.value = false;
+  if (pendingEditMatch.value) startEdit(pendingEditMatch.value);
+  pendingEditMatch.value = null;
+}
+
+function cancelEditLive() {
+  editLiveWarning.value = false;
+  pendingEditMatch.value = null;
+}
 
 function startEdit(match: KoMatch) {
   editMatchId.value = match.id;
@@ -358,6 +395,182 @@ const swapNonKoTeams = computed(() => {
   return allTeams.value.filter((t) => !rankedIds.has(t.id));
 });
 
+// Match planner: flat list of rounds in chronological order
+const plannerGroupedByRound = computed(() =>
+  rounds.value.map(([r, ms]) => ({
+    round: r,
+    label: getRoundLabel(ms.length),
+    matches: [...ms].sort((a, b) => {
+      const timeDiff = a.startTime.localeCompare(b.startTime);
+      return timeDiff !== 0 ? timeDiff : (a.bracketPosition ?? 0) - (b.bracketPosition ?? 0);
+    }),
+  })),
+);
+
+const plannerMatchDurationMs = computed(
+  () => (tournament.value?.matchDuration ?? 15) * 60 * 1000,
+);
+
+const plannerSwitchMatch = computed(
+  () => matches.value.find((m) => m.id === plannerSwitchMatchId.value) ?? null,
+);
+
+function wouldKoSwapCauseConflict(sm: KoMatch, target: KoMatch): boolean {
+  const smTime = new Date(sm.startTime).getTime();
+  const targetTime = new Date(target.startTime).getTime();
+  const dur = plannerMatchDurationMs.value;
+  const exclude = new Set([sm.id, target.id]);
+  for (const m of matches.value) {
+    if (exclude.has(m.id)) continue;
+    const mTime = new Date(m.startTime).getTime();
+    const involvesSmTeams =
+      (sm.teamAId && (m.teamAId === sm.teamAId || m.teamBId === sm.teamAId)) ||
+      (sm.teamBId && (m.teamAId === sm.teamBId || m.teamBId === sm.teamBId));
+    const involvesTargetTeams =
+      (target.teamAId && (m.teamAId === target.teamAId || m.teamBId === target.teamAId)) ||
+      (target.teamBId && (m.teamAId === target.teamBId || m.teamBId === target.teamBId));
+    if (involvesSmTeams && Math.abs(mTime - targetTime) < dur) return true;
+    if (involvesTargetTeams && Math.abs(mTime - smTime) < dur) return true;
+  }
+  return false;
+}
+
+function getKoSwapConflictReason(sm: KoMatch, target: KoMatch): string {
+  const smTime = new Date(sm.startTime).getTime();
+  const targetTime = new Date(target.startTime).getTime();
+  const dur = plannerMatchDurationMs.value;
+  const exclude = new Set([sm.id, target.id]);
+  const conflicting = new Set<string>();
+  for (const m of matches.value) {
+    if (exclude.has(m.id)) continue;
+    const mTime = new Date(m.startTime).getTime();
+    if (Math.abs(mTime - targetTime) < dur) {
+      if (sm.teamAId && (m.teamAId === sm.teamAId || m.teamBId === sm.teamAId)) conflicting.add(sm.teamA?.name ?? sm.teamAId);
+      if (sm.teamBId && (m.teamAId === sm.teamBId || m.teamBId === sm.teamBId)) conflicting.add(sm.teamB?.name ?? sm.teamBId);
+    }
+    if (Math.abs(mTime - smTime) < dur) {
+      if (target.teamAId && (m.teamAId === target.teamAId || m.teamBId === target.teamAId)) conflicting.add(target.teamA?.name ?? target.teamAId);
+      if (target.teamBId && (m.teamAId === target.teamBId || m.teamBId === target.teamBId)) conflicting.add(target.teamB?.name ?? target.teamBId);
+    }
+  }
+  return Array.from(conflicting).join(", ");
+}
+
+const plannerHighlightedMatchIds = computed(() => {
+  const sm = plannerSwitchMatch.value;
+  if (!sm || activeBracketIsLive.value) return new Set<string>();
+  const ids = new Set<string>();
+  for (const m of matches.value) {
+    if (m.id === sm.id) continue;
+    if (wouldKoSwapCauseConflict(sm, m)) ids.add(m.id);
+  }
+  return ids;
+});
+
+const plannerDisabledSwapMatchIds = computed(() => {
+  const sm = plannerSwitchMatch.value;
+  if (!sm || !activeBracketIsLive.value) return new Set<string>();
+  const ids = new Set<string>();
+  for (const m of matches.value) {
+    if (m.id === sm.id) continue;
+    if (wouldKoSwapCauseConflict(sm, m)) ids.add(m.id);
+  }
+  return ids;
+});
+
+const plannerDisabledSwapReasons = computed(() => {
+  const sm = plannerSwitchMatch.value;
+  if (!sm || !activeBracketIsLive.value) return new Map<string, string>();
+  const map = new Map<string, string>();
+  for (const m of matches.value) {
+    if (m.id === sm.id) continue;
+    if (wouldKoSwapCauseConflict(sm, m)) map.set(m.id, getKoSwapConflictReason(sm, m));
+  }
+  return map;
+});
+
+function plannerRowClass(matchId: string): string {
+  const match = matches.value.find(m => m.id === matchId);
+  if (match?.status === 'PLAYED')
+    return "border-b border-gray-100 opacity-40 cursor-not-allowed transition-colors";
+  if (plannerSwitchMatchId.value === matchId)
+    return "cursor-pointer border-b border-gray-100 bg-primary/10 outline outline-2 outline-primary transition-colors";
+  if (plannerSwitchMatchId.value && plannerDisabledSwapMatchIds.value.has(matchId))
+    return "cursor-not-allowed border-b border-gray-100 bg-gray-100 opacity-50 transition-colors";
+  if (plannerSwitchMatchId.value && plannerHighlightedMatchIds.value.has(matchId))
+    return "cursor-pointer border-b border-gray-100 bg-orange-50 outline outline-2 outline-orange-400 transition-colors";
+  return "cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition-colors";
+}
+
+function clickMatchPlanner(match: KoMatch) {
+  if (match.status === 'PLAYED') return;
+
+  // Deselect: never needs a warning
+  if (plannerSwitchMatchId.value === match.id) {
+    plannerSwitchMatchId.value = null;
+    return;
+  }
+
+  // Conflict-disabled target: silently block
+  if (plannerSwitchMatchId.value && plannerDisabledSwapMatchIds.value.has(match.id)) return;
+
+  const isLive = match.status === 'LIVE' || match.status === 'AWAITING_RESULT';
+  if (isLive) {
+    if (plannerSwitchMatchId.value === null) {
+      plannerPendingAction.value = () => {
+        plannerSwitchMatchId.value = match.id;
+        plannerSwapError.value = "";
+        plannerSwapSuccess.value = "";
+      };
+    } else {
+      const aid = plannerSwitchMatchId.value;
+      plannerPendingAction.value = () => swapKoMatches(aid, match.id);
+    }
+    plannerLiveWarning.value = true;
+    return;
+  }
+
+  if (plannerSwitchMatchId.value === null) {
+    plannerSwitchMatchId.value = match.id;
+    plannerSwapError.value = "";
+    plannerSwapSuccess.value = "";
+    return;
+  }
+  swapKoMatches(plannerSwitchMatchId.value, match.id);
+}
+
+function confirmPlannerLiveSwap() {
+  plannerLiveWarning.value = false;
+  plannerPendingAction.value?.();
+  plannerPendingAction.value = null;
+}
+
+function cancelPlannerLiveSwap() {
+  plannerLiveWarning.value = false;
+  plannerPendingAction.value = null;
+}
+
+async function swapKoMatches(matchAId: string, matchBId: string) {
+  plannerSwapLoading.value = true;
+  plannerSwapError.value = "";
+  plannerSwapSuccess.value = "";
+  try {
+    await $fetch("/api/admin/schedule/matches/swap", {
+      method: "POST",
+      body: { matchAId, matchBId },
+    });
+    plannerSwapSuccess.value = nl.admin.schedule.swapSuccess;
+    plannerSwitchMatchId.value = null;
+    await fetchMatches();
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } };
+    plannerSwapError.value = fetchErr?.data?.data?.error || nl.common.error;
+    plannerSwitchMatchId.value = null;
+  } finally {
+    plannerSwapLoading.value = false;
+  }
+}
+
 // Reset bracket-specific state when switching brackets
 watch(activeBracket, async () => {
   generateError.value = "";
@@ -367,6 +580,9 @@ watch(activeBracket, async () => {
   phaseToggleError.value = "";
   showOverwrite.value = false;
   showFillTeamsConfirm.value = false;
+  plannerSwitchMatchId.value = null;
+  plannerSwapError.value = "";
+  plannerSwapSuccess.value = "";
   await fetchMatches();
 });
 
@@ -470,6 +686,52 @@ onMounted(async () => {
           <button
             class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
             @click="cancelDraftToggle"
+          >
+            {{ nl.common.cancel }}
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Live match warning modal (planner swap) -->
+    <div
+      v-if="plannerLiveWarning"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    >
+      <div class="mx-4 max-w-md rounded-lg bg-surface p-6 shadow-xl">
+        <p class="mb-4 text-text">{{ nl.common.liveMatchWarning }}</p>
+        <div class="flex gap-3">
+          <button
+            class="rounded bg-warning px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="confirmPlannerLiveSwap"
+          >
+            {{ nl.common.confirm }}
+          </button>
+          <button
+            class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="cancelPlannerLiveSwap"
+          >
+            {{ nl.common.cancel }}
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Live match warning modal (bracket edit) -->
+    <div
+      v-if="editLiveWarning"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    >
+      <div class="mx-4 max-w-md rounded-lg bg-surface p-6 shadow-xl">
+        <p class="mb-4 text-text">{{ nl.common.liveMatchWarning }}</p>
+        <div class="flex gap-3">
+          <button
+            class="rounded bg-warning px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="confirmEditLive"
+          >
+            {{ nl.common.confirm }}
+          </button>
+          <button
+            class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="cancelEditLive"
           >
             {{ nl.common.cancel }}
           </button>
@@ -770,21 +1032,41 @@ onMounted(async () => {
       </p>
     </div>
 
-    <div v-if="round1Count === 0" class="text-center text-text-light">
+    <div v-if="!hasStructure" class="text-center text-text-light">
       {{ nl.common.noResults }}
     </div>
 
-    <div
-      v-else
-      class="overflow-x-auto rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
-    >
+    <template v-else>
+      <!-- Tab bar -->
+      <div class="mb-4 flex gap-1 border-b border-gray-200">
+        <button
+          :class="activeTab === 'bracket' ? 'border-b-2 border-primary font-semibold text-primary' : 'text-text-light hover:text-text'"
+          class="-mb-px px-4 py-2 text-sm"
+          @click="activeTab = 'bracket'; plannerSwitchMatchId = null"
+        >
+          {{ nl.admin.koBracket.tabBracket }}
+        </button>
+        <button
+          :class="activeTab === 'planner' ? 'border-b-2 border-primary font-semibold text-primary' : 'text-text-light hover:text-text'"
+          class="-mb-px px-4 py-2 text-sm"
+          @click="activeTab = 'planner'; plannerSwitchMatchId = null"
+        >
+          {{ nl.admin.koBracket.tabMatchPlanner }}
+        </button>
+      </div>
+
+      <!-- Bracket tab -->
       <div
-        :style="{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${round1Count}, minmax(140px, 1fr))`,
-          gap: '8px',
-        }"
+        v-if="activeTab === 'bracket'"
+        class="overflow-x-auto rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
       >
+        <div
+          :style="{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${round1Count}, minmax(140px, 1fr))`,
+            gap: '8px',
+          }"
+        >
         <template v-for="r in totalRounds" :key="`row-${r}`">
           <template v-for="idx in matchCount(r)" :key="`r${r}-m${idx}`">
             <div
@@ -829,10 +1111,10 @@ onMounted(async () => {
                 </div>
                 <div class="mt-1 text-right">
                   <button
-                    v-if="getMatch(r, idx)!.scoreA === null && getMatch(r, idx)!.scoreB === null"
+                    v-if="getMatch(r, idx)!.status !== 'PLAYED' && getMatch(r, idx)!.scoreA === null && getMatch(r, idx)!.scoreB === null"
                     :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white/80 hover:text-white' : 'text-primary hover:underline'"
                     class="text-xs"
-                    @click="startEdit(getMatch(r, idx)!)"
+                    @click="requestEdit(getMatch(r, idx)!)"
                   >
                     {{ nl.admin.koBracket.editMatch }}
                   </button>
@@ -849,6 +1131,62 @@ onMounted(async () => {
           </template>
         </template>
       </div>
-    </div>
+      </div>
+
+      <!-- Match Planner tab -->
+      <section v-else-if="activeTab === 'planner'" class="rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
+        <!-- Swap status banner -->
+        <div
+          v-if="plannerSwitchMatchId"
+          class="mb-3 space-y-1 rounded-lg border border-primary bg-primary/5 px-4 py-2 text-sm text-primary"
+        >
+          <div>{{ nl.admin.schedule.switchModeHint }}</div>
+          <div v-if="!activeBracketIsLive" class="text-orange-500">
+            {{ nl.admin.schedule.switchHighlightHint }}
+          </div>
+        </div>
+        <p v-if="plannerSwapError" class="mb-2 text-sm text-error">{{ plannerSwapError }}</p>
+        <p v-if="plannerSwapSuccess" class="mb-2 text-sm text-success">{{ plannerSwapSuccess }}</p>
+
+        <div v-for="group in plannerGroupedByRound" :key="group.round" class="mb-6 last:mb-0">
+          <h3 class="mb-2 font-semibold text-text">{{ group.label }}</h3>
+          <table class="w-full table-fixed text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 text-left text-text-light">
+                <th class="w-36 pb-1 pr-4">{{ nl.admin.koBracket.timeLabel }}</th>
+                <th class="w-28 pb-1 pr-4">{{ nl.admin.koBracket.fieldLabel }}</th>
+                <th class="w-2/5 pb-1 pr-4">{{ nl.admin.schedule.teamAHeader }}</th>
+                <th class="pb-1">{{ nl.admin.schedule.teamBHeader }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="m in group.matches"
+                :key="m.id"
+                :class="plannerRowClass(m.id)"
+                class="group"
+                :title="plannerDisabledSwapMatchIds.has(m.id) ? `${nl.admin.schedule.swapDisabledHint} ${plannerDisabledSwapReasons.get(m.id)}` : undefined"
+                @click="clickMatchPlanner(m)"
+              >
+                <td class="py-2 pr-4 text-text-light">{{ formatDateTime(m.startTime) }}</td>
+                <td class="py-2 pr-4 text-text">{{ m.field.name }}</td>
+                <td class="py-2 pr-4 font-medium text-text">
+                  {{ m.isByeA ? nl.admin.koBracket.bye : (m.teamA?.name ?? nl.admin.koBracket.tbd) }}
+                </td>
+                <td class="relative py-2 font-medium text-text">
+                  {{ m.isByeB ? nl.admin.koBracket.bye : (m.teamB?.name ?? nl.admin.koBracket.tbd) }}
+                  <div
+                    v-if="m.status === 'PLAYED'"
+                    class="pointer-events-none absolute bottom-full right-0 z-10 mb-1 hidden w-max rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:block"
+                  >
+                    {{ nl.common.playedMatchBlocked }}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </template>
   </main>
 </template>

@@ -205,14 +205,14 @@ const showKoTab = computed(
       tournamentType.value === "COMBINATION"),
 );
 const showBFinaleTab = computed(
-  () =>
-    tournamentLive.value &&
-    hasBKnockout.value &&
-    bKoScheduleLive.value,
+  () => tournamentLive.value && hasBKnockout.value && bKoScheduleLive.value,
 );
 
 const mainTabs = computed(() => {
-  const tabs: { key: "pool" | "ko" | "bfinale" | "eindstand"; label: string }[] = [];
+  const tabs: {
+    key: "pool" | "ko" | "bfinale" | "eindstand";
+    label: string;
+  }[] = [];
   if (showEindstand.value)
     tabs.push({ key: "eindstand", label: s.tabEindstand });
   if (showPoolTab.value) tabs.push({ key: "pool", label: s.tabPool });
@@ -326,7 +326,9 @@ function buildRounds(matchList: Match[], maxRound: number | null) {
 
 // Group KO matches by round and generate round labels (e.g., "1/8 finale")
 const koRounds = computed(() => buildRounds(koMatches.value, maxKoRound.value));
-const bKoRounds = computed(() => buildRounds(bKoMatches.value, maxBKoRound.value));
+const bKoRounds = computed(() =>
+  buildRounds(bKoMatches.value, maxBKoRound.value),
+);
 
 function getRoundLabel(diff: number): string {
   const lb = nl.admin.koBracket.roundLabels;
@@ -335,10 +337,15 @@ function getRoundLabel(diff: number): string {
   if (diff === 2) return lb.quarterfinal;
   if (diff === 3) return lb.r8;
   if (diff === 4) return lb.r16;
-  return nl.public.schedule.finaleFormat.replace('{count}', String(Math.pow(2, diff)));
+  return nl.public.schedule.finaleFormat.replace(
+    "{count}",
+    String(Math.pow(2, diff)),
+  );
 }
 
-function isTabDisabled(tab: { key: "pool" | "ko" | "bfinale" | "eindstand" }): boolean {
+function isTabDisabled(tab: {
+  key: "pool" | "ko" | "bfinale" | "eindstand";
+}): boolean {
   if (!tournamentLive.value) return true;
   if (tab.key === "bfinale") return !bKoScheduleLive.value;
   if (tournamentType.value !== "COMBINATION") return false;
@@ -347,7 +354,9 @@ function isTabDisabled(tab: { key: "pool" | "ko" | "bfinale" | "eindstand" }): b
   return false;
 }
 
-function tabDisabledTooltip(tab: { key: "pool" | "ko" | "bfinale" | "eindstand" }): string {
+function tabDisabledTooltip(tab: {
+  key: "pool" | "ko" | "bfinale" | "eindstand";
+}): string {
   if (!tournamentLive.value) return nl.public.schedule.tabDisabledTournament;
   if (tab.key === "pool") return nl.public.schedule.tabDisabledPool;
   if (tab.key === "ko") return nl.public.schedule.tabDisabledKo;
@@ -367,7 +376,7 @@ const currentTabScheduleIsLive = computed(() => {
 });
 
 function poolMatchTitle(match: Match): string {
-  return `${nl.public.schedule.roundOrdinal.replace('{round}', String(match.round))} ${s.poolMatchLabel} ${match.pool?.name ?? ""}`;
+  return `${nl.public.schedule.roundOrdinal.replace("{round}", String(match.round))} ${s.poolMatchLabel} ${match.pool?.name ?? ""}`;
 }
 
 // Sort tied standings by head-to-head record against other teams in the group
@@ -447,689 +456,388 @@ const bKoFinalMatch = computed(() => {
     </h2>
 
     <div class="pl-4">
-    <p v-if="isLoading" class="text-text-light">{{ nl.common.loading }}</p>
-
-    <template v-else>
-      <!-- No active tournament -->
-      <p v-if="!tournamentLive" class="text-text-light">{{ s.noTournament }}</p>
+      <p v-if="isLoading" class="text-text-light">{{ nl.common.loading }}</p>
 
       <template v-else>
-        <!-- Row 1: Tab label (single-type) or button group (multiple tabs) -->
-        <div v-if="mainTabs.length === 1" class="mb-3">
-          <span
-            class="inline-block rounded border border-gray-300 bg-primary px-4 py-2 text-sm font-medium text-white"
-          >
-            {{ mainTabs[0].label }}
-          </span>
-        </div>
-        <div
-          v-else-if="mainTabs.length > 1"
-          class="mb-3 inline-flex overflow-hidden rounded border border-gray-300 mr-2"
-        >
-          <div
-            v-for="(tab, idx) in mainTabs"
-            :key="tab.key"
-            class="group relative"
-          >
-            <button
-              :disabled="isTabDisabled(tab)"
-              :class="[
-                activeMainTab === tab.key
-                  ? 'bg-primary text-white'
-                  : isTabDisabled(tab)
-                    ? 'cursor-not-allowed bg-white text-gray-400'
-                    : 'bg-white text-text hover:bg-gray-50',
-                idx < mainTabs.length - 1 ? 'border-r border-gray-300' : '',
-              ]"
-              class="px-4 py-2 text-sm font-medium"
-              @click="!isTabDisabled(tab) && (activeMainTab = tab.key)"
-            >
-              {{ tab.label }}
-            </button>
-            <div v-if="isTabDisabled(tab)" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
-              {{ tabDisabledTooltip(tab) }}
-            </div>
-          </div>
-        </div>
-
-        <!-- No schedule live for current tab -->
-        <p v-if="!currentTabScheduleIsLive" class="text-text-light">
-          {{ s.noScheduleLive }}
+        <!-- No active tournament -->
+        <p v-if="!tournamentLive" class="text-text-light">
+          {{ s.noTournament }}
         </p>
 
         <template v-else>
-          <!-- Filters area: all filters stacked vertically on mobile -->
-          <div class="mb-3 flex flex-col gap-2">
-            <!-- Row 1: Sub-tab row (Wedstrijden / Standen) -->
+          <!-- Row 1: Tab label (single-type) or button group (multiple tabs) -->
+          <div v-if="mainTabs.length === 1" class="mb-3">
+            <span
+              class="inline-block rounded border border-gray-300 bg-primary px-4 py-2 text-sm font-medium text-white"
+            >
+              {{ mainTabs[0].label }}
+            </span>
+          </div>
+          <div
+            v-else-if="mainTabs.length > 1"
+            class="mb-3 inline-flex overflow-hidden rounded border border-gray-300 mr-2"
+          >
             <div
-              v-if="activeMainTab !== 'eindstand'"
-              class="flex w-fit overflow-hidden rounded border border-gray-300"
+              v-for="(tab, idx) in mainTabs"
+              :key="tab.key"
+              class="group relative"
             >
               <button
-                :class="
-                  activeSubTab === 'matches'
-                    ? 'bg-primary text-white'
-                    : 'bg-white text-text hover:bg-gray-50'
-                "
-                class="border-r border-gray-300 px-3 py-1.5 text-sm"
-                @click="activeSubTab = 'matches'"
-              >
-                {{ s.tabMatches }}
-              </button>
-              <button
-                :class="
-                  activeSubTab === 'standings'
-                    ? 'bg-primary text-white'
-                    : 'bg-white text-text hover:bg-gray-50'
-                "
-                class="px-3 py-1.5 text-sm"
-                @click="activeSubTab = 'standings'"
-              >
-                {{ s.tabStandings }}
-              </button>
-            </div>
-
-            <!-- Row 2: Status filter (only when Matches sub-tab is active) -->
-            <div
-              v-if="activeMainTab !== 'eindstand' && activeSubTab === 'matches'"
-              class="flex w-fit overflow-hidden rounded border border-gray-300"
-            >
-              <button
-                v-for="(opt, idx) in statusOpts"
-                :key="opt.key"
+                :disabled="isTabDisabled(tab)"
                 :class="[
-                  statusFilter === opt.key
+                  activeMainTab === tab.key
                     ? 'bg-primary text-white'
-                    : 'bg-white text-text hover:bg-gray-50',
-                  idx < statusOpts.length - 1 ? 'border-r border-gray-300' : '',
+                    : isTabDisabled(tab)
+                      ? 'cursor-not-allowed bg-white text-gray-400'
+                      : 'bg-white text-text hover:bg-gray-50',
+                  idx < mainTabs.length - 1 ? 'border-r border-gray-300' : '',
                 ]"
-                class="px-3 py-1.5 text-sm"
-                @click="statusFilter = opt.key"
+                class="px-4 py-2 text-sm font-medium"
+                @click="!isTabDisabled(tab) && (activeMainTab = tab.key)"
               >
-                {{ opt.label }}
+                {{ tab.label }}
               </button>
-            </div>
-
-            <!-- Row 3: Favourite team filter -->
-            <div class="flex items-center gap-2">
-              <template v-if="favTeamName">
-                <span
-                  v-if="activeMainTab === 'eindstand' || (activeMainTab === 'ko' && activeSubTab === 'standings')"
-                  class="rounded bg-fav px-3 py-1.5 text-sm text-white"
-                >
-                  Favoriete team: {{ favTeamName }}
-                </span>
-                <button
-                  v-else
-                  :class="
-                    myTeamOnly
-                      ? 'bg-fav text-white'
-                      : 'border border-fav-border text-fav-text hover:bg-fav-light'
-                  "
-                  class="rounded px-3 py-1.5 text-sm"
-                  @click="myTeamOnly = !myTeamOnly"
-                >
-                  {{ s.myTeam }}: {{ favTeamName }}
-                </button>
-                <button
-                  class="text-sm text-text-light underline"
-                  @click="clearFavTeam"
-                >
-                  {{ s.clearTeam }}
-                </button>
-              </template>
-              <button
-                v-else
-                class="rounded border border-gray-300 px-3 py-1.5 text-sm text-text-light hover:bg-background"
-                @click="showTeamPicker = true"
+              <div
+                v-if="isTabDisabled(tab)"
+                class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible"
               >
-                {{ s.chooseTeam }}
-              </button>
+                {{ tabDisabledTooltip(tab) }}
+              </div>
             </div>
           </div>
 
-          <!-- POOL tab -->
-          <template v-if="activeMainTab === 'pool' && showPoolTab">
-            <template v-if="activeSubTab === 'matches'">
-              <p v-if="displayPoolMatches.length === 0" class="text-text-light">
-                {{ s.noMatches }}
-              </p>
-              <ul class="space-y-3">
-                <li
-                  v-for="match in displayPoolMatches"
-                  :key="match.id"
-                  :class="
-                    isFavTeamMatch(match)
-                      ? 'border-fav-match-border bg-fav-match-bg/80'
-                      : 'border-gray-200 bg-surface/80'
-                  "
-                  class="rounded-lg border p-3 shadow-sm"
-                >
-                  <div class="mb-1 text-xs font-semibold text-primary">
-                    {{ poolMatchTitle(match) }}
-                  </div>
-                  <div
-                    class="mb-1 flex items-center justify-between text-sm text-text-light"
-                  >
-                    <span>{{ match.field.name }}</span>
-                    <span>{{ formatDateTime(match.startTime) }}</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="font-semibold">
-                      <span
-                        :class="
-                          isFavTeam(match.teamA.id)
-                            ? 'text-fav-text'
-                            : 'text-text'
-                        "
-                        >{{ match.teamA.name }}</span
-                      >
-                      <span class="text-text"> vs </span>
-                      <span
-                        :class="
-                          isFavTeam(match.teamB.id)
-                            ? 'text-fav-text'
-                            : 'text-text'
-                        "
-                        >{{ match.teamB.name }}</span
-                      >
-                    </span>
-                    <span
-                      :class="statusClasses(match)"
-                      class="rounded px-2 py-0.5 text-xs font-medium"
-                    >
-                      <template v-if="match.status === 'PLAYED'"
-                        >{{ match.scoreA }} - {{ match.scoreB }} ({{
-                          statusLabel(match)
-                        }})</template
-                      >
-                      <template v-else>{{ statusLabel(match) }}</template>
-                    </span>
-                  </div>
-                </li>
-              </ul>
-            </template>
+          <!-- No schedule live for current tab -->
+          <p v-if="!currentTabScheduleIsLive" class="text-text-light">
+            {{ s.noScheduleLive }}
+          </p>
 
-            <template v-else>
-              <p v-if="displayStandings.length === 0" class="text-text-light">
-                {{ nl.common.noResults }}
-              </p>
-              <div v-for="pool in displayStandings" :key="pool.id" class="mb-6">
-                <h3 class="mb-2 font-semibold text-text">
-                  {{ nl.public.standings.pool }}: {{ pool.name }}
-                </h3>
-                <div
-                  class="overflow-x-auto rounded-lg border border-gray-200 bg-surface/80 shadow-sm"
-                >
-                  <table class="w-full table-fixed text-sm">
-                    <colgroup>
-                      <col class="w-[40%]" />
-                      <col class="w-[10%]" />
-                      <col class="w-[10%]" />
-                      <col class="w-[10%]" />
-                      <col class="w-[10%]" />
-                      <col class="w-[10%]" />
-                      <col class="w-[10%]" />
-                    </colgroup>
-                    <thead class="border-b border-gray-200 bg-gray-50/80">
-                      <tr>
-                        <th class="px-3 py-2 text-left font-medium text-text">
-                          {{ nl.public.standings.team }}
-                        </th>
-                        <th class="px-2 py-2 text-center font-medium text-text">
-                          {{ nl.public.standings.played }}
-                        </th>
-                        <th class="px-2 py-2 text-center font-medium text-text">
-                          {{ nl.public.standings.won }}
-                        </th>
-                        <th class="px-2 py-2 text-center font-medium text-text">
-                          {{ nl.public.standings.drawn }}
-                        </th>
-                        <th class="px-2 py-2 text-center font-medium text-text">
-                          {{ nl.public.standings.lost }}
-                        </th>
-                        <th class="px-2 py-2 text-center font-medium text-text">
-                          {{ nl.public.standings.goalDifference }}
-                        </th>
-                        <th class="px-2 py-2 text-center font-medium text-text">
-                          {{ nl.public.standings.points }}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                      <tr
-                        v-for="(st, idx) in pool.standings"
-                        :key="st.teamId"
-                        :class="
-                          isFavTeam(st.teamId)
-                            ? 'bg-fav-light/80'
-                            : idx % 2 === 0
-                              ? ''
-                              : 'bg-gray-50/80'
-                        "
-                      >
-                        <td
-                          :class="
-                            isFavTeam(st.teamId)
-                              ? 'px-3 py-2 font-bold text-fav-text'
-                              : 'px-3 py-2 font-medium text-text'
-                          "
-                        >
-                          {{ st.team.name }}
-                        </td>
-                        <td class="px-2 py-2 text-center text-text">
-                          {{ st.played }}
-                        </td>
-                        <td class="px-2 py-2 text-center text-text">
-                          {{ st.won }}
-                        </td>
-                        <td class="px-2 py-2 text-center text-text">
-                          {{ st.drawn }}
-                        </td>
-                        <td class="px-2 py-2 text-center text-text">
-                          {{ st.lost }}
-                        </td>
-                        <td class="px-2 py-2 text-center text-text">
-                          {{ st.goalDifference }}
-                        </td>
-                        <td
-                          class="px-2 py-2 text-center font-semibold text-text"
-                        >
-                          {{ st.points }}
-                        </td>
-                      </tr>
-                      <tr v-if="pool.standings.length === 0">
-                        <td
-                          colspan="7"
-                          class="px-3 py-2 text-center text-text-light"
-                        >
-                          {{ nl.common.noResults }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </template>
-          </template>
-
-          <!-- KO tab -->
-          <template v-if="activeMainTab === 'ko' && showKoTab">
-            <template v-if="activeSubTab === 'matches'">
-              <p v-if="displayKoMatches.length === 0" class="text-text-light">
-                {{ s.noMatches }}
-              </p>
-              <div v-for="group in koRounds" :key="group.round" class="mb-5">
-                <h3 class="mb-2 font-semibold text-text">{{ group.label }}</h3>
-                <ul class="space-y-3">
-                  <li
-                    v-for="match in applyFilters(group.matches)"
-                    :key="match.id"
-                    :class="
-                      isFavTeamMatch(match)
-                        ? 'border-fav-match-border bg-fav-match-bg/80'
-                        : 'border-gray-200 bg-surface/80'
-                    "
-                    class="rounded-lg border p-3 shadow-sm"
-                  >
-                    <div
-                      class="mb-1 flex items-center justify-between text-sm text-text-light"
-                    >
-                      <span>{{ match.field.name }}</span>
-                      <span>{{ formatDateTime(match.startTime) }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                      <span class="font-semibold">
-                        <span
-                          :class="
-                            isFavTeam(match.teamA.id)
-                              ? 'text-fav-text'
-                              : 'text-text'
-                          "
-                          >{{ match.teamA.name }}</span
-                        >
-                        <span class="text-text"> vs </span>
-                        <span
-                          :class="
-                            match.teamB && isFavTeam(match.teamB.id)
-                              ? 'text-fav-text'
-                              : match.teamB
-                                ? 'text-text'
-                                : 'text-text-light italic'
-                          "
-                          >{{ match.teamB ? match.teamB.name : (match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd) }}</span
-                        >
-                      </span>
-                      <span
-                        :class="match.teamB ? statusClasses(match) : 'bg-gray-200 text-text'"
-                        class="rounded px-2 py-0.5 text-xs font-medium"
-                      >
-                        <template v-if="!match.teamB">{{ match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd }}</template>
-                        <template v-else-if="match.status === 'PLAYED'"
-                          >{{ match.scoreA }} - {{ match.scoreB }} ({{
-                            statusLabel(match)
-                          }})</template
-                        >
-                        <template v-else>{{ statusLabel(match) }}</template>
-                      </span>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </template>
-
-            <template v-else>
-              <p v-if="koRounds.length === 0" class="text-text-light">
-                {{ nl.common.noResults }}
-              </p>
-              <div v-else class="overflow-x-auto">
-                <div class="flex flex-row" style="min-width: max-content">
-                  <div
-                    v-for="(group, colIdx) in koRounds"
-                    :key="group.round"
-                    class="flex w-52 flex-col gap-2 px-4"
-                    :class="colIdx < koRounds.length - 1 ? 'border-r border-dashed border-gray-300' : ''"
-                  >
-                    <h3
-                      class="mb-2 text-center text-sm font-semibold text-text"
-                    >
-                      {{ group.label }}
-                    </h3>
-                    <div
-                      v-for="match in group.matches"
-                      :key="match.id"
-                      class="flex items-center"
-                      :style="{ minHeight: 80 * Math.pow(2, colIdx) + 'px' }"
-                    >
-                      <div
-                        class="flex w-full flex-col gap-2 rounded-lg border p-3 shadow-sm"
-                        :class="
-                          isFavTeamMatch(match)
-                            ? 'border-fav-match-border bg-fav-match-bg/80'
-                            : 'border-gray-200 bg-surface/80'
-                        "
-                      >
-                        <div
-                          class="flex items-center justify-between text-sm text-text-light"
-                        >
-                          <span>{{ match.field.name }}</span>
-                          <span>{{ formatDateTime(match.startTime) }}</span>
-                        </div>
-                        <span class="min-w-0 font-semibold">
-                          <span
-                            :class="
-                              isFavTeam(match.teamA.id)
-                                ? 'text-fav-text'
-                                : 'text-text'
-                            "
-                            >{{ match.teamA.name }}</span
-                          >
-                          <span class="text-text"> vs </span>
-                          <span
-                            :class="
-                              match.teamB && isFavTeam(match.teamB.id)
-                                ? 'text-fav-text'
-                                : match.teamB
-                                  ? 'text-text'
-                                  : 'text-text-light italic'
-                            "
-                            >{{ match.teamB ? match.teamB.name : (match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd) }}</span
-                          >
-                        </span>
-                        <div class="flex justify-end">
-                          <span
-                            :class="match.teamB ? statusClasses(match) : 'bg-gray-200 text-text'"
-                            class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
-                          >
-                            <template v-if="!match.teamB">{{ match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd }}</template>
-                            <template v-else-if="match.status === 'PLAYED'"
-                              >{{ match.scoreA }} - {{ match.scoreB }} ({{
-                                statusLabel(match)
-                              }})</template
-                            >
-                            <template v-else>{{ statusLabel(match) }}</template>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </template>
-
-          <!-- B-finale tab -->
-          <template v-if="activeMainTab === 'bfinale' && showBFinaleTab">
-            <template v-if="activeSubTab === 'matches'">
-              <p v-if="displayBKoMatches.length === 0" class="text-text-light">
-                {{ s.noMatches }}
-              </p>
-              <div v-for="group in bKoRounds" :key="group.round" class="mb-5">
-                <h3 class="mb-2 font-semibold text-text">{{ group.label }}</h3>
-                <ul class="space-y-3">
-                  <li
-                    v-for="match in applyFilters(group.matches)"
-                    :key="match.id"
-                    :class="
-                      isFavTeamMatch(match)
-                        ? 'border-fav-match-border bg-fav-match-bg/80'
-                        : 'border-gray-200 bg-surface/80'
-                    "
-                    class="rounded-lg border p-3 shadow-sm"
-                  >
-                    <div
-                      class="mb-1 flex items-center justify-between text-sm text-text-light"
-                    >
-                      <span>{{ match.field.name }}</span>
-                      <span>{{ formatDateTime(match.startTime) }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                      <span class="font-semibold">
-                        <span
-                          :class="
-                            isFavTeam(match.teamA.id)
-                              ? 'text-fav-text'
-                              : 'text-text'
-                          "
-                          >{{ match.teamA.name }}</span
-                        >
-                        <span class="text-text"> vs </span>
-                        <span
-                          :class="
-                            match.teamB && isFavTeam(match.teamB.id)
-                              ? 'text-fav-text'
-                              : match.teamB
-                                ? 'text-text'
-                                : 'text-text-light italic'
-                          "
-                          >{{ match.teamB ? match.teamB.name : (match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd) }}</span
-                        >
-                      </span>
-                      <span
-                        :class="match.teamB ? statusClasses(match) : 'bg-gray-200 text-text'"
-                        class="rounded px-2 py-0.5 text-xs font-medium"
-                      >
-                        <template v-if="!match.teamB">{{ match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd }}</template>
-                        <template v-else-if="match.status === 'PLAYED'"
-                          >{{ match.scoreA }} - {{ match.scoreB }} ({{
-                            statusLabel(match)
-                          }})</template
-                        >
-                        <template v-else>{{ statusLabel(match) }}</template>
-                      </span>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </template>
-
-            <template v-else>
-              <p v-if="bKoRounds.length === 0" class="text-text-light">
-                {{ nl.common.noResults }}
-              </p>
-              <div v-else class="overflow-x-auto">
-                <div class="flex flex-row" style="min-width: max-content">
-                  <div
-                    v-for="(group, colIdx) in bKoRounds"
-                    :key="group.round"
-                    class="flex w-52 flex-col gap-2 px-4"
-                    :class="colIdx < bKoRounds.length - 1 ? 'border-r border-dashed border-gray-300' : ''"
-                  >
-                    <h3
-                      class="mb-2 text-center text-sm font-semibold text-text"
-                    >
-                      {{ group.label }}
-                    </h3>
-                    <div
-                      v-for="match in group.matches"
-                      :key="match.id"
-                      class="flex items-center"
-                      :style="{ minHeight: 80 * Math.pow(2, colIdx) + 'px' }"
-                    >
-                      <div
-                        class="flex w-full flex-col gap-2 rounded-lg border p-3 shadow-sm"
-                        :class="
-                          isFavTeamMatch(match)
-                            ? 'border-fav-match-border bg-fav-match-bg/80'
-                            : 'border-gray-200 bg-surface/80'
-                        "
-                      >
-                        <div
-                          class="flex items-center justify-between text-sm text-text-light"
-                        >
-                          <span>{{ match.field.name }}</span>
-                          <span>{{ formatDateTime(match.startTime) }}</span>
-                        </div>
-                        <span class="min-w-0 font-semibold">
-                          <span
-                            :class="
-                              isFavTeam(match.teamA.id)
-                                ? 'text-fav-text'
-                                : 'text-text'
-                            "
-                            >{{ match.teamA.name }}</span
-                          >
-                          <span class="text-text"> vs </span>
-                          <span
-                            :class="
-                              match.teamB && isFavTeam(match.teamB.id)
-                                ? 'text-fav-text'
-                                : match.teamB
-                                  ? 'text-text'
-                                  : 'text-text-light italic'
-                            "
-                            >{{ match.teamB ? match.teamB.name : (match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd) }}</span
-                          >
-                        </span>
-                        <div class="flex justify-end">
-                          <span
-                            :class="match.teamB ? statusClasses(match) : 'bg-gray-200 text-text'"
-                            class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
-                          >
-                            <template v-if="!match.teamB">{{ match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd }}</template>
-                            <template v-else-if="match.status === 'PLAYED'"
-                              >{{ match.scoreA }} - {{ match.scoreB }} ({{
-                                statusLabel(match)
-                              }})</template
-                            >
-                            <template v-else>{{ statusLabel(match) }}</template>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </template>
-
-          <!-- Eindstand tab -->
-          <template v-if="activeMainTab === 'eindstand' && showEindstand">
-            <!-- COMBINATION: sub-tabs -->
-            <div
-              v-if="tournamentType === 'COMBINATION'"
-              class="mb-3 inline-flex overflow-hidden rounded border border-gray-300"
-            >
-              <button
-                v-for="(sub, idx) in [
-                  { key: 'ko' as const, label: s.tabKo },
-                  { key: 'pool' as const, label: s.tabPool },
-                ]"
-                :key="sub.key"
-                :class="[
-                  activeEindstandSub === sub.key
-                    ? 'bg-primary text-white'
-                    : 'bg-white text-text hover:bg-gray-50',
-                  idx === 0 ? 'border-r border-gray-300' : '',
-                ]"
-                class="px-3 py-1.5 text-sm"
-                @click="activeEindstandSub = sub.key"
+          <template v-else>
+            <!-- Filters area: all filters stacked vertically on mobile -->
+            <div class="mb-3 flex flex-col gap-2">
+              <!-- Row 1: Sub-tab row (Wedstrijden / Standen) -->
+              <div
+                v-if="activeMainTab !== 'eindstand'"
+                class="flex w-fit overflow-hidden rounded border border-gray-300"
               >
-                {{ sub.label }}
-              </button>
+                <button
+                  :class="
+                    activeSubTab === 'matches'
+                      ? 'bg-primary text-white'
+                      : 'bg-white text-text hover:bg-gray-50'
+                  "
+                  class="border-r border-gray-300 px-3 py-1.5 text-sm"
+                  @click="activeSubTab = 'matches'"
+                >
+                  {{ s.tabMatches }}
+                </button>
+                <button
+                  :class="
+                    activeSubTab === 'standings'
+                      ? 'bg-primary text-white'
+                      : 'bg-white text-text hover:bg-gray-50'
+                  "
+                  class="px-3 py-1.5 text-sm"
+                  @click="activeSubTab = 'standings'"
+                >
+                  {{ s.tabStandings }}
+                </button>
+              </div>
+
+              <!-- Row 2: Status filter (only when Matches sub-tab is active) -->
+              <div
+                v-if="
+                  activeMainTab !== 'eindstand' && activeSubTab === 'matches'
+                "
+                class="flex w-fit overflow-hidden rounded border border-gray-300"
+              >
+                <button
+                  v-for="(opt, idx) in statusOpts"
+                  :key="opt.key"
+                  :class="[
+                    statusFilter === opt.key
+                      ? 'bg-primary text-white'
+                      : 'bg-white text-text hover:bg-gray-50',
+                    idx < statusOpts.length - 1
+                      ? 'border-r border-gray-300'
+                      : '',
+                  ]"
+                  class="px-3 py-1.5 text-sm"
+                  @click="statusFilter = opt.key"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+
+              <!-- Row 3: Favourite team filter -->
+              <div class="flex items-center gap-2">
+                <template v-if="favTeamName">
+                  <span
+                    v-if="
+                      activeMainTab === 'eindstand' ||
+                      (activeMainTab === 'ko' && activeSubTab === 'standings')
+                    "
+                    class="rounded bg-fav px-3 py-1.5 text-sm text-white"
+                  >
+                    Favoriete team: {{ favTeamName }}
+                  </span>
+                  <button
+                    v-else
+                    :class="
+                      myTeamOnly
+                        ? 'bg-fav text-white'
+                        : 'border border-fav-border text-fav-text hover:bg-fav-light'
+                    "
+                    class="rounded px-3 py-1.5 text-sm"
+                    @click="myTeamOnly = !myTeamOnly"
+                  >
+                    {{ s.myTeam }}: {{ favTeamName }}
+                  </button>
+                  <button
+                    class="text-sm text-text-light underline"
+                    @click="clearFavTeam"
+                  >
+                    {{ s.clearTeam }}
+                  </button>
+                </template>
+                <button
+                  v-else
+                  class="rounded border border-gray-300 px-3 py-1.5 text-sm text-text-light hover:bg-background"
+                  @click="showTeamPicker = true"
+                >
+                  {{ s.chooseTeam }}
+                </button>
+              </div>
             </div>
 
-            <!-- KO bracket (for KNOCKOUT or COMBINATION+ko sub-tab) -->
-            <template
-              v-if="
-                tournamentType === 'KNOCKOUT' ||
-                (tournamentType === 'COMBINATION' &&
-                  activeEindstandSub === 'ko')
-              "
-            >
-              <!-- Winner card -->
-              <div
-                v-if="koFinalMatch"
-                class="mb-4 rounded-lg border border-gray-200 bg-surface/80 p-4 shadow-sm"
-              >
-                <p class="mb-1 text-sm font-medium text-text-light">
-                  {{ s.winner }}
+            <!-- POOL tab -->
+            <template v-if="activeMainTab === 'pool' && showPoolTab">
+              <template v-if="activeSubTab === 'matches'">
+                <p
+                  v-if="displayPoolMatches.length === 0"
+                  class="text-text-light"
+                >
+                  {{ s.noMatches }}
                 </p>
-                <p class="mb-1 text-lg font-bold text-text">
-                  🏆
-                  {{
-                    koFinalMatch.koWinnerId === koFinalMatch.teamA?.id
-                      ? koFinalMatch.teamA?.name
-                      : koFinalMatch.teamB?.name
-                  }}
-                </p>
-                <p class="text-sm text-text-light">
-                  {{ koFinalMatch.teamA?.name }} {{ koFinalMatch.scoreA }} —
-                  {{ koFinalMatch.scoreB }} {{ koFinalMatch.teamB?.name }}
-                </p>
-              </div>
-              <!-- Full bracket -->
-              <p v-if="koRounds.length === 0" class="text-text-light">
-                {{ nl.common.noResults }}
-              </p>
-              <div v-else class="overflow-x-auto">
-                <div class="flex flex-row" style="min-width: max-content">
-                  <div
-                    v-for="(group, colIdx) in koRounds"
-                    :key="group.round"
-                    class="flex w-52 flex-col gap-2 px-4"
-                    :class="colIdx < koRounds.length - 1 ? 'border-r border-dashed border-gray-300' : ''"
+                <ul class="space-y-3">
+                  <li
+                    v-for="match in displayPoolMatches"
+                    :key="match.id"
+                    :class="
+                      isFavTeamMatch(match)
+                        ? 'border-fav-match-border bg-fav-match-bg/80'
+                        : 'border-gray-200 bg-surface/80'
+                    "
+                    class="rounded-lg border p-3 shadow-sm"
                   >
-                    <h3
-                      class="mb-2 text-center text-sm font-semibold text-text"
-                    >
-                      {{ group.label }}
-                    </h3>
+                    <div class="mb-1 text-xs font-semibold text-primary">
+                      {{ poolMatchTitle(match) }}
+                    </div>
                     <div
-                      v-for="match in group.matches"
+                      class="mb-1 flex items-center justify-between text-sm text-text-light"
+                    >
+                      <span>{{ match.field.name }}</span>
+                      <span>{{ formatDateTime(match.startTime) }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="font-semibold">
+                        <span
+                          :class="
+                            isFavTeam(match.teamA.id)
+                              ? 'text-fav-text'
+                              : 'text-text'
+                          "
+                          >{{ match.teamA.name }}</span
+                        >
+                        <span class="text-text"> vs </span>
+                        <span
+                          :class="
+                            isFavTeam(match.teamB.id)
+                              ? 'text-fav-text'
+                              : 'text-text'
+                          "
+                          >{{ match.teamB.name }}</span
+                        >
+                      </span>
+                      <span
+                        :class="statusClasses(match)"
+                        class="rounded px-2 py-0.5 text-xs font-medium"
+                      >
+                        <template v-if="match.status === 'PLAYED'"
+                          >{{ match.scoreA }} - {{ match.scoreB }} ({{
+                            statusLabel(match)
+                          }})</template
+                        >
+                        <template v-else>{{ statusLabel(match) }}</template>
+                      </span>
+                    </div>
+                  </li>
+                </ul>
+              </template>
+
+              <template v-else>
+                <p v-if="displayStandings.length === 0" class="text-text-light">
+                  {{ nl.common.noResults }}
+                </p>
+                <div
+                  v-for="pool in displayStandings"
+                  :key="pool.id"
+                  class="mb-6"
+                >
+                  <h3 class="mb-2 font-semibold text-text">
+                    {{ nl.public.standings.pool }}: {{ pool.name }}
+                  </h3>
+                  <div
+                    class="overflow-x-auto rounded-lg border border-gray-200 bg-surface/80 shadow-sm"
+                  >
+                    <table class="w-full table-fixed text-sm">
+                      <colgroup>
+                        <col class="w-[28%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                      </colgroup>
+                      <thead class="border-b border-gray-200 bg-gray-50/80">
+                        <tr>
+                          <th class="px-3 py-2 text-left font-medium text-text">
+                            {{ nl.public.standings.team }}
+                          </th>
+                          <th
+                            class="px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.played }}
+                          </th>
+                          <th
+                            class="border-l border-gray-200 px-2 py-2 text-center font-semibold text-text"
+                          >
+                            {{ nl.public.standings.points }}
+                          </th>
+                          <th
+                            class="border-l border-gray-200 px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.won }}
+                          </th>
+                          <th
+                            class="px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.drawn }}
+                          </th>
+                          <th
+                            class="px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.lost }}
+                          </th>
+                          <th
+                            class="border-l border-gray-200 px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.goalDifference }}
+                          </th>
+                          <th
+                            class="px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.goalsFor }}
+                          </th>
+                          <th
+                            class="px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.goalsAgainst }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-100">
+                        <tr
+                          v-for="(st, idx) in pool.standings"
+                          :key="st.teamId"
+                          :class="
+                            isFavTeam(st.teamId)
+                              ? 'bg-fav-light/80'
+                              : idx % 2 === 0
+                                ? ''
+                                : 'bg-gray-50/80'
+                          "
+                        >
+                          <td
+                            :class="
+                              isFavTeam(st.teamId)
+                                ? 'px-3 py-2 font-bold text-fav-text'
+                                : 'px-3 py-2 font-medium text-text'
+                            "
+                          >
+                            {{ st.team.name }}
+                          </td>
+                          <td class="px-2 py-2 text-center text-text">
+                            {{ st.played }}
+                          </td>
+                          <td class="border-l border-gray-200 px-2 py-2 text-center font-semibold text-text">
+                            {{ st.points }}
+                          </td>
+                          <td class="border-l border-gray-200 px-2 py-2 text-center text-text">
+                            {{ st.won }}
+                          </td>
+                          <td class="px-2 py-2 text-center text-text">
+                            {{ st.drawn }}
+                          </td>
+                          <td class="px-2 py-2 text-center text-text">
+                            {{ st.lost }}
+                          </td>
+                          <td class="border-l border-gray-200 px-2 py-2 text-center text-text">
+                            {{ st.goalDifference }}
+                          </td>
+                          <td class="px-2 py-2 text-center text-text">
+                            {{ st.goalsFor }}
+                          </td>
+                          <td class="px-2 py-2 text-center text-text">
+                            {{ st.goalsAgainst }}
+                          </td>
+                        </tr>
+                        <tr v-if="pool.standings.length === 0">
+                          <td
+                            colspan="9"
+                            class="px-3 py-2 text-center text-text-light"
+                          >
+                            {{ nl.common.noResults }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </template>
+            </template>
+
+            <!-- KO tab -->
+            <template v-if="activeMainTab === 'ko' && showKoTab">
+              <template v-if="activeSubTab === 'matches'">
+                <p v-if="displayKoMatches.length === 0" class="text-text-light">
+                  {{ s.noMatches }}
+                </p>
+                <div v-for="group in koRounds" :key="group.round" class="mb-5">
+                  <h3 class="mb-2 font-semibold text-text">
+                    {{ group.label }}
+                  </h3>
+                  <ul class="space-y-3">
+                    <li
+                      v-for="match in applyFilters(group.matches)"
                       :key="match.id"
-                      class="flex items-center"
-                      :style="{ minHeight: 80 * Math.pow(2, colIdx) + 'px' }"
+                      :class="
+                        isFavTeamMatch(match)
+                          ? 'border-fav-match-border bg-fav-match-bg/80'
+                          : 'border-gray-200 bg-surface/80'
+                      "
+                      class="rounded-lg border p-3 shadow-sm"
                     >
                       <div
-                        class="flex w-full flex-col gap-2 rounded-lg border p-3 shadow-sm"
-                        :class="
-                          isFavTeamMatch(match)
-                            ? 'border-fav-match-border bg-fav-match-bg/80'
-                            : 'border-gray-200 bg-surface/80'
-                        "
+                        class="mb-1 flex items-center justify-between text-sm text-text-light"
                       >
-                        <span class="min-w-0 font-semibold">
+                        <span>{{ match.field.name }}</span>
+                        <span>{{ formatDateTime(match.startTime) }}</span>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span class="font-semibold">
                           <span
                             :class="
                               isFavTeam(match.teamA.id)
@@ -1147,149 +855,516 @@ const bKoFinalMatch = computed(() => {
                                   ? 'text-text'
                                   : 'text-text-light italic'
                             "
-                            >{{ match.teamB ? match.teamB.name : (match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd) }}</span
+                            >{{
+                              match.teamB
+                                ? match.teamB.name
+                                : match.round === 1
+                                  ? nl.admin.koBracket.bye
+                                  : nl.admin.koBracket.tbd
+                            }}</span
                           >
                         </span>
-                        <div class="flex justify-end">
-                          <span
-                            :class="match.teamB ? statusClasses(match) : 'bg-gray-200 text-text'"
-                            class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
+                        <span
+                          :class="
+                            match.teamB
+                              ? statusClasses(match)
+                              : 'bg-gray-200 text-text'
+                          "
+                          class="rounded px-2 py-0.5 text-xs font-medium"
+                        >
+                          <template v-if="!match.teamB">{{
+                            match.round === 1
+                              ? nl.admin.koBracket.bye
+                              : nl.admin.koBracket.tbd
+                          }}</template>
+                          <template v-else-if="match.status === 'PLAYED'"
+                            >{{ match.scoreA }} - {{ match.scoreB }} ({{
+                              statusLabel(match)
+                            }})</template
                           >
-                            <template v-if="!match.teamB">{{ match.round === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.tbd }}</template>
-                            <template v-else>{{ match.scoreA }} - {{ match.scoreB }}</template>
+                          <template v-else>{{ statusLabel(match) }}</template>
+                        </span>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </template>
+
+              <template v-else>
+                <p v-if="koRounds.length === 0" class="text-text-light">
+                  {{ nl.common.noResults }}
+                </p>
+                <div v-else class="overflow-x-auto">
+                  <div class="flex flex-row" style="min-width: max-content">
+                    <div
+                      v-for="(group, colIdx) in koRounds"
+                      :key="group.round"
+                      class="flex w-52 flex-col gap-2 px-4"
+                      :class="
+                        colIdx < koRounds.length - 1
+                          ? 'border-r border-dashed border-gray-300'
+                          : ''
+                      "
+                    >
+                      <h3
+                        class="mb-2 text-center text-sm font-semibold text-text"
+                      >
+                        {{ group.label }}
+                      </h3>
+                      <div
+                        v-for="match in group.matches"
+                        :key="match.id"
+                        class="flex items-center"
+                        :style="{ minHeight: 80 * Math.pow(2, colIdx) + 'px' }"
+                      >
+                        <div
+                          class="flex w-full flex-col gap-2 rounded-lg border p-3 shadow-sm"
+                          :class="
+                            isFavTeamMatch(match)
+                              ? 'border-fav-match-border bg-fav-match-bg/80'
+                              : 'border-gray-200 bg-surface/80'
+                          "
+                        >
+                          <div
+                            class="flex items-center justify-between text-sm text-text-light"
+                          >
+                            <span>{{ match.field.name }}</span>
+                            <span>{{ formatDateTime(match.startTime) }}</span>
+                          </div>
+                          <span class="min-w-0 font-semibold">
+                            <span
+                              :class="
+                                isFavTeam(match.teamA.id)
+                                  ? 'text-fav-text'
+                                  : 'text-text'
+                              "
+                              >{{ match.teamA.name }}</span
+                            >
+                            <span class="text-text"> vs </span>
+                            <span
+                              :class="
+                                match.teamB && isFavTeam(match.teamB.id)
+                                  ? 'text-fav-text'
+                                  : match.teamB
+                                    ? 'text-text'
+                                    : 'text-text-light italic'
+                              "
+                              >{{
+                                match.teamB
+                                  ? match.teamB.name
+                                  : match.round === 1
+                                    ? nl.admin.koBracket.bye
+                                    : nl.admin.koBracket.tbd
+                              }}</span
+                            >
                           </span>
+                          <div class="flex justify-end">
+                            <span
+                              :class="
+                                match.teamB
+                                  ? statusClasses(match)
+                                  : 'bg-gray-200 text-text'
+                              "
+                              class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
+                            >
+                              <template v-if="!match.teamB">{{
+                                match.round === 1
+                                  ? nl.admin.koBracket.bye
+                                  : nl.admin.koBracket.tbd
+                              }}</template>
+                              <template v-else-if="match.status === 'PLAYED'"
+                                >{{ match.scoreA }} - {{ match.scoreB }} ({{
+                                  statusLabel(match)
+                                }})</template
+                              >
+                              <template v-else>{{
+                                statusLabel(match)
+                              }}</template>
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </template>
             </template>
 
-            <!-- Pool overall ranking (POOLS only) -->
-            <template v-if="tournamentType === 'POOLS'">
-              <p class="mb-2 font-semibold text-text">{{ s.overallRanking }}</p>
-              <div
-                class="overflow-x-auto rounded-lg border border-gray-200 bg-surface/80 shadow-sm"
-              >
-                <table class="w-full table-fixed text-sm">
-                  <colgroup>
-                    <col class="w-[10%]" />
-                    <col class="w-[50%]" />
-                    <col class="w-[13%]" />
-                    <col class="w-[13%]" />
-                    <col class="w-[14%]" />
-                  </colgroup>
-                  <thead class="border-b border-gray-200 bg-gray-50/80">
-                    <tr>
-                      <th class="px-2 py-2 text-center font-medium text-text">
-                        #
-                      </th>
-                      <th class="px-3 py-2 text-left font-medium text-text">
-                        {{ nl.public.standings.team }}
-                      </th>
-                      <th class="px-2 py-2 text-center font-medium text-text">
-                        {{ nl.public.standings.points }}
-                      </th>
-                      <th class="px-2 py-2 text-center font-medium text-text">
-                        {{ nl.public.standings.goalDifference }}
-                      </th>
-                      <th class="px-2 py-2 text-center font-medium text-text">
-                        {{ nl.public.standings.goalsFor }}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-100">
-                    <tr
-                      v-for="(st, idx) in overallRanking"
-                      :key="st.teamId"
+            <!-- B-finale tab -->
+            <template v-if="activeMainTab === 'bfinale' && showBFinaleTab">
+              <template v-if="activeSubTab === 'matches'">
+                <p
+                  v-if="displayBKoMatches.length === 0"
+                  class="text-text-light"
+                >
+                  {{ s.noMatches }}
+                </p>
+                <div v-for="group in bKoRounds" :key="group.round" class="mb-5">
+                  <h3 class="mb-2 font-semibold text-text">
+                    {{ group.label }}
+                  </h3>
+                  <ul class="space-y-3">
+                    <li
+                      v-for="match in applyFilters(group.matches)"
+                      :key="match.id"
                       :class="
-                        isFavTeam(st.teamId)
-                          ? 'bg-fav-light/80'
-                          : idx % 2 === 0
-                            ? ''
-                            : 'bg-gray-50/80'
+                        isFavTeamMatch(match)
+                          ? 'border-fav-match-border bg-fav-match-bg/80'
+                          : 'border-gray-200 bg-surface/80'
+                      "
+                      class="rounded-lg border p-3 shadow-sm"
+                    >
+                      <div
+                        class="mb-1 flex items-center justify-between text-sm text-text-light"
+                      >
+                        <span>{{ match.field.name }}</span>
+                        <span>{{ formatDateTime(match.startTime) }}</span>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span class="font-semibold">
+                          <span
+                            :class="
+                              isFavTeam(match.teamA.id)
+                                ? 'text-fav-text'
+                                : 'text-text'
+                            "
+                            >{{ match.teamA.name }}</span
+                          >
+                          <span class="text-text"> vs </span>
+                          <span
+                            :class="
+                              match.teamB && isFavTeam(match.teamB.id)
+                                ? 'text-fav-text'
+                                : match.teamB
+                                  ? 'text-text'
+                                  : 'text-text-light italic'
+                            "
+                            >{{
+                              match.teamB
+                                ? match.teamB.name
+                                : match.round === 1
+                                  ? nl.admin.koBracket.bye
+                                  : nl.admin.koBracket.tbd
+                            }}</span
+                          >
+                        </span>
+                        <span
+                          :class="
+                            match.teamB
+                              ? statusClasses(match)
+                              : 'bg-gray-200 text-text'
+                          "
+                          class="rounded px-2 py-0.5 text-xs font-medium"
+                        >
+                          <template v-if="!match.teamB">{{
+                            match.round === 1
+                              ? nl.admin.koBracket.bye
+                              : nl.admin.koBracket.tbd
+                          }}</template>
+                          <template v-else-if="match.status === 'PLAYED'"
+                            >{{ match.scoreA }} - {{ match.scoreB }} ({{
+                              statusLabel(match)
+                            }})</template
+                          >
+                          <template v-else>{{ statusLabel(match) }}</template>
+                        </span>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </template>
+
+              <template v-else>
+                <p v-if="bKoRounds.length === 0" class="text-text-light">
+                  {{ nl.common.noResults }}
+                </p>
+                <div v-else class="overflow-x-auto">
+                  <div class="flex flex-row" style="min-width: max-content">
+                    <div
+                      v-for="(group, colIdx) in bKoRounds"
+                      :key="group.round"
+                      class="flex w-52 flex-col gap-2 px-4"
+                      :class="
+                        colIdx < bKoRounds.length - 1
+                          ? 'border-r border-dashed border-gray-300'
+                          : ''
                       "
                     >
-                      <td class="px-2 py-2 text-center text-text-light">
-                        {{ idx + 1 }}
-                      </td>
-                      <td
-                        :class="
-                          isFavTeam(st.teamId)
-                            ? 'px-3 py-2 font-bold text-fav-text'
-                            : 'px-3 py-2 font-medium text-text'
-                        "
+                      <h3
+                        class="mb-2 text-center text-sm font-semibold text-text"
                       >
-                        {{ st.team.name }}
-                      </td>
-                      <td class="px-2 py-2 text-center font-semibold text-text">
-                        {{ st.points }}
-                      </td>
-                      <td class="px-2 py-2 text-center text-text">
-                        {{ st.goalDifference }}
-                      </td>
-                      <td class="px-2 py-2 text-center text-text">
-                        {{ st.goalsFor }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                        {{ group.label }}
+                      </h3>
+                      <div
+                        v-for="match in group.matches"
+                        :key="match.id"
+                        class="flex items-center"
+                        :style="{ minHeight: 80 * Math.pow(2, colIdx) + 'px' }"
+                      >
+                        <div
+                          class="flex w-full flex-col gap-2 rounded-lg border p-3 shadow-sm"
+                          :class="
+                            isFavTeamMatch(match)
+                              ? 'border-fav-match-border bg-fav-match-bg/80'
+                              : 'border-gray-200 bg-surface/80'
+                          "
+                        >
+                          <div
+                            class="flex items-center justify-between text-sm text-text-light"
+                          >
+                            <span>{{ match.field.name }}</span>
+                            <span>{{ formatDateTime(match.startTime) }}</span>
+                          </div>
+                          <span class="min-w-0 font-semibold">
+                            <span
+                              :class="
+                                isFavTeam(match.teamA.id)
+                                  ? 'text-fav-text'
+                                  : 'text-text'
+                              "
+                              >{{ match.teamA.name }}</span
+                            >
+                            <span class="text-text"> vs </span>
+                            <span
+                              :class="
+                                match.teamB && isFavTeam(match.teamB.id)
+                                  ? 'text-fav-text'
+                                  : match.teamB
+                                    ? 'text-text'
+                                    : 'text-text-light italic'
+                              "
+                              >{{
+                                match.teamB
+                                  ? match.teamB.name
+                                  : match.round === 1
+                                    ? nl.admin.koBracket.bye
+                                    : nl.admin.koBracket.tbd
+                              }}</span
+                            >
+                          </span>
+                          <div class="flex justify-end">
+                            <span
+                              :class="
+                                match.teamB
+                                  ? statusClasses(match)
+                                  : 'bg-gray-200 text-text'
+                              "
+                              class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
+                            >
+                              <template v-if="!match.teamB">{{
+                                match.round === 1
+                                  ? nl.admin.koBracket.bye
+                                  : nl.admin.koBracket.tbd
+                              }}</template>
+                              <template v-else-if="match.status === 'PLAYED'"
+                                >{{ match.scoreA }} - {{ match.scoreB }} ({{
+                                  statusLabel(match)
+                                }})</template
+                              >
+                              <template v-else>{{
+                                statusLabel(match)
+                              }}</template>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
             </template>
 
-            <!-- Pool standings grouped per pool (COMBINATION+pool sub-tab) -->
-            <template
-              v-if="
-                tournamentType === 'COMBINATION' &&
-                activeEindstandSub === 'pool'
-              "
-            >
-              <div v-for="pool in standings" :key="pool.id" class="mb-6">
-                <h3 class="mb-2 font-semibold text-text">
-                  {{ nl.public.standings.pool }}: {{ pool.name }}
-                </h3>
+            <!-- Eindstand tab -->
+            <template v-if="activeMainTab === 'eindstand' && showEindstand">
+              <!-- COMBINATION: sub-tabs -->
+              <div
+                v-if="tournamentType === 'COMBINATION'"
+                class="mb-3 inline-flex overflow-hidden rounded border border-gray-300"
+              >
+                <button
+                  v-for="(sub, idx) in [
+                    { key: 'ko' as const, label: s.tabKo },
+                    { key: 'pool' as const, label: s.tabPool },
+                  ]"
+                  :key="sub.key"
+                  :class="[
+                    activeEindstandSub === sub.key
+                      ? 'bg-primary text-white'
+                      : 'bg-white text-text hover:bg-gray-50',
+                    idx === 0 ? 'border-r border-gray-300' : '',
+                  ]"
+                  class="px-3 py-1.5 text-sm"
+                  @click="activeEindstandSub = sub.key"
+                >
+                  {{ sub.label }}
+                </button>
+              </div>
+
+              <!-- KO bracket (for KNOCKOUT or COMBINATION+ko sub-tab) -->
+              <template
+                v-if="
+                  tournamentType === 'KNOCKOUT' ||
+                  (tournamentType === 'COMBINATION' &&
+                    activeEindstandSub === 'ko')
+                "
+              >
+                <!-- Winner card -->
+                <div
+                  v-if="koFinalMatch"
+                  class="mb-4 rounded-lg border border-gray-200 bg-surface/80 p-4 shadow-sm"
+                >
+                  <p class="mb-1 text-sm font-medium text-text-light">
+                    {{ s.winner }}
+                  </p>
+                  <p class="mb-1 text-lg font-bold text-text">
+                    🏆
+                    {{
+                      koFinalMatch.koWinnerId === koFinalMatch.teamA?.id
+                        ? koFinalMatch.teamA?.name
+                        : koFinalMatch.teamB?.name
+                    }}
+                  </p>
+                  <p class="text-sm text-text-light">
+                    <span class="font-bold mr-1">{{
+                      koFinalMatch.teamA?.name
+                    }}</span>
+                    {{ koFinalMatch.scoreA }} - {{ koFinalMatch.scoreB }}
+                    <span class="font-bold ml-1">{{
+                      koFinalMatch.teamB?.name
+                    }}</span>
+                  </p>
+                </div>
+                <!-- Full bracket -->
+                <p v-if="koRounds.length === 0" class="text-text-light">
+                  {{ nl.common.noResults }}
+                </p>
+                <div v-else class="overflow-x-auto">
+                  <div class="flex flex-row" style="min-width: max-content">
+                    <div
+                      v-for="(group, colIdx) in koRounds"
+                      :key="group.round"
+                      class="flex w-52 flex-col gap-2 px-4"
+                      :class="
+                        colIdx < koRounds.length - 1
+                          ? 'border-r border-dashed border-gray-300'
+                          : ''
+                      "
+                    >
+                      <h3
+                        class="mb-2 text-center text-sm font-semibold text-text"
+                      >
+                        {{ group.label }}
+                      </h3>
+                      <div
+                        v-for="match in group.matches"
+                        :key="match.id"
+                        class="flex items-center"
+                        :style="{ minHeight: 80 * Math.pow(2, colIdx) + 'px' }"
+                      >
+                        <div
+                          class="flex w-full flex-col gap-2 rounded-lg border p-3 shadow-sm"
+                          :class="
+                            isFavTeamMatch(match)
+                              ? 'border-fav-match-border bg-fav-match-bg/80'
+                              : 'border-gray-200 bg-surface/80'
+                          "
+                        >
+                          <span class="min-w-0 font-semibold">
+                            <span
+                              :class="
+                                isFavTeam(match.teamA.id)
+                                  ? 'text-fav-text'
+                                  : 'text-text'
+                              "
+                              >{{ match.teamA.name }}</span
+                            >
+                            <span class="text-text"> vs </span>
+                            <span
+                              :class="
+                                match.teamB && isFavTeam(match.teamB.id)
+                                  ? 'text-fav-text'
+                                  : match.teamB
+                                    ? 'text-text'
+                                    : 'text-text-light italic'
+                              "
+                              >{{
+                                match.teamB
+                                  ? match.teamB.name
+                                  : match.round === 1
+                                    ? nl.admin.koBracket.bye
+                                    : nl.admin.koBracket.tbd
+                              }}</span
+                            >
+                          </span>
+                          <div class="flex justify-end">
+                            <span
+                              :class="
+                                match.teamB
+                                  ? statusClasses(match)
+                                  : 'bg-gray-200 text-text'
+                              "
+                              class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
+                            >
+                              <template v-if="!match.teamB">{{
+                                match.round === 1
+                                  ? nl.admin.koBracket.bye
+                                  : nl.admin.koBracket.tbd
+                              }}</template>
+                              <template v-else
+                                >{{ match.scoreA }} -
+                                {{ match.scoreB }}</template
+                              >
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Pool overall ranking (POOLS only) -->
+              <template v-if="tournamentType === 'POOLS'">
+                <p class="mb-2 font-semibold text-text">
+                  {{ s.overallRanking }}
+                </p>
                 <div
                   class="overflow-x-auto rounded-lg border border-gray-200 bg-surface/80 shadow-sm"
                 >
                   <table class="w-full table-fixed text-sm">
                     <colgroup>
-                      <col class="w-[40%]" />
                       <col class="w-[10%]" />
-                      <col class="w-[10%]" />
-                      <col class="w-[10%]" />
-                      <col class="w-[10%]" />
-                      <col class="w-[10%]" />
-                      <col class="w-[10%]" />
+                      <col class="w-[46%]" />
+                      <col class="w-[11%]" />
+                      <col class="w-[11%]" />
+                      <col class="w-[11%]" />
+                      <col class="w-[11%]" />
                     </colgroup>
                     <thead class="border-b border-gray-200 bg-gray-50/80">
                       <tr>
+                        <th class="px-2 py-2 text-center font-medium text-text">
+                          #
+                        </th>
                         <th class="px-3 py-2 text-left font-medium text-text">
                           {{ nl.public.standings.team }}
                         </th>
-                        <th class="px-2 py-2 text-center font-medium text-text">
-                          {{ nl.public.standings.played }}
+                        <th class="px-2 py-2 text-center font-semibold text-text">
+                          {{ nl.public.standings.points }}
                         </th>
-                        <th class="px-2 py-2 text-center font-medium text-text">
-                          {{ nl.public.standings.won }}
-                        </th>
-                        <th class="px-2 py-2 text-center font-medium text-text">
-                          {{ nl.public.standings.drawn }}
-                        </th>
-                        <th class="px-2 py-2 text-center font-medium text-text">
-                          {{ nl.public.standings.lost }}
-                        </th>
-                        <th class="px-2 py-2 text-center font-medium text-text">
+                        <th class="border-l border-gray-200 px-2 py-2 text-center font-medium text-text">
                           {{ nl.public.standings.goalDifference }}
                         </th>
                         <th class="px-2 py-2 text-center font-medium text-text">
-                          {{ nl.public.standings.points }}
+                          {{ nl.public.standings.goalsFor }}
+                        </th>
+                        <th class="px-2 py-2 text-center font-medium text-text">
+                          {{ nl.public.standings.goalsAgainst }}
                         </th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                       <tr
-                        v-for="(st, idx) in pool.standings"
+                        v-for="(st, idx) in overallRanking"
                         :key="st.teamId"
                         :class="
                           isFavTeam(st.teamId)
@@ -1299,6 +1374,9 @@ const bKoFinalMatch = computed(() => {
                               : 'bg-gray-50/80'
                         "
                       >
+                        <td class="px-2 py-2 text-center text-text-light">
+                          {{ idx + 1 }}
+                        </td>
                         <td
                           :class="
                             isFavTeam(st.teamId)
@@ -1308,37 +1386,156 @@ const bKoFinalMatch = computed(() => {
                         >
                           {{ st.team.name }}
                         </td>
-                        <td class="px-2 py-2 text-center text-text">
-                          {{ st.played }}
-                        </td>
-                        <td class="px-2 py-2 text-center text-text">
-                          {{ st.won }}
-                        </td>
-                        <td class="px-2 py-2 text-center text-text">
-                          {{ st.drawn }}
-                        </td>
-                        <td class="px-2 py-2 text-center text-text">
-                          {{ st.lost }}
-                        </td>
-                        <td class="px-2 py-2 text-center text-text">
-                          {{ st.goalDifference }}
-                        </td>
                         <td
                           class="px-2 py-2 text-center font-semibold text-text"
                         >
                           {{ st.points }}
                         </td>
+                        <td class="border-l border-gray-200 px-2 py-2 text-center text-text">
+                          {{ st.goalDifference }}
+                        </td>
+                        <td class="px-2 py-2 text-center text-text">
+                          {{ st.goalsFor }}
+                        </td>
+                        <td class="px-2 py-2 text-center text-text">
+                          {{ st.goalsAgainst }}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
-              </div>
-            </template> </template
-          ><!-- end eindstand v-if --> </template
-        ><!-- end currentTabScheduleIsLive v-else --> </template
-      ><!-- end tournamentType v-else --> </template
-    ><!-- end isLoading v-else -->
-    </div><!-- end pl-4 content wrapper -->
+              </template>
+
+              <!-- Pool standings grouped per pool (COMBINATION+pool sub-tab) -->
+              <template
+                v-if="
+                  tournamentType === 'COMBINATION' &&
+                  activeEindstandSub === 'pool'
+                "
+              >
+                <div v-for="pool in standings" :key="pool.id" class="mb-6">
+                  <h3 class="mb-2 font-semibold text-text">
+                    {{ nl.public.standings.pool }}: {{ pool.name }}
+                  </h3>
+                  <div
+                    class="overflow-x-auto rounded-lg border border-gray-200 bg-surface/80 shadow-sm"
+                  >
+                    <table class="w-full table-fixed text-sm">
+                      <colgroup>
+                        <col class="w-[28%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                        <col class="w-[9%]" />
+                      </colgroup>
+                      <thead class="border-b border-gray-200 bg-gray-50/80">
+                        <tr>
+                          <th class="px-3 py-2 text-left font-medium text-text">
+                            {{ nl.public.standings.team }}
+                          </th>
+                          <th
+                            class="px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.played }}
+                          </th>
+                          <th
+                            class="border-l border-gray-200 px-2 py-2 text-center font-semibold text-text"
+                          >
+                            {{ nl.public.standings.points }}
+                          </th>
+                          <th
+                            class="border-l border-gray-200 px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.won }}
+                          </th>
+                          <th
+                            class="px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.drawn }}
+                          </th>
+                          <th
+                            class="px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.lost }}
+                          </th>
+                          <th
+                            class="border-l border-gray-200 px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.goalDifference }}
+                          </th>
+                          <th
+                            class="px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.goalsFor }}
+                          </th>
+                          <th
+                            class="px-2 py-2 text-center font-medium text-text"
+                          >
+                            {{ nl.public.standings.goalsAgainst }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-100">
+                        <tr
+                          v-for="(st, idx) in pool.standings"
+                          :key="st.teamId"
+                          :class="
+                            isFavTeam(st.teamId)
+                              ? 'bg-fav-light/80'
+                              : idx % 2 === 0
+                                ? ''
+                                : 'bg-gray-50/80'
+                          "
+                        >
+                          <td
+                            :class="
+                              isFavTeam(st.teamId)
+                                ? 'px-3 py-2 font-bold text-fav-text'
+                                : 'px-3 py-2 font-medium text-text'
+                            "
+                          >
+                            {{ st.team.name }}
+                          </td>
+                          <td class="px-2 py-2 text-center text-text">
+                            {{ st.played }}
+                          </td>
+                          <td class="border-l border-gray-200 px-2 py-2 text-center font-semibold text-text">
+                            {{ st.points }}
+                          </td>
+                          <td class="border-l border-gray-200 px-2 py-2 text-center text-text">
+                            {{ st.won }}
+                          </td>
+                          <td class="px-2 py-2 text-center text-text">
+                            {{ st.drawn }}
+                          </td>
+                          <td class="px-2 py-2 text-center text-text">
+                            {{ st.lost }}
+                          </td>
+                          <td class="border-l border-gray-200 px-2 py-2 text-center text-text">
+                            {{ st.goalDifference }}
+                          </td>
+                          <td class="px-2 py-2 text-center text-text">
+                            {{ st.goalsFor }}
+                          </td>
+                          <td class="px-2 py-2 text-center text-text">
+                            {{ st.goalsAgainst }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </template> </template
+            ><!-- end eindstand v-if --> </template
+          ><!-- end currentTabScheduleIsLive v-else --> </template
+        ><!-- end tournamentType v-else --> </template
+      ><!-- end isLoading v-else -->
+    </div>
+    <!-- end pl-4 content wrapper -->
 
     <!-- Team picker modal -->
     <div
@@ -1352,14 +1549,16 @@ const bKoFinalMatch = computed(() => {
       "
     >
       <div class="mx-4 w-full max-w-sm rounded-lg bg-surface p-4 shadow-xl">
-        <h3 id="team-picker-title" class="mb-3 font-semibold text-text">{{ s.teamPickerTitle }}</h3>
+        <h3 id="team-picker-title" class="mb-3 font-semibold text-text">
+          {{ s.teamPickerTitle }}
+        </h3>
         <input
           v-model="teamSearch"
           type="text"
           :placeholder="nl.common.search"
           class="mb-3 w-full rounded border border-gray-300 px-3 py-2 text-sm text-text focus:border-primary focus:outline-none"
           autofocus
-        >
+        />
         <ul class="max-h-64 divide-y divide-gray-100 overflow-y-auto">
           <li v-for="team in filteredTeamList" :key="team.id">
             <button

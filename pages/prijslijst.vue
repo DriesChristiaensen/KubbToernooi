@@ -15,7 +15,7 @@
             >
               <td class="py-2 px-3 text-left text-text">{{ beverage.text }}</td>
               <td class="py-2 px-3 text-right text-text whitespace-nowrap">
-                € {{ beverage.price.toFixed(2) }}
+                {{ beverage.price.toFixed(2) }} bonnen
               </td>
             </tr>
           </tbody>

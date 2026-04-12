@@ -58,6 +58,8 @@ const swapLoading = ref(false);
 const swapError = ref("");
 const swapSuccess = ref("");
 const extraSlots = ref<string[]>([]);
+const liveSwapWarning = ref(false);
+const pendingLiveAction = ref<(() => void) | null>(null);
 
 const phaseToggleLoading = ref(false);
 const phaseToggleError = ref("");
@@ -152,18 +154,51 @@ async function applyTimeShift() {
 }
 
 function clickMatch(match: Match) {
+  if (match.status === 'PLAYED') return;
+
+  // Deselect: never needs a warning
+  if (switchMatchId.value === match.id) {
+    switchMatchId.value = null;
+    return;
+  }
+
+  // Conflict-disabled target: silently block
+  if (switchMatchId.value && disabledSwapMatchIds.value.has(match.id)) return;
+
+  const isLive = match.status === 'LIVE' || match.status === 'AWAITING_RESULT';
+  if (isLive) {
+    if (switchMatchId.value === null) {
+      pendingLiveAction.value = () => {
+        switchMatchId.value = match.id;
+        swapError.value = "";
+        swapSuccess.value = "";
+      };
+    } else {
+      const aid = switchMatchId.value;
+      pendingLiveAction.value = () => swapMatches(aid, match.id);
+    }
+    liveSwapWarning.value = true;
+    return;
+  }
+
   if (switchMatchId.value === null) {
     switchMatchId.value = match.id;
     swapError.value = "";
     swapSuccess.value = "";
     return;
   }
-  if (switchMatchId.value === match.id) {
-    switchMatchId.value = null;
-    return;
-  }
-  if (disabledSwapMatchIds.value.has(match.id)) return;
   swapMatches(switchMatchId.value, match.id);
+}
+
+function confirmLiveSwap() {
+  liveSwapWarning.value = false;
+  pendingLiveAction.value?.();
+  pendingLiveAction.value = null;
+}
+
+function cancelLiveSwap() {
+  liveSwapWarning.value = false;
+  pendingLiveAction.value = null;
 }
 
 async function swapMatches(matchAId: string, matchBId: string) {
@@ -446,6 +481,9 @@ const disabledSwapReasons = computed(() => {
 });
 
 function rowClass(matchId: string): string {
+  const match = matches.value.find(m => m.id === matchId);
+  if (match?.status === 'PLAYED')
+    return "border-b border-gray-100 opacity-40 cursor-not-allowed transition-colors";
   if (switchMatchId.value === matchId)
     return "cursor-pointer border-b border-gray-100 bg-primary/10 outline outline-2 outline-primary transition-colors";
   if (switchMatchId.value && disabledSwapMatchIds.value.has(matchId))
@@ -458,6 +496,9 @@ function rowClass(matchId: string): string {
 }
 
 function cellClass(matchId: string): string {
+  const match = matches.value.find(m => m.id === matchId);
+  if (match?.status === 'PLAYED')
+    return "w-full rounded p-1 text-left text-xs transition-colors bg-gray-200 text-gray-400 cursor-not-allowed line-through";
   if (switchMatchId.value === matchId)
     return "w-full rounded p-1 text-left text-xs transition-colors bg-primary text-white";
   if (switchMatchId.value && disabledSwapMatchIds.value.has(matchId))
@@ -576,6 +617,29 @@ onMounted(async () => {
           <button
             class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
             @click="cancelDraftToggle"
+          >
+            {{ nl.common.cancel }}
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Live match warning modal -->
+    <div
+      v-if="liveSwapWarning"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    >
+      <div class="mx-4 max-w-md rounded-lg bg-surface p-6 shadow-xl">
+        <p class="mb-4 text-text">{{ nl.common.liveMatchWarning }}</p>
+        <div class="flex gap-3">
+          <button
+            class="rounded bg-warning px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="confirmLiveSwap"
+          >
+            {{ nl.common.confirm }}
+          </button>
+          <button
+            class="rounded bg-secondary px-4 py-2 text-sm font-medium text-white hover:opacity-80"
+            @click="cancelLiveSwap"
           >
             {{ nl.common.cancel }}
           </button>
@@ -830,6 +894,7 @@ onMounted(async () => {
                 )"
                 :key="m.id"
                 :class="rowClass(m.id)"
+                class="group"
                 :title="disabledSwapMatchIds.has(m.id) ? `${nl.admin.schedule.swapDisabledHint} ${disabledSwapReasons.get(m.id)}` : undefined"
                 @click="clickMatch(m)"
               >
@@ -839,8 +904,14 @@ onMounted(async () => {
                 <td class="py-2 pr-4 font-medium text-text">
                   {{ m.teamA?.name ?? "?" }}
                 </td>
-                <td class="py-2 font-medium text-text">
+                <td class="relative py-2 font-medium text-text">
                   {{ m.teamB?.name ?? "?" }}
+                  <div
+                    v-if="m.status === 'PLAYED'"
+                    class="pointer-events-none absolute bottom-full right-0 z-10 mb-1 hidden w-max rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:block"
+                  >
+                    {{ nl.common.playedMatchBlocked }}
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -867,6 +938,7 @@ onMounted(async () => {
                 )"
                 :key="m.id"
                 :class="rowClass(m.id)"
+                class="group"
                 :title="disabledSwapMatchIds.has(m.id) ? `${nl.admin.schedule.swapDisabledHint} ${disabledSwapReasons.get(m.id)}` : undefined"
                 @click="clickMatch(m)"
               >
@@ -874,12 +946,18 @@ onMounted(async () => {
                   {{ formatDateTime(m.startTime) }}
                 </td>
                 <td class="py-2 pr-4 text-text">{{ m.field.name }}</td>
-                <td class="py-2 font-medium text-text">
+                <td class="relative py-2 font-medium text-text">
                   {{
                     m.teamA?.name === group.teamName
                       ? m.teamB?.name
                       : m.teamA?.name
                   }}
+                  <div
+                    v-if="m.status === 'PLAYED'"
+                    class="pointer-events-none absolute bottom-full right-0 z-10 mb-1 hidden w-max rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:block"
+                  >
+                    {{ nl.common.playedMatchBlocked }}
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -925,7 +1003,13 @@ onMounted(async () => {
                         {{ getMatchForSlot(f.id, slot)!.teamB?.name ?? "?" }}
                       </button>
                       <div
-                        v-if="disabledSwapMatchIds.has(getMatchForSlot(f.id, slot)!.id)"
+                        v-if="getMatchForSlot(f.id, slot)!.status === 'PLAYED'"
+                        class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden w-max -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:block"
+                      >
+                        {{ nl.common.playedMatchBlocked }}
+                      </div>
+                      <div
+                        v-else-if="disabledSwapMatchIds.has(getMatchForSlot(f.id, slot)!.id)"
                         class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden w-48 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-center text-xs text-white group-hover:block"
                       >
                         {{ nl.admin.schedule.swapDisabledHint }}
