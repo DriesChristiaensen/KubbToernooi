@@ -19,7 +19,7 @@ export default {
         secondary: {
           DEFAULT: "#DAAF76",
           light: "#F0E6C8",
-          dark: "#6BBF4A",
+          dark: "#8D714C",
         },
         accent: {
           DEFAULT: "#F55705",
