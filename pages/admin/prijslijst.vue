@@ -26,6 +26,53 @@ const groups = ref<BeverageGroupItem[]>([]);
 const isLoading = ref(true);
 const globalError = ref("");
 
+// Export / import
+const exportLoading = ref(false);
+const importLoading = ref(false);
+const importError = ref("");
+const importSuccess = ref("");
+
+async function exportPrijzen() {
+  exportLoading.value = true;
+  try {
+    const data = await $fetch("/api/admin/beverage-groups/export");
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "prijslijst-export.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    globalError.value = nl.common.error;
+  } finally {
+    exportLoading.value = false;
+  }
+}
+
+function handleImportFile(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  (event.target as HTMLInputElement).value = "";
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    importError.value = "";
+    importSuccess.value = "";
+    importLoading.value = true;
+    try {
+      const data = JSON.parse(e.target?.result as string);
+      await $fetch("/api/admin/beverage-groups/import", { method: "POST", body: data });
+      importSuccess.value = "Prijslijst geïmporteerd.";
+      await fetchGroups();
+    } catch {
+      importError.value = nl.common.error;
+    } finally {
+      importLoading.value = false;
+    }
+  };
+  reader.readAsText(file);
+}
+
 const confirmDeleteGroup = ref<BeverageGroupItem | null>(null);
 const focusId = ref<string | null>(null);
 
@@ -327,8 +374,25 @@ async function reorderBeveragesApi(group: BeverageGroupItem) {
       </div>
     </div>
 
-    <h1 class="mb-6 text-heading text-text">{{ nl.admin.prijslijst.title }}</h1>
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <h1 class="text-heading text-text">{{ nl.admin.prijslijst.title }}</h1>
+      <div class="flex gap-2">
+        <button
+          :disabled="exportLoading"
+          class="rounded border border-gray-300 bg-surface px-3 py-1.5 text-sm font-medium text-text hover:bg-gray-50 disabled:opacity-50"
+          @click="exportPrijzen"
+        >
+          {{ exportLoading ? nl.common.submitting : 'Exporteer prijzen' }}
+        </button>
+        <label class="cursor-pointer rounded border border-gray-300 bg-surface px-3 py-1.5 text-sm font-medium text-text hover:bg-gray-50" :class="importLoading ? 'opacity-50 pointer-events-none' : ''">
+          {{ importLoading ? nl.common.submitting : 'Importeer prijzen' }}
+          <input type="file" accept=".json" class="hidden" @change="handleImportFile">
+        </label>
+      </div>
+    </div>
 
+    <p v-if="importError" class="mb-3 text-sm text-error">{{ importError }}</p>
+    <p v-if="importSuccess" class="mb-3 text-sm text-success">{{ importSuccess }}</p>
     <p v-if="globalError" class="mb-4 text-sm text-error">{{ globalError }}</p>
     <p v-if="isLoading" class="text-sm text-text-muted">{{ nl.common.loading }}</p>
 
