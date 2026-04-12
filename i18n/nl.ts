@@ -33,6 +33,8 @@ export const nl = {
     draftTooltip: "Publiceer het toernooi eerst",
     fillRequired: "Vul alle verplichte velden in",
     noChanges: "Geen wijzigingen om op te slaan",
+    liveMatchWarning: "Deze wedstrijd is momenteel bezig. Ben je zeker dat je de planning wilt aanpassen?",
+    playedMatchBlocked: "Wedstrijd is al gespeeld",
   },
 
   auth: {
@@ -276,6 +278,8 @@ export const nl = {
         "Sommige KO-wedstrijden zijn al begonnen of de starttijd is al verstreken. Weet je zeker dat je het KO-schema terug naar concept wilt zetten?",
       bDraftWarning:
         "Sommige B-KO-wedstrijden zijn al begonnen of de starttijd is al verstreken. Weet je zeker dat je het B-KO-schema terug naar concept wilt zetten?",
+      tabBracket: "Bracket",
+      tabMatchPlanner: "Wedstrijdplanner",
     },
     banner: {
       tournamentLive: "Toernooi: live",

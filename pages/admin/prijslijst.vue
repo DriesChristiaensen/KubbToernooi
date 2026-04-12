@@ -510,7 +510,6 @@ async function reorderBeveragesApi(group: BeverageGroupItem) {
 
             <!-- Price input -->
             <div class="flex shrink-0 items-center gap-1">
-              <span class="text-sm text-text-muted">€</span>
               <input
                 v-model.number="beverage.price"
                 type="number"
@@ -521,6 +520,7 @@ async function reorderBeveragesApi(group: BeverageGroupItem) {
                 @blur="saveBeverage(beverage)"
                 @keydown.enter="($event.target as HTMLInputElement).blur()"
               >
+              <span class="text-sm text-text-muted">bonnen</span>
             </div>
 
             <button
