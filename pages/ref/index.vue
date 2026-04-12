@@ -11,7 +11,9 @@ const { logout } = useAuth();
 const { data: refsStatus } = await useAsyncData("refs-status", () =>
   $fetch<{ refsEnabled: boolean }>("/api/public/refs-status"),
 );
-if (!refsStatus.value?.refsEnabled) {
+// SSR redirect is handled by server/middleware/ref-guard.ts.
+// On the client useNuxtApp() is a global singleton, so composables work after await.
+if (import.meta.client && !refsStatus.value?.refsEnabled) {
   if (user.value?.role === "REFEREE") {
     await logout();
   } else {
