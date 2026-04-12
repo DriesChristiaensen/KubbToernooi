@@ -5,13 +5,14 @@ import { useAuth } from "~/composables/useAuth";
 
 definePageMeta({ middleware: "auth", layout: "ref" });
 
+const { user } = useUserSession();
+const { logout } = useAuth();
+
 const { data: refsStatus } = await useAsyncData("refs-status", () =>
   $fetch<{ refsEnabled: boolean }>("/api/public/refs-status"),
 );
 if (!refsStatus.value?.refsEnabled) {
-  const { user } = useUserSession();
   if (user.value?.role === "REFEREE") {
-    const { logout } = useAuth();
     await logout();
   } else {
     await navigateTo("/ref/login");
