@@ -302,7 +302,9 @@ function handleImportFile(event: Event) {
       </div>
     </nav>
 
-    <div class="mt-6 grid grid-cols-4 gap-4">
+    <hr class="mt-6 border-gray-200">
+
+    <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
       <!-- Export -->
       <div class="rounded-lg border border-gray-200 bg-surface p-4 shadow-sm">
         <h2 class="mb-3 font-semibold text-text">
