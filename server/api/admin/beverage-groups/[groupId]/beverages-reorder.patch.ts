@@ -12,11 +12,18 @@ export default defineEventHandler(async (event) => {
     throw createApiError({ error: "Ongeldige invoer", code: "invalid_input", reason: "Invalid body" });
   }
 
-  await prisma.$transaction(
-    body.ids.map((id, index) =>
-      prisma.beverage.update({ where: { id }, data: { orderNumber: index + 1 } }),
-    ),
-  );
+  await prisma.$transaction(async (tx) => {
+    await Promise.all(
+      body.ids.map((id, index) =>
+        tx.beverage.update({ where: { id }, data: { orderNumber: -(index + 1) } }),
+      ),
+    );
+    await Promise.all(
+      body.ids.map((id, index) =>
+        tx.beverage.update({ where: { id }, data: { orderNumber: index + 1 } }),
+      ),
+    );
+  });
 
   return { success: true };
 });

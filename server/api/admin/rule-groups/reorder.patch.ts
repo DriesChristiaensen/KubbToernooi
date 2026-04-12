@@ -12,11 +12,20 @@ export default defineEventHandler(async (event) => {
     throw createApiError({ error: "Ongeldige invoer", code: "invalid_input", reason: "Invalid body" });
   }
 
-  await prisma.$transaction(
-    body.ids.map((id, index) =>
-      prisma.ruleGroup.update({ where: { id }, data: { orderNumber: index + 1 } }),
-    ),
-  );
+  // Two-pass update to avoid unique constraint conflicts during reorder.
+  // Pass 1: shift to negative values to free all slots, then pass 2: set final values.
+  await prisma.$transaction(async (tx) => {
+    await Promise.all(
+      body.ids.map((id, index) =>
+        tx.ruleGroup.update({ where: { id }, data: { orderNumber: -(index + 1) } }),
+      ),
+    );
+    await Promise.all(
+      body.ids.map((id, index) =>
+        tx.ruleGroup.update({ where: { id }, data: { orderNumber: index + 1 } }),
+      ),
+    );
+  });
 
   return { success: true };
 });
