@@ -15,7 +15,7 @@ export default defineEventHandler(async (_event) => {
   const pools = await prisma.pool.findMany({
     where: { tournamentId: tournament.id },
     include: {
-      poolTeams: true,
+      poolTeams: { include: { team: true } },
       standings: {
         include: { team: true },
         orderBy: [
@@ -29,19 +29,43 @@ export default defineEventHandler(async (_event) => {
     orderBy: { name: "asc" },
   });
 
+  // Fill in zero-standings for any team not yet present in the standings table
+  const poolsWithZeros = pools.map((pool) => {
+    const standingTeamIds = new Set(pool.standings.map((st) => st.teamId));
+    const zeroStandings = pool.poolTeams
+      .filter((pt) => !standingTeamIds.has(pt.teamId))
+      .map((pt) => ({
+        id: `zero-${pt.teamId}`,
+        poolId: pool.id,
+        teamId: pt.teamId,
+        team: pt.team,
+        played: 0,
+        won: 0,
+        drawn: 0,
+        lost: 0,
+        goalsFor: 0,
+        goalsAgainst: 0,
+        goalDifference: 0,
+        points: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+    return { ...pool, standings: [...pool.standings, ...zeroStandings] };
+  });
+
   if (!tournament.qualifyGlobally) {
-    return pools;
+    return poolsWithZeros;
   }
 
   // Compute per-pool teamsAdvancing based on globalQualifyingTeams
   const total = tournament.globalQualifyingTeams;
-  const numPools = pools.length;
-  if (numPools === 0) return pools;
+  const numPools = poolsWithZeros.length;
+  if (numPools === 0) return poolsWithZeros;
 
   const base = Math.floor(total / numPools);
   const extras = total % numPools;
 
-  const poolsSorted = [...pools].sort((a, b) => {
+  const poolsSorted = [...poolsWithZeros].sort((a, b) => {
     const teamCountDiff = b.poolTeams.length - a.poolTeams.length;
     if (teamCountDiff !== 0) return teamCountDiff;
     const aNext = a.standings[base];
@@ -62,7 +86,7 @@ export default defineEventHandler(async (_event) => {
     allocationMap.set(poolsSorted[i]!.id, base + (i < extras ? 1 : 0));
   }
 
-  return pools.map((pool) => ({
+  return poolsWithZeros.map((pool) => ({
     ...pool,
     teamsAdvancing: allocationMap.get(pool.id) ?? base,
   }));

@@ -45,8 +45,9 @@ describe("GET /api/public/standings", () => {
       {
         id: "p10",
         name: "Poule A",
+        poolTeams: [{ teamId: "ta1", team: { id: "ta1", name: "Team A" } }],
         standings: [
-          { teamId: "ta1", team: { name: "Team A" }, points: 3, won: 1 },
+          { teamId: "ta1", team: { id: "ta1", name: "Team A" }, points: 3, won: 1 },
         ],
       },
     ];
@@ -59,6 +60,30 @@ describe("GET /api/public/standings", () => {
     );
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ name: "Poule A" });
+  });
+
+  it("fills in zero-standings for teams not yet in standings", async () => {
+    mockTournamentFindFirst.mockResolvedValue({ id: "t1", poolScheduleLive: true });
+    const pools = [
+      {
+        id: "p10",
+        name: "Poule A",
+        poolTeams: [
+          { teamId: "ta1", team: { id: "ta1", name: "Team A" } },
+          { teamId: "ta2", team: { id: "ta2", name: "Team B" } },
+        ],
+        standings: [
+          { teamId: "ta1", team: { id: "ta1", name: "Team A" }, points: 3, won: 1, drawn: 0, lost: 0, played: 1, goalsFor: 5, goalsAgainst: 2, goalDifference: 3 },
+        ],
+      },
+    ];
+    mockPoolFindMany.mockResolvedValue(pools);
+
+    const result = await handler(createMockEvent());
+
+    expect(result[0].standings).toHaveLength(2);
+    const teamB = result[0].standings.find((st: any) => st.teamId === "ta2");
+    expect(teamB).toMatchObject({ teamId: "ta2", points: 0, won: 0, drawn: 0, lost: 0, played: 0, goalsFor: 0, goalDifference: 0 });
   });
 
   it("queries isActive tournament", async () => {
