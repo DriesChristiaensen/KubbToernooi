@@ -105,8 +105,9 @@ export const nl = {
       typePool: "Poules",
       typeKnockout: "Knock-out",
       typeCombination: "Combinatie",
-      hasBKnockout: "B-knock-out toevoegen",
-      hasBKnockoutHint: "Laat niet-gekwalificeerde teams een apart knock-outschema spelen",
+      hasBKnockout: "B-finale toevoegen",
+      hasBKnockoutHint:
+        "Laat niet-gekwalificeerde teams een apart knock-outschema spelen",
       pointsWin: "Punten winst",
       pointsDraw: "Punten gelijkspel",
       pointsLoss: "Punten verlies",
@@ -166,12 +167,14 @@ export const nl = {
       notAvailableForType:
         "Poule-beheer is niet beschikbaar voor dit toernooitype.",
       qualifyGlobally: "Kwalificatie globaal bepalen",
-      qualifyGloballyHint: "Het totaal aantal doorstromende teams wordt ingesteld in het KO-schema",
+      qualifyGloballyHint:
+        "Het totaal aantal doorstromende teams wordt ingesteld in het KO-schema",
       teamAlreadyAssigned: "Al ingedeeld in een andere poule",
     },
     referees: {
       title: "Scheidsrechters",
-      deleteConfirm: "Weet je zeker dat je deze scheidsrechter wilt verwijderen?",
+      deleteConfirm:
+        "Weet je zeker dat je deze scheidsrechter wilt verwijderen?",
     },
 
     schedule: {
@@ -198,7 +201,8 @@ export const nl = {
       viewPerTeam: "Per team",
       viewPerSlot: "Per tijdslot",
       switchModeHint: "Klik op een andere wedstrijd om te wisselen",
-      switchEmptySlotHint: "Klik op een leeg veld om de wedstrijd daarheen te verplaatsen",
+      switchEmptySlotHint:
+        "Klik op een leeg veld om de wedstrijd daarheen te verplaatsen",
       switchHighlightHint:
         "Oranje: wisselen veroorzaakt een conflict voor een van de teams",
       swapDisabledHint: "Kan niet wisselen — conflict:",
@@ -239,7 +243,8 @@ export const nl = {
       fillTeams: "Teams invullen",
       fillTeamsSuccess: "Teams ingevuld",
       fillTeamsStep: "Stap 2: Teams invullen",
-      fillTeamsOverwriteWarning: "Wil je de ingedeelde teams echt overschrijven?",
+      fillTeamsOverwriteWarning:
+        "Wil je de ingedeelde teams echt overschrijven?",
       noTeamsLive: "Deel eerst teams in voordat je het KO-schema live zet",
       poolMatchesNotPlayed: "Niet alle poule matchen zijn gespeeld",
       newGenerate: "Nieuw KO-schema genereren",
@@ -299,7 +304,8 @@ export const nl = {
       addRule: "+ Regel toevoegen",
       groupTitlePlaceholder: "Groepstitel...",
       rulePlaceholder: "Regelomschrijving...",
-      deleteGroupConfirm: "Deze groep bevat regels. Weet je zeker dat je de groep en alle regels wilt verwijderen?",
+      deleteGroupConfirm:
+        "Deze groep bevat regels. Weet je zeker dat je de groep en alle regels wilt verwijderen?",
       noGroups: "Nog geen regelgroepen aangemaakt.",
     },
     prijslijst: {
@@ -310,7 +316,8 @@ export const nl = {
       groupTitlePlaceholder: "Groepstitel...",
       beveragePlaceholder: "Naam...",
       pricePlaceholder: "0.00",
-      deleteGroupConfirm: "Deze groep bevat dranken. Weet je zeker dat je de groep en alle dranken wilt verwijderen?",
+      deleteGroupConfirm:
+        "Deze groep bevat dranken. Weet je zeker dat je de groep en alle dranken wilt verwijderen?",
       noGroups: "Nog geen drankgroepen aangemaakt.",
     },
   },
