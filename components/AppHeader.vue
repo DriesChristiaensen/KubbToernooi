@@ -27,7 +27,7 @@ const { logout } = useAuth()
           {{ nl.nav.admin }}
         </NuxtLink>
         <NuxtLink
-          v-if="loggedIn"
+          v-if="loggedIn && user?.role !== 'ADMIN'"
           to="/ref"
           class="nav-link"
           exact-active-class="nav-link--active"

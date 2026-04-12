@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { nl } from '~/i18n/nl'
 
 definePageMeta({ layout: false })
 
-const { loggedIn } = useUserSession()
-if (loggedIn.value) {
+const { loggedIn, user } = useUserSession()
+if (loggedIn.value && user.value?.role === 'ADMIN') {
+  await navigateTo('/admin')
+} else if (loggedIn.value) {
   await navigateTo('/ref')
 }
+
+const { data: refsStatus } = await useAsyncData('refs-status', () =>
+  $fetch<{ refsEnabled: boolean }>('/api/public/refs-status'),
+)
+const refsDisabled = computed(() => !(refsStatus.value?.refsEnabled ?? true))
 
 const name = ref('')
 const password = ref('')
@@ -69,7 +76,12 @@ function cancelPasswordSetup() {
         {{ nl.common.appName }}
       </NuxtLink>
 
-      <div v-if="showPasswordSetupConfirm" class="text-center">
+      <!-- Refs disabled message -->
+      <div v-if="refsDisabled" class="text-center">
+        <p class="text-sm text-text-light">{{ nl.ref.disabled }}</p>
+      </div>
+
+      <div v-else-if="showPasswordSetupConfirm" class="text-center">
         <p class="mb-6 text-sm text-text">
           {{ nl.auth.noPasswordSet }}
         </p>
@@ -95,7 +107,7 @@ function cancelPasswordSetup() {
         </div>
       </div>
 
-      <form v-else @submit.prevent="handleSubmit">
+      <form v-else-if="!refsDisabled" @submit.prevent="handleSubmit">
         <div class="mb-4">
           <label class="mb-1 block text-sm font-medium text-text" for="name">
             {{ nl.auth.name }}

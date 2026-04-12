@@ -49,7 +49,7 @@ function close() {
       {{ nl.nav.admin }}
     </NuxtLink>
     <NuxtLink
-      v-if="loggedIn"
+      v-if="loggedIn && user?.role !== 'ADMIN'"
       to="/ref"
       class="mobile-nav-link"
       exact-active-class="mobile-nav-link--active"

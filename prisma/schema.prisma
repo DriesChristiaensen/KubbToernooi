@@ -64,6 +64,7 @@ model Tournament {
   hasBKnockout          Boolean          @default(false)
   qualifyGlobally       Boolean          @default(true)
   globalQualifyingTeams Int              @default(8)
+  refsEnabled           Boolean          @default(true)
   createdAt             DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
