@@ -172,15 +172,15 @@ const { logout } = useAuth()
   margin: auto;
   margin-left: -0.6rem;
   margin-top: -1rem;
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 1.9rem;
+  height: 1.9rem;
   clip-path: polygon(
     50% 0%,   57% 43%,
     100% 50%, 57% 57%,
     50% 100%, 43% 57%,
     0% 50%,  43% 43%
   );
-  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(126,245,75,0.7) 50%, transparent 70%);
+  background: radial-gradient(circle, rgba(255,255,255,0.65) 0%, rgba(126,245,75,0.45) 50%, transparent 70%);
   opacity: 0;
   animation: logo-flash 10s ease-in-out infinite;
   pointer-events: none;
@@ -190,7 +190,7 @@ const { logout } = useAuth()
   0%    { opacity: 0; transform: scale(0.6) rotate(0deg); }
   /* flash fires around 1s mark, then fades */
   8%    { opacity: 0; transform: scale(0.6) rotate(0deg); }
-  10%   { opacity: 1; transform: scale(1.15) rotate(20deg); }
+  10%   { opacity: 0.6; transform: scale(1.05) rotate(20deg); }
   13%   { opacity: 0; transform: scale(1.3) rotate(40deg); }
   100%  { opacity: 0; transform: scale(1.3) rotate(40deg); }
 }
