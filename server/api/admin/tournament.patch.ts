@@ -11,6 +11,7 @@ const bodySchema = z.object({
   hasBKnockout: z.boolean().optional(),
   qualifyGlobally: z.boolean().optional(),
   globalQualifyingTeams: z.number().int().min(2).optional(),
+  refsEnabled: z.boolean().optional(),
 }).refine(
   (data) => Object.values(data).some((v) => v !== undefined),
   { message: "At least one field must be provided" },
@@ -73,6 +74,10 @@ export default defineEventHandler(async (event) => {
 
   if (body.globalQualifyingTeams !== undefined) {
     data.globalQualifyingTeams = body.globalQualifyingTeams;
+  }
+
+  if (body.refsEnabled !== undefined) {
+    data.refsEnabled = body.refsEnabled;
   }
 
   const updated = await prisma.tournament.update({

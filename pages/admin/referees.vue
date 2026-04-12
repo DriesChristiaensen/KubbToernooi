@@ -19,6 +19,35 @@ const resetSuccess = ref<Set<string>>(new Set())
 const resetLoading = ref<Set<string>>(new Set())
 const deleteLoading = ref<Set<string>>(new Set())
 
+const refsEnabled = ref(true)
+const togglingRefs = ref(false)
+
+async function fetchRefsEnabled() {
+  try {
+    const data = await $fetch<{ refsEnabled: boolean }>('/api/public/refs-status')
+    refsEnabled.value = data.refsEnabled
+  } catch {
+    // default to true
+  }
+}
+
+async function toggleRefs() {
+  togglingRefs.value = true
+  error.value = ''
+  try {
+    await $fetch('/api/admin/tournament', {
+      method: 'PATCH',
+      body: { refsEnabled: !refsEnabled.value },
+    })
+    refsEnabled.value = !refsEnabled.value
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { data?: { error?: string } } }
+    error.value = fetchErr?.data?.data?.error || nl.common.error
+  } finally {
+    togglingRefs.value = false
+  }
+}
+
 async function fetchReferees() {
   try {
     referees.value = await $fetch<Referee[]>('/api/admin/referees')
@@ -84,7 +113,10 @@ async function deleteReferee(id: string) {
   }
 }
 
-onMounted(fetchReferees)
+onMounted(() => {
+  fetchRefsEnabled()
+  fetchReferees()
+})
 </script>
 
 <template>
@@ -97,6 +129,31 @@ onMounted(fetchReferees)
         {{ nl.admin.referees.title }}
       </h1>
     </div>
+
+    <!-- Refs enabled toggle -->
+    <div class="mb-6 flex items-start gap-4 rounded-lg bg-surface p-4 shadow-sm">
+      <div class="flex-1">
+        <p class="font-medium text-text">{{ nl.admin.referees.refsEnabledLabel }}</p>
+        <p class="mt-0.5 text-sm text-text-light">{{ nl.admin.referees.refsEnabledDesc }}</p>
+      </div>
+      <button
+        role="switch"
+        :aria-checked="refsEnabled"
+        :disabled="togglingRefs"
+        class="relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50"
+        :class="refsEnabled ? 'bg-primary' : 'bg-gray-300'"
+        @click="toggleRefs"
+      >
+        <span
+          aria-hidden="true"
+          class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200"
+          :class="refsEnabled ? 'translate-x-5' : 'translate-x-0'"
+        />
+      </button>
+    </div>
+
+    <!-- Rest of page grayed out when disabled -->
+    <div :class="!refsEnabled ? 'pointer-events-none opacity-40' : ''">
       <form class="mb-6 flex flex-col gap-3 rounded-lg bg-surface p-4 shadow-sm md:flex-row md:items-end" @submit.prevent="addReferee">
         <div class="flex-1">
           <label class="mb-1 block text-sm font-medium text-text" for="ref-name">{{ nl.auth.name }}</label>
@@ -165,5 +222,6 @@ onMounted(fetchReferees)
           {{ nl.common.noResults }}
         </li>
       </ul>
+    </div>
   </main>
 </template>

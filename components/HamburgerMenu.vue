@@ -49,7 +49,7 @@ function close() {
       {{ nl.nav.admin }}
     </NuxtLink>
     <NuxtLink
-      v-if="loggedIn"
+      v-if="loggedIn && user?.role !== 'ADMIN'"
       to="/ref"
       class="mobile-nav-link"
       exact-active-class="mobile-nav-link--active"
@@ -152,7 +152,7 @@ function close() {
 /* ── Menu bounce ── */
 /* Transform origin: bottom-right, where the FAB button sits */
 .menu-bounce-enter-active {
-  animation: menu-bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: menu-bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0.42s both;
   transform-origin: bottom right;
 }
 

@@ -1,25 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { nl } from "~/i18n/nl";
-import { useAuth } from "~/composables/useAuth";
 
-definePageMeta({ middleware: "auth", layout: "ref" });
-
-const { user } = useUserSession();
-const { logout } = useAuth();
-
-const { data: refsStatus } = await useAsyncData("refs-status", () =>
-  $fetch<{ refsEnabled: boolean }>("/api/public/refs-status"),
-);
-// SSR redirect is handled by server/middleware/ref-guard.ts.
-// On the client useNuxtApp() is a global singleton, so composables work after await.
-if (import.meta.client && !refsStatus.value?.refsEnabled) {
-  if (user.value?.role === "REFEREE") {
-    await logout();
-  } else {
-    await navigateTo("/ref/login");
-  }
-}
+definePageMeta({ middleware: ["auth", "admin-tournament-guard"], layout: "admin" });
 
 interface MatchTeam {
   id: string;
@@ -45,12 +28,9 @@ const isLoading = ref(true);
 const errorMsg = ref("");
 const saving = ref<string | null>(null);
 const saveError = ref("");
-const saveSuccess = ref<string | null>(null); // matchId of recently saved
+const saveSuccess = ref<string | null>(null);
 
-// Track which matches are in edit mode (allows re-editing if score exists)
 const editingIds = ref<Set<string>>(new Set());
-
-// Show confirmation dialog when overwriting an existing score
 const overwriteConfirmId = ref<string | null>(null);
 
 const scoreInputs = ref<
@@ -167,7 +147,6 @@ async function doSave(match: Match) {
       scoreB: input.scoreB,
     };
     editingIds.value.delete(match.id);
-    // Show success checkmark for 2 seconds
     saveSuccess.value = match.id;
     setTimeout(() => {
       if (saveSuccess.value === match.id) saveSuccess.value = null;
@@ -225,9 +204,15 @@ onMounted(() => {
 
 <template>
   <main class="mx-auto max-w-content p-4">
-    <h1 class="mb-4 text-heading text-text">
-      {{ nl.ref.dashboard }}
-    </h1>
+    <div class="mb-4 flex items-center gap-3">
+      <NuxtLink to="/admin" class="text-sm text-text-light hover:text-primary">
+        &larr; {{ nl.common.back }}
+      </NuxtLink>
+      <h1 class="text-lg font-bold text-text">
+        {{ nl.admin.scores.title }}
+      </h1>
+    </div>
+
     <h2 class="mb-4 text-subheading text-text">
       {{ nl.ref.matches.title }}
     </h2>
@@ -259,7 +244,6 @@ onMounted(() => {
           {{ match.teamA.name }} vs {{ match.teamB.name }}
         </div>
 
-        <!-- T9.1: Overwrite confirmation dialog -->
         <div
           v-if="overwriteConfirmId === match.id"
           class="mb-3 rounded-lg border border-warning bg-warning/10 p-3"
@@ -283,7 +267,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- T9.3: Read mode (score already entered, not editing) -->
         <template v-else-if="!isEditMode(match)">
           <div class="mb-3 flex items-center gap-4">
             <span class="text-2xl font-bold text-text">
@@ -310,7 +293,6 @@ onMounted(() => {
           </div>
         </template>
 
-        <!-- Edit/Entry mode -->
         <template v-else>
           <div class="flex flex-wrap items-end gap-3">
             <div>
@@ -344,7 +326,6 @@ onMounted(() => {
               </select>
             </div>
 
-            <!-- T9.2: Save button with success feedback -->
             <div class="group relative">
               <button
                 :disabled="!isDirty(match) || saving === match.id"

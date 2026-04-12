@@ -177,6 +177,12 @@ export const nl = {
       title: "Scheidsrechters",
       deleteConfirm:
         "Weet je zeker dat je deze scheidsrechter wilt verwijderen?",
+      refsEnabledLabel: "Scheidsrechters inschakelen",
+      refsEnabledDesc:
+        "Wanneer uitgeschakeld, kunnen scheidsrechters niet inloggen en is de scorepagina niet toegankelijk voor bezoekers.",
+    },
+    scores: {
+      title: "Scores",
     },
 
     schedule: {
@@ -328,6 +334,7 @@ export const nl = {
 
   ref: {
     dashboard: "Scheidsrechter Dashboard",
+    disabled: "Scheidsrechters zijn momenteel uitgeschakeld.",
     matches: {
       title: "Wedstrijden",
       scoreEntry: "Score invoeren",

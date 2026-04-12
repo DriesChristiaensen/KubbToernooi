@@ -178,7 +178,13 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div/>
+      <!-- Row 3: Scores (always enabled) -->
+      <NuxtLink
+        to="/admin/scores"
+        class="rounded-lg border border-gray-200 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md"
+      >
+        <h2 class="text-subheading text-text">{{ nl.admin.scores.title }}</h2>
+      </NuxtLink>
 
       <!-- Row 4: Schedule -->
       <NuxtLink
