@@ -7,6 +7,8 @@ const bodySchema = z.object({
   teamBId: z.string().nullable().optional(),
   startTime: z.string().datetime().optional(),
   fieldId: z.string().optional(),
+  isByeA: z.boolean().optional(),
+  isByeB: z.boolean().optional(),
 });
 
 /**
@@ -53,11 +55,12 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (match.status === "PLAYED") {
+  // Block editing only if score is already filled in
+  if (match.scoreA !== null || match.scoreB !== null) {
     throw createApiError({
-      error: "Gespeelde wedstrijden kunnen niet worden aangepast",
+      error: "Wedstrijden met een score kunnen niet worden aangepast",
       code: "invalid_input",
-      reason: "Match already played",
+      reason: "Match already has a score",
     });
   }
 
@@ -73,7 +76,53 @@ export default defineEventHandler(async (event) => {
     updateData.fieldId = body.fieldId;
   }
 
-  const updated = await prisma.match.update({ where: { id }, data: updateData, include: { field: true, teamA: true, teamB: true } });
+  const isByeA = body.isByeA ?? false;
+  const isByeB = body.isByeB ?? false;
+  const wasBye = match.isByeA || match.isByeB;
+  const effectiveTeamAId = body.teamAId !== undefined ? body.teamAId : match.teamAId;
+  const effectiveTeamBId = body.teamBId !== undefined ? body.teamBId : match.teamBId;
+
+  updateData.isByeA = isByeA;
+  updateData.isByeB = isByeB;
+
+  if (isByeB && effectiveTeamAId) {
+    updateData.status = "PLAYED";
+  } else if (isByeA && effectiveTeamBId) {
+    updateData.status = "PLAYED";
+  } else if (wasBye && !isByeA && !isByeB) {
+    updateData.status = "SCHEDULED";
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const result = await tx.match.update({ where: { id }, data: updateData, include: { field: true, teamA: true, teamB: true } });
+
+    if (match.nextMatchId) {
+      const advancingTeamId = isByeB ? effectiveTeamAId : isByeA ? effectiveTeamBId : null;
+      if (advancingTeamId) {
+        const siblings = await tx.match.findMany({
+          where: { nextMatchId: match.nextMatchId },
+          orderBy: { id: "asc" },
+        });
+        const isFirst = siblings.length === 0 || siblings[0]?.id === id;
+        await tx.match.update({
+          where: { id: match.nextMatchId },
+          data: isFirst ? { teamAId: advancingTeamId } : { teamBId: advancingTeamId },
+        });
+      } else if (wasBye && !isByeA && !isByeB) {
+        const prevAdvancedId = match.isByeB ? match.teamAId : match.teamBId;
+        if (prevAdvancedId) {
+          const nextMatch = await tx.match.findFirst({ where: { id: match.nextMatchId } });
+          if (nextMatch?.teamAId === prevAdvancedId) {
+            await tx.match.update({ where: { id: match.nextMatchId }, data: { teamAId: null } });
+          } else if (nextMatch?.teamBId === prevAdvancedId) {
+            await tx.match.update({ where: { id: match.nextMatchId }, data: { teamBId: null } });
+          }
+        }
+      }
+    }
+
+    return result;
+  });
 
   logRequest(event, "success", `KO match ${id} adjusted`);
   return updated;

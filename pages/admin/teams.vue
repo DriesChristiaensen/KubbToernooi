@@ -22,10 +22,16 @@ const bulkError = ref("");
 const bulkSuccess = ref("");
 const bulkLoading = ref(false);
 const deleteLoading = ref<Set<string>>(new Set());
+const isLive = ref(false);
 
 async function fetchTeams() {
   try {
-    teams.value = await $fetch<Team[]>("/api/admin/teams");
+    const [teamsData, dashboard] = await Promise.all([
+      $fetch<Team[]>("/api/admin/teams"),
+      $fetch<{ isLive: boolean }>("/api/admin/dashboard"),
+    ]);
+    teams.value = teamsData;
+    isLive.value = dashboard.isLive;
   } catch {
     teams.value = [];
   } finally {
@@ -258,14 +264,14 @@ onMounted(fetchTeams);
               </button>
               <div class="group relative">
                 <button
-                  :disabled="deleteLoading.has(team.id)"
-                  class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                  :disabled="deleteLoading.has(team.id) || isLive"
+                  class="rounded bg-error px-3 py-1 text-sm text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                   @click="deleteTeam(team)"
                 >
                   {{ nl.common.delete }}
                 </button>
-                <div v-if="deleteLoading.has(team.id)" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
-                  {{ nl.common.deleting }}
+                <div class="pointer-events-none invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
+                  {{ isLive ? nl.admin.dashboardDisabled.lockedLive : nl.common.deleting }}
                 </div>
               </div>
             </div>

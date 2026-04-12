@@ -14,6 +14,7 @@ const bodySchema = z.object({
   pointsDraw: z.number().int(),
   pointsLoss: z.number().int(),
   fieldCount: z.number().int().min(1),
+  hasBKnockout: z.boolean().optional(),
 });
 
 /**
@@ -83,6 +84,7 @@ export default defineEventHandler(async (event) => {
         pointsLoss: body.pointsLoss,
         isActive: true,
         status: "DRAFT",
+        hasBKnockout: body.hasBKnockout ?? false,
       },
     });
 

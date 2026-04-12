@@ -1,4 +1,4 @@
-import { type MatchPhase, TournamentStatus } from "@prisma/client";
+import { TournamentStatus } from "@prisma/client";
 import { prisma } from "~/server/utils/prisma";
 
 /**
@@ -13,21 +13,24 @@ export default defineEventHandler(async (_event) => {
   });
 
   if (!tournament) return [];
-
-  const phases: MatchPhase[] = [];
   if (tournament.status !== TournamentStatus.LIVE) return [];
-  if (tournament.poolScheduleLive) phases.push("POOL");
-  if (tournament.koScheduleLive) phases.push("KO");
-  if (phases.length === 0) return [];
 
-  const phaseConditions: Array<{ phase: "POOL" | "KO"; teamBId?: { not: null } }> = [];
-  if (phases.includes("POOL")) phaseConditions.push({ phase: "POOL", teamBId: { not: null } });
-  if (phases.includes("KO")) phaseConditions.push({ phase: "KO" });
+  type MatchPhaseFilter =
+    | { phase: "POOL"; teamBId: { not: null } }
+    | { phase: "KO"; koBracket: string };
+
+  const phaseConditions: MatchPhaseFilter[] = [];
+  if (tournament.poolScheduleLive) phaseConditions.push({ phase: "POOL", teamBId: { not: null } });
+  if (tournament.koScheduleLive) phaseConditions.push({ phase: "KO", koBracket: "A" });
+  if (tournament.bKoScheduleLive) phaseConditions.push({ phase: "KO", koBracket: "B" });
+  if (phaseConditions.length === 0) return [];
 
   return await prisma.match.findMany({
     where: {
       tournamentId: tournament.id,
       teamAId: { not: null },
+      isByeA: false,
+      isByeB: false,
       OR: phaseConditions,
     },
     select: {
@@ -40,6 +43,7 @@ export default defineEventHandler(async (_event) => {
       scoreB: true,
       koWinnerId: true,
       bracketPosition: true,
+      koBracket: true,
       field: true,
       teamA: true,
       teamB: true,

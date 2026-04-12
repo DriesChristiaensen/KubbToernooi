@@ -51,7 +51,20 @@ const codeToStatusCode: Record<string, number> = {
   // 429 Too Many Requests
   rate_limit_exceeded: 429,
 
+  invalid_rule_group_id: 400,
+  invalid_rule_id: 400,
+  rule_group_title_empty: 400,
+  rule_text_empty: 400,
+  invalid_beverage_group_id: 400,
+  invalid_beverage_id: 400,
+  beverage_group_title_empty: 400,
+  beverage_text_empty: 400,
+
   // 404 Not Found
+  rule_group_not_found: 404,
+  rule_not_found: 404,
+  beverage_group_not_found: 404,
+  beverage_not_found: 404,
   tournament_not_found: 404,
   pool_not_found: 404,
   field_not_found: 404,

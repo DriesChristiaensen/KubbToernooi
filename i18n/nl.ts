@@ -4,6 +4,8 @@ export const nl = {
     standings: "Standen",
     admin: "Beheer",
     ref: "Scheidsrechter",
+    spelregels: "Spelregels",
+    prijslijst: "Prijslijst",
   },
 
   footer: {
@@ -57,6 +59,7 @@ export const nl = {
       needsPool: "Maak minimaal 1 poule aan",
       needsPoolType: "Alleen beschikbaar voor poule- of combinatietoernooien",
       needsKoType: "Alleen beschikbaar voor knock-out of combinatietoernooien",
+      lockedLive: "Niet mogelijk terwijl het toernooi live is",
     },
     teams: {
       title: "Teams",
@@ -102,6 +105,9 @@ export const nl = {
       typePool: "Poules",
       typeKnockout: "Knock-out",
       typeCombination: "Combinatie",
+      hasBKnockout: "B-finale toevoegen",
+      hasBKnockoutHint:
+        "Laat niet-gekwalificeerde teams een apart knock-outschema spelen",
       pointsWin: "Punten winst",
       pointsDraw: "Punten gelijkspel",
       pointsLoss: "Punten verlies",
@@ -161,12 +167,14 @@ export const nl = {
       notAvailableForType:
         "Poule-beheer is niet beschikbaar voor dit toernooitype.",
       qualifyGlobally: "Kwalificatie globaal bepalen",
-      qualifyGloballyHint: "Het totaal aantal doorstromende teams wordt ingesteld in het KO-schema",
+      qualifyGloballyHint:
+        "Het totaal aantal doorstromende teams wordt ingesteld in het KO-schema",
       teamAlreadyAssigned: "Al ingedeeld in een andere poule",
     },
     referees: {
       title: "Scheidsrechters",
-      deleteConfirm: "Weet je zeker dat je deze scheidsrechter wilt verwijderen?",
+      deleteConfirm:
+        "Weet je zeker dat je deze scheidsrechter wilt verwijderen?",
     },
 
     schedule: {
@@ -193,9 +201,13 @@ export const nl = {
       viewPerTeam: "Per team",
       viewPerSlot: "Per tijdslot",
       switchModeHint: "Klik op een andere wedstrijd om te wisselen",
+      switchEmptySlotHint:
+        "Klik op een leeg veld om de wedstrijd daarheen te verplaatsen",
       switchHighlightHint:
         "Oranje: wisselen veroorzaakt een conflict voor een van de teams",
       swapDisabledHint: "Kan niet wisselen — conflict:",
+      moveSuccess: "Wedstrijd verplaatst",
+      addTimeslot: "Tijdslot toevoegen",
       draftWarning:
         "Sommige wedstrijden zijn al begonnen of de starttijd is al verstreken. Weet je zeker dat je het schema terug naar concept wilt zetten?",
       swapSuccess: "Wedstrijden gewisseld",
@@ -231,7 +243,8 @@ export const nl = {
       fillTeams: "Teams invullen",
       fillTeamsSuccess: "Teams ingevuld",
       fillTeamsStep: "Stap 2: Teams invullen",
-      fillTeamsOverwriteWarning: "Wil je de ingedeelde teams echt overschrijven?",
+      fillTeamsOverwriteWarning:
+        "Wil je de ingedeelde teams echt overschrijven?",
       noTeamsLive: "Deel eerst teams in voordat je het KO-schema live zet",
       poolMatchesNotPlayed: "Niet alle poule matchen zijn gespeeld",
       newGenerate: "Nieuw KO-schema genereren",
@@ -249,6 +262,11 @@ export const nl = {
       statusSection: "Status",
       koScheduleLive: "KO-schema live",
       koScheduleDraft: "KO-schema concept",
+      bKoScheduleLive: "B-schema live",
+      bKoScheduleDraft: "B-schema concept",
+      bracketA: "A-bracket",
+      bracketB: "B-bracket",
+      bracketWarning: "Dit schema is nog niet live",
       editMatch: "Wedstrijd aanpassen",
       fieldLabel: "Veld",
       timeLabel: "Tijdstip",
@@ -256,6 +274,8 @@ export const nl = {
       matchSaved: "Wedstrijd opgeslagen",
       draftWarning:
         "Sommige KO-wedstrijden zijn al begonnen of de starttijd is al verstreken. Weet je zeker dat je het KO-schema terug naar concept wilt zetten?",
+      bDraftWarning:
+        "Sommige B-KO-wedstrijden zijn al begonnen of de starttijd is al verstreken. Weet je zeker dat je het B-KO-schema terug naar concept wilt zetten?",
     },
     banner: {
       tournamentLive: "Toernooi: live",
@@ -276,6 +296,29 @@ export const nl = {
       confirmPassword: "Bevestig met admin-wachtwoord",
       existingDataWarning:
         "Er zijn al gegevens aanwezig. Importeren vervangt alle bestaande data.",
+    },
+    spelregels: {
+      title: "Spelregels",
+      button: "Regels",
+      addGroup: "Regelgroep toevoegen",
+      addRule: "+ Regel toevoegen",
+      groupTitlePlaceholder: "Groepstitel...",
+      rulePlaceholder: "Regelomschrijving...",
+      deleteGroupConfirm:
+        "Deze groep bevat regels. Weet je zeker dat je de groep en alle regels wilt verwijderen?",
+      noGroups: "Nog geen regelgroepen aangemaakt.",
+    },
+    prijslijst: {
+      title: "Prijslijst",
+      button: "Prijzen",
+      addGroup: "Drankgroep toevoegen",
+      addBeverage: "+ Drank toevoegen",
+      groupTitlePlaceholder: "Groepstitel...",
+      beveragePlaceholder: "Naam...",
+      pricePlaceholder: "0.00",
+      deleteGroupConfirm:
+        "Deze groep bevat dranken. Weet je zeker dat je de groep en alle dranken wilt verwijderen?",
+      noGroups: "Nog geen drankgroepen aangemaakt.",
     },
   },
 
@@ -322,7 +365,9 @@ export const nl = {
       teamPickerTitle: "Kies een team",
       tabPool: "Poule",
       tabKo: "Knock-out",
+      tabBFinale: "B-finale",
       tabEindstand: "Eindstand",
+      tabDisabledBFinale: "B-finale is nog niet live",
       tabMatches: "Wedstrijden",
       tabStandings: "Standen",
       overallRanking: "Eindklassement",

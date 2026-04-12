@@ -5,6 +5,7 @@ import { getActiveTournament } from "~/server/utils/tournament";
 
 const bodySchema = z.object({
   overwrite: z.boolean().optional(),
+  bracket: z.enum(["A", "B"]).optional().default("A"),
   startDateTime: z
     .string()
     .refine((s) => !isNaN(new Date(s).getTime()), { message: "Invalid date" })
@@ -20,6 +21,7 @@ const bodySchema = z.object({
  * Bye teams (only teamA, no teamB) are automatically advanced to their nextMatch.
  * @param {Object} body - Request body
  * @param {boolean} [body.overwrite=false] - If true, delete existing KO matches before regenerating
+ * @param {string} [body.bracket="A"] - Which bracket to generate: "A" (main KO) or "B" (non-qualifiers)
  * @param {string} [body.startDateTime] - KO phase start date/time (ISO 8601). Defaults to tournament.startTime
  * @returns {Object} Generated match count: { generated: number }
  * @throws {400} If startDateTime invalid, or insufficient teams/standings to fill bracket
@@ -30,10 +32,21 @@ export default defineEventHandler(async (event) => {
   const raw = await readBody(event);
   const body = bodySchema.parse(raw ?? {});
   const overwrite = body.overwrite === true;
+  const bracket = body.bracket;
 
   const tournament = await getActiveTournament();
 
-  const existingCount = await prisma.match.count({ where: { phase: "KO", tournamentId: tournament.id } });
+  if (bracket === "B" && tournament.type === "KNOCKOUT") {
+    throw createApiError({
+      error: "B-bracket is niet beschikbaar voor zuiver knock-out toernooien",
+      code: "b_bracket_not_applicable",
+      reason: "B bracket only applicable to COMBINATION/POOLS tournaments",
+    });
+  }
+
+  const existingCount = await prisma.match.count({
+    where: { phase: "KO", tournamentId: tournament.id, koBracket: bracket },
+  });
   if (existingCount > 0 && !overwrite) {
     throw createApiError({
       error: "Er is al een KO-schema. Gebruik overwrite om te vervangen.",
@@ -80,10 +93,20 @@ export default defineEventHandler(async (event) => {
       });
     }
 
+    let aParticipantCount: number;
     if (tournament.qualifyGlobally) {
-      participantCount = tournament.globalQualifyingTeams;
+      aParticipantCount = tournament.globalQualifyingTeams;
     } else {
-      participantCount = pools.reduce((sum, pool) => sum + pool.teamsAdvancing, 0);
+      aParticipantCount = pools.reduce((sum, pool) => sum + pool.teamsAdvancing, 0);
+    }
+
+    if (bracket === "B") {
+      const poolTeamCount = await prisma.poolTeam.count({
+        where: { pool: { tournamentId: tournament.id } },
+      });
+      participantCount = poolTeamCount - aParticipantCount;
+    } else {
+      participantCount = aParticipantCount;
     }
 
     if (participantCount < 2) {
@@ -104,12 +127,24 @@ export default defineEventHandler(async (event) => {
     : new Date(tournament.startTime);
   const slotMs = (tournament.matchDuration + tournament.breakTime) * 60 * 1000;
 
+  // Precompute cumulative slot offset for each round so later rounds start after earlier ones
+  const roundSlotOffsets = new Map<number, number>();
+  let cumulativeSlots = 0;
+  for (let r = 1; r <= totalRounds; r++) {
+    roundSlotOffsets.set(r, cumulativeSlots);
+    const matchesInRound = Math.ceil(round1Count / Math.pow(2, r - 1));
+    const slotsInRound = Math.ceil(matchesInRound / fields.length);
+    cumulativeSlots += slotsInRound;
+  }
+
   let totalCreated = 0;
 
   await prisma.$transaction(async (tx) => {
-    // Atomically delete old KO matches and create new bracket
+    // Atomically delete old bracket matches and create new bracket
     if (existingCount > 0) {
-      await tx.match.deleteMany({ where: { phase: "KO", tournamentId: tournament.id } });
+      await tx.match.deleteMany({
+        where: { phase: "KO", tournamentId: tournament.id, koBracket: bracket },
+      });
     }
 
     const roundMatchIds = new Map<number, string[]>();
@@ -118,6 +153,8 @@ export default defineEventHandler(async (event) => {
       const matchesInRound = Math.ceil(round1Count / Math.pow(2, r - 1));
       const nextRoundIds = roundMatchIds.get(r + 1) ?? [];
       const createdIds: string[] = [];
+
+      const roundOffset = roundSlotOffsets.get(r)!;
 
       for (let i = 0; i < matchesInRound; i++) {
         const nextMatchId =
@@ -135,9 +172,10 @@ export default defineEventHandler(async (event) => {
             teamAId: null,
             teamBId: null,
             poolId: null,
-            startTime: new Date(matchStartTime.getTime() + slotOffset * slotMs),
+            startTime: new Date(matchStartTime.getTime() + (roundOffset + slotOffset) * slotMs),
             status: "SCHEDULED",
             bracketPosition: i,
+            koBracket: bracket,
             ...(nextMatchId !== null ? { nextMatchId } : {}),
           },
         });
@@ -151,6 +189,6 @@ export default defineEventHandler(async (event) => {
   });
 
   setResponseStatus(event, 201);
-  logRequest(event, "success", `Generated ${totalCreated} KO match slots`);
+  logRequest(event, "success", `Generated ${totalCreated} KO match slots (bracket ${bracket})`);
   return { generated: totalCreated };
 });

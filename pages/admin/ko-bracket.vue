@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import { nlBE } from "date-fns/locale";
 import { nl } from "~/i18n/nl";
@@ -18,6 +18,8 @@ interface Tournament {
   type: string;
   status: string;
   koScheduleLive: boolean;
+  bKoScheduleLive: boolean;
+  hasBKnockout: boolean;
   qualifyGlobally: boolean;
   globalQualifyingTeams: number;
 }
@@ -36,6 +38,8 @@ interface KoMatch {
   nextMatchId: string | null;
   bracketPosition: number | null;
   field: { id: string; name: string };
+  isByeA: boolean;
+  isByeB: boolean;
 }
 
 const matches = ref<KoMatch[]>([]);
@@ -66,6 +70,9 @@ const rankedTournamentTeams = ref<Team[]>([]);
 const allTeams = ref<Team[]>([]);
 const allPoolMatchesPlayed = ref(true);
 
+// Active bracket: "A" = main KO, "B" = B-finale
+const activeBracket = ref<"A" | "B">("A");
+
 interface Field {
   id: string;
   name: string;
@@ -86,6 +93,15 @@ const hasTeams = computed(() =>
   matches.value.some((m) => m.teamAId !== null || m.teamBId !== null),
 );
 
+const activeBracketIsLive = computed(() => {
+  if (!tournament.value) return false;
+  return activeBracket.value === "A" ? tournament.value.koScheduleLive : tournament.value.bKoScheduleLive;
+});
+
+const showBracketSwitcher = computed(
+  () => tournament.value?.hasBKnockout && tournament.value.type === "COMBINATION",
+);
+
 function getRoundLabel(matchCount: number): string {
   const labels = nl.admin.koBracket.roundLabels;
   if (matchCount === 1) return labels.final;
@@ -98,7 +114,9 @@ function getRoundLabel(matchCount: number): string {
 
 async function fetchMatches() {
   try {
-    matches.value = await $fetch<KoMatch[]>("/api/admin/ko-bracket/matches");
+    matches.value = await $fetch<KoMatch[]>(
+      `/api/admin/ko-bracket/matches?bracket=${activeBracket.value}`,
+    );
   } catch {
     matches.value = [];
   }
@@ -127,6 +145,7 @@ async function generate(overwrite = false) {
         method: "POST",
         body: {
           overwrite,
+          bracket: activeBracket.value,
           startDateTime: generateStartDateTime.value.toISOString(),
         },
       },
@@ -164,7 +183,10 @@ async function fillTeams() {
   fillTeamsSuccess.value = "";
   fillTeamsLoading.value = true;
   try {
-    await $fetch("/api/admin/ko-bracket/fill-teams", { method: "POST" });
+    await $fetch("/api/admin/ko-bracket/fill-teams", {
+      method: "POST",
+      body: { bracket: activeBracket.value },
+    });
     fillTeamsSuccess.value = nl.admin.koBracket.fillTeamsSuccess;
     await fetchMatches();
   } catch (err: unknown) {
@@ -180,8 +202,8 @@ function startEdit(match: KoMatch) {
   editMatchId.value = match.id;
   editStartTime.value = new Date(match.startTime);
   editFieldId.value = match.field.id;
-  editTeamAId.value = match.teamAId ?? "";
-  editTeamBId.value = match.teamBId ?? "";
+  editTeamAId.value = match.isByeA ? "BYE" : (match.teamAId ?? "");
+  editTeamBId.value = match.isByeB ? "BYE" : (match.teamBId ?? "");
   editError.value = "";
   editSuccess.value = "";
 }
@@ -191,13 +213,17 @@ async function saveEdit() {
   editError.value = "";
   editSaving.value = true;
   try {
+    const isByeA = editTeamAId.value === "BYE";
+    const isByeB = editTeamBId.value === "BYE";
     await $fetch(`/api/admin/ko-bracket/matches/${editMatchId.value}`, {
       method: "PATCH",
       body: {
         startTime: editStartTime.value?.toISOString(),
         fieldId: editFieldId.value || undefined,
-        teamAId: editTeamAId.value || null,
-        teamBId: editTeamBId.value || null,
+        teamAId: isByeA ? null : (editTeamAId.value || null),
+        teamBId: isByeB ? null : (editTeamBId.value || null),
+        isByeA,
+        isByeB,
       },
     });
     editSuccess.value = nl.admin.koBracket.matchSaved;
@@ -214,7 +240,9 @@ async function saveEdit() {
 
 async function toggleKoPhase() {
   if (!tournament.value) return;
-  const newVal = !tournament.value.koScheduleLive;
+  const isB = activeBracket.value === "B";
+  const currentLive = isB ? tournament.value.bKoScheduleLive : tournament.value.koScheduleLive;
+  const newVal = !currentLive;
   if (newVal && !hasTeams.value) {
     phaseToggleError.value = nl.admin.koBracket.noTeamsLive;
     return;
@@ -237,14 +265,19 @@ async function toggleKoPhase() {
 
 async function executeDraftToggle(newVal: boolean) {
   if (!tournament.value) return;
+  const isB = activeBracket.value === "B";
   phaseToggleError.value = "";
   phaseToggleLoading.value = true;
   try {
     await $fetch("/api/admin/tournament", {
       method: "PATCH",
-      body: { koScheduleLive: newVal },
+      body: isB ? { bKoScheduleLive: newVal } : { koScheduleLive: newVal },
     });
-    tournament.value.koScheduleLive = newVal;
+    if (isB) {
+      tournament.value.bKoScheduleLive = newVal;
+    } else {
+      tournament.value.koScheduleLive = newVal;
+    }
     await refreshNuxtData("admin-status-banner");
   } catch (err: unknown) {
     const fetchErr = err as { data?: { data?: { error?: string } } };
@@ -323,6 +356,18 @@ function spanCount(r: number): number {
 const swapNonKoTeams = computed(() => {
   const rankedIds = new Set(rankedTournamentTeams.value.map((t) => t.id));
   return allTeams.value.filter((t) => !rankedIds.has(t.id));
+});
+
+// Reset bracket-specific state when switching brackets
+watch(activeBracket, async () => {
+  generateError.value = "";
+  generateSuccess.value = "";
+  fillTeamsError.value = "";
+  fillTeamsSuccess.value = "";
+  phaseToggleError.value = "";
+  showOverwrite.value = false;
+  showFillTeamsConfirm.value = false;
+  await fetchMatches();
 });
 
 onMounted(async () => {
@@ -412,7 +457,9 @@ onMounted(async () => {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
     >
       <div class="mx-4 max-w-md rounded-lg bg-surface p-6 shadow-xl">
-        <p class="mb-4 text-text">{{ nl.admin.koBracket.draftWarning }}</p>
+        <p class="mb-4 text-text">
+          {{ activeBracket === "B" ? nl.admin.koBracket.bDraftWarning : nl.admin.koBracket.draftWarning }}
+        </p>
         <div class="flex gap-3">
           <button
             class="rounded bg-error px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
@@ -467,7 +514,8 @@ onMounted(async () => {
               class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
             >
               <option value="">{{ nl.admin.koBracket.tbd }}</option>
-              <template v-if="tournamentType === 'KO'">
+              <option value="BYE">{{ nl.admin.koBracket.bye }}</option>
+              <template v-if="tournamentType === 'KO' || activeBracket === 'B'">
                 <option v-for="team in allTeams" :key="team.id" :value="team.id">{{ team.name }}</option>
               </template>
               <template v-else>
@@ -487,7 +535,8 @@ onMounted(async () => {
               class="w-full rounded border border-gray-300 px-3 py-2 text-text focus:border-primary focus:outline-none"
             >
               <option value="">{{ nl.admin.koBracket.tbd }}</option>
-              <template v-if="tournamentType === 'KO'">
+              <option value="BYE">{{ nl.admin.koBracket.bye }}</option>
+              <template v-if="tournamentType === 'KO' || activeBracket === 'B'">
                 <option v-for="team in allTeams" :key="team.id" :value="team.id">{{ team.name }}</option>
               </template>
               <template v-else>
@@ -533,6 +582,40 @@ onMounted(async () => {
       </h1>
     </div>
 
+    <!-- Bracket switcher button group -->
+    <div v-if="showBracketSwitcher" class="mb-6 inline-flex overflow-hidden rounded border border-gray-300">
+      <div class="group relative">
+        <button
+          :class="activeBracket === 'A' ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50'"
+          class="flex items-center gap-1.5 border-r border-gray-300 px-4 py-2 text-sm font-medium"
+          @click="activeBracket = 'A'"
+        >
+          {{ nl.admin.koBracket.bracketA }}
+          <!-- Warning: B is live but A is not -->
+          <span
+            v-if="tournament?.bKoScheduleLive && !tournament?.koScheduleLive"
+            class="text-warning"
+            title="{{ nl.admin.koBracket.bracketWarning }}"
+          >⚠</span>
+        </button>
+      </div>
+      <div class="group relative">
+        <button
+          :class="activeBracket === 'B' ? 'bg-primary text-white' : 'bg-white text-text hover:bg-gray-50'"
+          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium"
+          @click="activeBracket = 'B'"
+        >
+          {{ nl.admin.koBracket.bracketB }}
+          <!-- Warning: A is live but B is not -->
+          <span
+            v-if="tournament?.koScheduleLive && !tournament?.bKoScheduleLive"
+            class="text-warning"
+            title="{{ nl.admin.koBracket.bracketWarning }}"
+          >⚠</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Step 1: Generate structure -->
     <div
       class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
@@ -540,8 +623,8 @@ onMounted(async () => {
       <h2 class="mb-3 font-semibold text-text">
         {{ nl.admin.koBracket.generateStep }}
       </h2>
-      <!-- Global qualifying teams (only for COMBINATION + qualifyGlobally) -->
-      <div v-if="tournament?.qualifyGlobally && tournamentType === 'COMBINATION'" class="mb-4">
+      <!-- Global qualifying teams (only for COMBINATION + qualifyGlobally + A bracket) -->
+      <div v-if="tournament?.qualifyGlobally && tournamentType === 'COMBINATION' && activeBracket === 'A'" class="mb-4">
         <label class="mb-1 block text-sm font-medium text-text">
           {{ nl.admin.koBracket.globalQualifyingTeams }}
         </label>
@@ -656,7 +739,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Publish KO bracket -->
+    <!-- Publish bracket -->
     <div
       v-if="tournament && hasStructure"
       class="mb-6 rounded-lg border border-gray-200 bg-surface p-4 shadow-sm"
@@ -667,15 +750,16 @@ onMounted(async () => {
       <div class="group relative inline-block">
         <button
           :disabled="phaseToggleLoading || tournament.status === 'DRAFT'"
-          :class="tournament.koScheduleLive ? 'bg-success' : 'bg-warning'"
+          :class="activeBracketIsLive ? 'bg-success' : 'bg-warning'"
           class="rounded px-4 py-2 text-sm font-medium text-white hover:opacity-80 disabled:opacity-50"
           @click="toggleKoPhase"
         >
-          {{
-            tournament.koScheduleLive
-              ? nl.admin.koBracket.koScheduleLive
-              : nl.admin.koBracket.koScheduleDraft
-          }}
+          <template v-if="activeBracket === 'A'">
+            {{ activeBracketIsLive ? nl.admin.koBracket.koScheduleLive : nl.admin.koBracket.koScheduleDraft }}
+          </template>
+          <template v-else>
+            {{ activeBracketIsLive ? nl.admin.koBracket.bKoScheduleLive : nl.admin.koBracket.bKoScheduleDraft }}
+          </template>
         </button>
         <div v-if="phaseToggleLoading || tournament.status === 'DRAFT'" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
           {{ phaseToggleLoading ? nl.common.submitting : nl.common.draftTooltip }}
@@ -705,47 +789,49 @@ onMounted(async () => {
           <template v-for="idx in matchCount(r)" :key="`r${r}-m${idx}`">
             <div
               :style="{ gridRow: r, gridColumn: `span ${spanCount(r)}` }"
-              class="flex flex-col rounded border border-gray-200 bg-background p-3"
+              :class="getMatch(r, idx)?.scoreA !== null && getMatch(r, idx)?.scoreB !== null ? 'bg-primary text-white' : 'bg-background'"
+              class="flex flex-col rounded border border-gray-200 p-3"
             >
-              <div class="mb-2 text-xs font-semibold text-primary">
+              <div :class="getMatch(r, idx)?.scoreA !== null && getMatch(r, idx)?.scoreB !== null ? 'text-white/80' : 'text-primary'" class="mb-2 text-xs font-semibold">
                 {{ getRoundLabel(matchCount(r)) }}
               </div>
               <template v-if="getMatch(r, idx)">
-                <span class="text-sm font-medium text-text">
-                  {{ getMatch(r, idx)!.teamA?.name ?? nl.admin.koBracket.tbd }}
-                </span>
-                <template
-                  v-if="
-                    getMatch(r, idx)!.teamAId !== null &&
-                    getMatch(r, idx)!.teamBId === null
-                  "
-                >
-                  <span
-                    class="my-1 rounded bg-primary/10 px-2 py-0.5 text-center text-xs font-medium text-primary"
-                  >
-                    {{ r === 1 ? nl.admin.koBracket.bye : nl.admin.koBracket.waitingForOpponent }}
+                <template v-if="getMatch(r, idx)!.isByeB">
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white' : 'text-text'" class="text-sm font-medium">
+                    {{ getMatch(r, idx)!.teamA?.name ?? nl.admin.koBracket.tbd }}
+                  </span>
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'" class="my-1 rounded px-2 py-0.5 text-center text-xs font-medium">
+                    {{ nl.admin.koBracket.bye }}
+                  </span>
+                </template>
+                <template v-else-if="getMatch(r, idx)!.isByeA">
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'" class="my-1 rounded px-2 py-0.5 text-center text-xs font-medium">
+                    {{ nl.admin.koBracket.bye }}
+                  </span>
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white' : 'text-text'" class="text-sm font-medium">
+                    {{ getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd }}
                   </span>
                 </template>
                 <template v-else>
-                  <span class="my-1 text-center text-xs text-text-light"
-                    >vs</span
-                  >
-                  <span class="text-sm font-medium text-text">
-                    {{
-                      getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd
-                    }}
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white' : 'text-text'" class="text-sm font-medium">
+                    {{ getMatch(r, idx)!.teamA?.name ?? nl.admin.koBracket.tbd }}
+                  </span>
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white/60' : 'text-text-light'" class="my-1 text-center text-xs">vs</span>
+                  <span :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white' : 'text-text'" class="text-sm font-medium">
+                    {{ getMatch(r, idx)!.teamB?.name ?? nl.admin.koBracket.tbd }}
                   </span>
                 </template>
-                <div class="mt-2 text-xs text-text-light">
+                <div :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white/70' : 'text-text-light'" class="mt-2 text-xs">
                   {{ getMatch(r, idx)!.field.name }}
                 </div>
-                <div class="mt-1 text-xs text-text-light">
+                <div :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white/70' : 'text-text-light'" class="mt-1 text-xs">
                   {{ new Date(getMatch(r, idx)!.startTime).toLocaleString("nl-BE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) }}
                 </div>
                 <div class="mt-1 text-right">
                   <button
-                    v-if="getMatch(r, idx)!.status !== 'PLAYED'"
-                    class="text-xs text-primary hover:underline"
+                    v-if="getMatch(r, idx)!.scoreA === null && getMatch(r, idx)!.scoreB === null"
+                    :class="getMatch(r, idx)!.scoreA !== null && getMatch(r, idx)!.scoreB !== null ? 'text-white/80 hover:text-white' : 'text-primary hover:underline'"
+                    class="text-xs"
                     @click="startEdit(getMatch(r, idx)!)"
                   >
                     {{ nl.admin.koBracket.editMatch }}

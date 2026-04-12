@@ -60,6 +60,8 @@ model Tournament {
   pointsLoss       Int              @default(0)
   poolScheduleLive      Boolean          @default(false)
   koScheduleLive        Boolean          @default(false)
+  bKoScheduleLive       Boolean          @default(false)
+  hasBKnockout          Boolean          @default(false)
   qualifyGlobally       Boolean          @default(true)
   globalQualifyingTeams Int              @default(8)
   createdAt             DateTime         @default(now())
@@ -144,6 +146,9 @@ model Match {
   koWinnerId      String?
   nextMatchId     String?
   bracketPosition Int?
+  koBracket       String  @default("A")
+  isByeA          Boolean @default(false)
+  isByeB          Boolean @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -161,6 +166,53 @@ model Match {
   @@index([fieldId])
   @@index([startTime])
   @@index([poolId, status])
+}
+
+model RuleGroup {
+  id          String   @id @default(uuid())
+  orderNumber Int      @unique
+  title       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rules Rule[]
+}
+
+model Rule {
+  id           String    @id @default(uuid())
+  orderNumber  Int
+  text         String
+  ruleGroupId  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  ruleGroup RuleGroup @relation(fields: [ruleGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleGroupId, orderNumber])
+}
+
+model BeverageGroup {
+  id          String     @id @default(uuid())
+  orderNumber Int        @unique
+  title       String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  beverages Beverage[]
+}
+
+model Beverage {
+  id              String        @id @default(uuid())
+  orderNumber     Int
+  text            String
+  price           Float
+  beverageGroupId String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  beverageGroup BeverageGroup @relation(fields: [beverageGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([beverageGroupId, orderNumber])
 }
 
 model Standing {
