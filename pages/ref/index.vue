@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { nl } from "~/i18n/nl";
+import { useAuth } from "~/composables/useAuth";
 
 definePageMeta({ middleware: "auth", layout: "ref" });
 
@@ -8,7 +9,13 @@ const { data: refsStatus } = await useAsyncData("refs-status", () =>
   $fetch<{ refsEnabled: boolean }>("/api/public/refs-status"),
 );
 if (!refsStatus.value?.refsEnabled) {
-  await navigateTo("/ref/login");
+  const { user } = useUserSession();
+  if (user.value?.role === "REFEREE") {
+    const { logout } = useAuth();
+    await logout();
+  } else {
+    await navigateTo("/ref/login");
+  }
 }
 
 interface MatchTeam {
