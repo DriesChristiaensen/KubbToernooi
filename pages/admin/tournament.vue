@@ -17,6 +17,9 @@ interface Tournament {
   pointsWin: number;
   pointsDraw: number;
   pointsLoss: number;
+  poolScheduleLive: boolean;
+  koScheduleLive: boolean;
+  bKoScheduleLive: boolean;
 }
 
 interface InactiveTournament {
@@ -70,6 +73,22 @@ const typeOptions = [
 const breakTimeValid = computed(() =>
   Number.isInteger(form.value.breakTime) && form.value.breakTime >= 0,
 );
+
+// Unpublishing is only allowed when no schedule or bracket is still live
+const canUnpublish = computed(() =>
+  !tournament.value?.poolScheduleLive &&
+  !tournament.value?.koScheduleLive &&
+  !tournament.value?.bKoScheduleLive,
+);
+
+const unpublishBlockedReason = computed(() => {
+  if (!tournament.value) return "";
+  const live: string[] = [];
+  if (tournament.value.poolScheduleLive) live.push("poolschema");
+  if (tournament.value.koScheduleLive) live.push("KO-schema");
+  if (tournament.value.bKoScheduleLive) live.push("B-finale schema");
+  return `Zet eerst het ${live.join(", ")} offline voor je het toernooi ongepubliceerd.`;
+});
 
 const step1Valid = computed(() =>
   form.value.name.trim().length > 0
@@ -487,15 +506,18 @@ onMounted(async () => {
         <div class="flex flex-wrap gap-2">
           <div class="group relative">
             <button
-              :disabled="publishLoading"
+              :disabled="publishLoading || (tournament.status === 'LIVE' && !canUnpublish)"
               :class="tournament.status === 'LIVE' ? 'bg-secondary' : 'bg-success'"
-              class="rounded px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50"
+              class="rounded px-4 py-2 font-medium text-white hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
               @click="togglePublish"
             >
               {{ tournament.status === 'LIVE' ? nl.admin.tournament.unpublish : nl.admin.tournament.publish }}
             </button>
-            <div v-if="publishLoading" class="invisible absolute bottom-full left-1/2 z-10 mb-1 w-max max-w-xs -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:visible">
-              {{ nl.common.submitting }}
+            <div
+              v-if="publishLoading || (tournament.status === 'LIVE' && !canUnpublish)"
+              class="invisible absolute bottom-full left-1/2 z-10 mb-2 w-64 -translate-x-1/2 rounded bg-gray-800 px-3 py-2 text-xs text-white group-hover:visible"
+            >
+              {{ publishLoading ? nl.common.submitting : unpublishBlockedReason }}
             </div>
           </div>
           <button
