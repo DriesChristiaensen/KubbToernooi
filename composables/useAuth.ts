@@ -37,7 +37,12 @@ export function useAuth() {
     catch {
       // navigate regardless of fetch outcome
     }
-    await fetchSession()
+    // fetchSession uses useRequestFetch → useNuxtApp, which is unavailable
+    // after an async boundary on SSR. On SSR we're navigating away anyway and
+    // the cleared cookie is sufficient; only refresh state on the client.
+    if (import.meta.client) {
+      await fetchSession()
+    }
     await navigateTo(isAdmin ? '/admin/admin-login' : '/ref/login')
   }
 

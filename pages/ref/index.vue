@@ -5,7 +5,6 @@ import { useAuth } from "~/composables/useAuth";
 
 definePageMeta({ middleware: "auth", layout: "ref" });
 
-const nuxtApp = useNuxtApp();
 const { user } = useUserSession();
 const { logout } = useAuth();
 
@@ -14,7 +13,7 @@ const { data: refsStatus } = await useAsyncData("refs-status", () =>
 );
 if (!refsStatus.value?.refsEnabled) {
   if (user.value?.role === "REFEREE") {
-    await nuxtApp.runWithContext(() => logout());
+    await logout();
   } else {
     await navigateTo("/ref/login");
   }
