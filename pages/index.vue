@@ -446,6 +446,7 @@ const bKoFinalMatch = computed(() => {
       {{ s.title }}
     </h2>
 
+    <div class="pl-4">
     <p v-if="isLoading" class="text-text-light">{{ nl.common.loading }}</p>
 
     <template v-else>
@@ -1337,6 +1338,7 @@ const bKoFinalMatch = computed(() => {
         ><!-- end currentTabScheduleIsLive v-else --> </template
       ><!-- end tournamentType v-else --> </template
     ><!-- end isLoading v-else -->
+    </div><!-- end pl-4 content wrapper -->
 
     <!-- Team picker modal -->
     <div
