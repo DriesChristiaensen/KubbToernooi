@@ -26,17 +26,23 @@ const groups = ref<BeverageGroupItem[]>([]);
 const isLoading = ref(true);
 const globalError = ref("");
 
-const activeHandle = ref<string | null>(null);
-
-const draggingGroupId = ref<string | null>(null);
-const dragOverGroupId = ref<string | null>(null);
-
-const draggingBeverageId = ref<string | null>(null);
-const draggingBeverageGroupId = ref<string | null>(null);
-const dragOverBeverageId = ref<string | null>(null);
-
 const confirmDeleteGroup = ref<BeverageGroupItem | null>(null);
 const focusId = ref<string | null>(null);
+
+// ─── Drag state ───────────────────────────────────────────────────────────────
+const draggingId = ref<string | null>(null);
+const draggingType = ref<"group" | "beverage" | null>(null);
+const draggingBeverageGroupId = ref<string | null>(null);
+const overGroupId = ref<string | null>(null);
+const overBeverageId = ref<string | null>(null);
+const holdId = ref<string | null>(null);
+
+let activePointerId: number | null = null;
+let holdTimer: ReturnType<typeof setTimeout> | null = null;
+let startX = 0;
+let startY = 0;
+const LONG_PRESS_MS = 350;
+const CANCEL_THRESHOLD_PX = 8;
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -52,16 +58,17 @@ async function fetchGroups() {
 
 onMounted(() => {
   fetchGroups();
-  document.addEventListener("mouseup", onGlobalMouseUp);
+  document.addEventListener("pointermove", onDocPointerMove);
+  document.addEventListener("pointerup", onDocPointerUp);
+  document.addEventListener("pointercancel", finalizeDrag);
 });
 
 onUnmounted(() => {
-  document.removeEventListener("mouseup", onGlobalMouseUp);
+  document.removeEventListener("pointermove", onDocPointerMove);
+  document.removeEventListener("pointerup", onDocPointerUp);
+  document.removeEventListener("pointercancel", finalizeDrag);
+  if (holdTimer) clearTimeout(holdTimer);
 });
-
-function onGlobalMouseUp() {
-  activeHandle.value = null;
-}
 
 // ─── Groups ───────────────────────────────────────────────────────────────────
 
@@ -149,38 +156,125 @@ async function deleteBeverage(beverage: BeverageItem, group: BeverageGroupItem) 
   }
 }
 
-// ─── Drag & drop: groups ──────────────────────────────────────────────────────
+// ─── Drag & drop (pointer events, works on mouse + touch) ─────────────────────
 
-function onGroupDragStart(group: BeverageGroupItem, event: DragEvent) {
-  if (activeHandle.value !== `group-handle-${group.id}`) {
-    event.preventDefault();
+function onGroupHandlePointerDown(group: BeverageGroupItem, event: PointerEvent) {
+  event.stopPropagation();
+  activePointerId = event.pointerId;
+  startX = event.clientX;
+  startY = event.clientY;
+  holdId.value = `group-${group.id}`;
+  holdTimer = setTimeout(() => {
+    holdTimer = null;
+    draggingId.value = group.id;
+    draggingType.value = "group";
+  }, LONG_PRESS_MS);
+}
+
+function onBeverageHandlePointerDown(beverage: BeverageItem, group: BeverageGroupItem, event: PointerEvent) {
+  event.stopPropagation();
+  activePointerId = event.pointerId;
+  startX = event.clientX;
+  startY = event.clientY;
+  holdId.value = `beverage-${beverage.id}`;
+  holdTimer = setTimeout(() => {
+    holdTimer = null;
+    draggingId.value = beverage.id;
+    draggingType.value = "beverage";
+    draggingBeverageGroupId.value = group.id;
+  }, LONG_PRESS_MS);
+}
+
+function onDocPointerMove(event: PointerEvent) {
+  if (event.pointerId !== activePointerId) return;
+
+  if (!draggingId.value) {
+    if (Math.hypot(event.clientX - startX, event.clientY - startY) > CANCEL_THRESHOLD_PX) {
+      cancelHold();
+    }
     return;
   }
-  draggingGroupId.value = group.id;
-  if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+
+  const els = document.elementsFromPoint(event.clientX, event.clientY) as HTMLElement[];
+
+  if (draggingType.value === "group") {
+    for (const el of els) {
+      const gid = el.dataset.groupId;
+      if (!gid || gid === draggingId.value) continue;
+      const fromIdx = groups.value.findIndex((g) => g.id === draggingId.value);
+      const toIdx = groups.value.findIndex((g) => g.id === gid);
+      if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) break;
+      const rect = el.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      const movingDown = fromIdx < toIdx;
+      if ((movingDown && event.clientY > mid) || (!movingDown && event.clientY < mid)) {
+        overGroupId.value = gid;
+        const arr = [...groups.value];
+        const [moved] = arr.splice(fromIdx, 1);
+        arr.splice(toIdx, 0, moved);
+        groups.value = arr;
+      }
+      break;
+    }
+  } else if (draggingType.value === "beverage") {
+    for (const el of els) {
+      const bid = el.dataset.beverageId;
+      const bgid = el.dataset.beverageGroupId;
+      if (!bid || bid === draggingId.value || bgid !== draggingBeverageGroupId.value) continue;
+      const group = groups.value.find((g) => g.id === draggingBeverageGroupId.value);
+      if (!group) break;
+      const fromIdx = group.beverages.findIndex((b) => b.id === draggingId.value);
+      const toIdx = group.beverages.findIndex((b) => b.id === bid);
+      if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) break;
+      const rect = el.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      const movingDown = fromIdx < toIdx;
+      if ((movingDown && event.clientY > mid) || (!movingDown && event.clientY < mid)) {
+        overBeverageId.value = bid;
+        const arr = [...group.beverages];
+        const [moved] = arr.splice(fromIdx, 1);
+        arr.splice(toIdx, 0, moved);
+        group.beverages = arr;
+      }
+      break;
+    }
+  }
 }
 
-function onGroupDragOver(group: BeverageGroupItem) {
-  if (!draggingGroupId.value) return;
-  dragOverGroupId.value = group.id;
+function onDocPointerUp(event: PointerEvent) {
+  if (event.pointerId !== activePointerId) return;
+  finalizeDrag();
 }
 
-function onGroupDrop(targetGroup: BeverageGroupItem) {
-  const fromId = draggingGroupId.value;
-  if (!fromId || fromId === targetGroup.id) return;
-
-  const fromIdx = groups.value.findIndex((g) => g.id === fromId);
-  const toIdx = groups.value.findIndex((g) => g.id === targetGroup.id);
-  const [item] = groups.value.splice(fromIdx, 1);
-  groups.value.splice(toIdx, 0, item);
-
-  reorderGroupsApi();
+function finalizeDrag() {
+  if (holdTimer) {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+  }
+  if (draggingId.value) {
+    if (draggingType.value === "group") {
+      reorderGroupsApi();
+    } else if (draggingType.value === "beverage") {
+      const group = groups.value.find((g) => g.id === draggingBeverageGroupId.value);
+      if (group) reorderBeveragesApi(group);
+    }
+  }
+  draggingId.value = null;
+  draggingType.value = null;
+  draggingBeverageGroupId.value = null;
+  overGroupId.value = null;
+  overBeverageId.value = null;
+  holdId.value = null;
+  activePointerId = null;
 }
 
-function onGroupDragEnd() {
-  draggingGroupId.value = null;
-  dragOverGroupId.value = null;
-  activeHandle.value = null;
+function cancelHold() {
+  if (holdTimer) {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+  }
+  holdId.value = null;
+  activePointerId = null;
 }
 
 async function reorderGroupsApi() {
@@ -192,44 +286,6 @@ async function reorderGroupsApi() {
   } catch {
     await fetchGroups();
   }
-}
-
-// ─── Drag & drop: beverages ───────────────────────────────────────────────────
-
-function onBeverageDragStart(beverage: BeverageItem, group: BeverageGroupItem, event: DragEvent) {
-  if (activeHandle.value !== `beverage-handle-${beverage.id}`) {
-    event.preventDefault();
-    return;
-  }
-  draggingBeverageId.value = beverage.id;
-  draggingBeverageGroupId.value = group.id;
-  if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
-}
-
-function onBeverageDragOver(beverage: BeverageItem) {
-  if (!draggingBeverageId.value) return;
-  dragOverBeverageId.value = beverage.id;
-}
-
-function onBeverageDrop(targetBeverage: BeverageItem, group: BeverageGroupItem) {
-  const fromId = draggingBeverageId.value;
-  const fromGroupId = draggingBeverageGroupId.value;
-  if (!fromId || fromId === targetBeverage.id || fromGroupId !== group.id) return;
-
-  const fromIdx = group.beverages.findIndex((b) => b.id === fromId);
-  const toIdx = group.beverages.findIndex((b) => b.id === targetBeverage.id);
-  const [item] = group.beverages.splice(fromIdx, 1);
-  group.beverages.splice(toIdx, 0, item);
-
-  reorderBeveragesApi(group);
-}
-
-function onBeverageDragEnd(group: BeverageGroupItem) {
-  draggingBeverageId.value = null;
-  draggingBeverageGroupId.value = null;
-  dragOverBeverageId.value = null;
-  activeHandle.value = null;
-  reorderBeveragesApi(group);
 }
 
 async function reorderBeveragesApi(group: BeverageGroupItem) {
@@ -285,24 +341,29 @@ async function reorderBeveragesApi(group: BeverageGroupItem) {
       <div
         v-for="group in groups"
         :key="group.id"
-        :draggable="activeHandle === `group-handle-${group.id}`"
+        :data-group-id="group.id"
         class="rounded-lg border border-gray-300 bg-secondary-light p-4 transition-shadow"
         :class="{
-          'ring-2 ring-primary ring-offset-1': dragOverGroupId === group.id && draggingGroupId !== group.id,
-          'opacity-50': draggingGroupId === group.id,
+          'ring-2 ring-primary ring-offset-1': overGroupId === group.id && draggingType === 'group' && draggingId !== group.id,
+          'opacity-50 shadow-lg': draggingId === group.id,
         }"
-        @dragstart="onGroupDragStart(group, $event)"
-        @dragover.prevent="onGroupDragOver(group)"
-        @dragleave="dragOverGroupId = null"
-        @drop.prevent="onGroupDrop(group)"
-        @dragend="onGroupDragEnd"
       >
         <!-- Group header row -->
         <div class="mb-3 flex items-center gap-2">
           <div
-            class="shrink-0 cursor-grab select-none text-gray-400 hover:text-gray-600 active:cursor-grabbing"
-            @mousedown.stop="activeHandle = `group-handle-${group.id}`"
+            class="relative flex shrink-0 cursor-grab select-none touch-none items-center justify-center w-[22px] h-[22px]"
+            :class="holdId === `group-${group.id}` ? 'text-primary' : 'text-gray-400 hover:text-gray-600'"
+            :title="nl.common.dragHint ?? 'Vasthouden om te verslepen'"
+            @pointerdown.stop="onGroupHandlePointerDown(group, $event)"
           >
+            <svg
+              v-if="holdId === `group-${group.id}`"
+              class="absolute inset-0 -rotate-90"
+              width="22" height="22" viewBox="0 0 22 22"
+              fill="none" aria-hidden="true"
+            >
+              <circle class="hold-ring" cx="11" cy="11" r="9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="56.55" stroke-dashoffset="56.55" />
+            </svg>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <circle cx="5" cy="3" r="1.5" />
               <circle cx="5" cy="8" r="1.5" />
@@ -340,22 +401,28 @@ async function reorderBeveragesApi(group: BeverageGroupItem) {
           <div
             v-for="beverage in group.beverages"
             :key="beverage.id"
-            :draggable="activeHandle === `beverage-handle-${beverage.id}`"
+            :data-beverage-id="beverage.id"
+            :data-beverage-group-id="group.id"
             class="flex items-center gap-2 rounded border border-gray-200 bg-surface px-3 py-2 transition-shadow"
             :class="{
-              'ring-2 ring-primary ring-offset-1': dragOverBeverageId === beverage.id && draggingBeverageId !== beverage.id,
-              'opacity-50': draggingBeverageId === beverage.id,
+              'ring-2 ring-primary ring-offset-1': overBeverageId === beverage.id && draggingType === 'beverage' && draggingId !== beverage.id,
+              'opacity-50 shadow-md': draggingId === beverage.id,
             }"
-            @dragstart.stop="onBeverageDragStart(beverage, group, $event)"
-            @dragover.prevent.stop="onBeverageDragOver(beverage)"
-            @dragleave.stop="dragOverBeverageId = null"
-            @drop.prevent.stop="onBeverageDrop(beverage, group)"
-            @dragend.stop="onBeverageDragEnd(group)"
           >
             <div
-              class="shrink-0 cursor-grab select-none text-gray-300 hover:text-gray-500 active:cursor-grabbing"
-              @mousedown.stop="activeHandle = `beverage-handle-${beverage.id}`"
+              class="relative flex shrink-0 cursor-grab select-none touch-none items-center justify-center w-[22px] h-[22px]"
+              :class="holdId === `beverage-${beverage.id}` ? 'text-primary' : 'text-gray-300 hover:text-gray-500'"
+              :title="nl.common.dragHint ?? 'Vasthouden om te verslepen'"
+              @pointerdown.stop="onBeverageHandlePointerDown(beverage, group, $event)"
             >
+              <svg
+                v-if="holdId === `beverage-${beverage.id}`"
+                class="absolute inset-0 -rotate-90"
+                width="22" height="22" viewBox="0 0 22 22"
+                fill="none" aria-hidden="true"
+              >
+                <circle class="hold-ring" cx="11" cy="11" r="9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="56.55" stroke-dashoffset="56.55" />
+              </svg>
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <circle cx="5" cy="3" r="1.5" />
                 <circle cx="5" cy="8" r="1.5" />
@@ -424,3 +491,13 @@ async function reorderBeveragesApi(group: BeverageGroupItem) {
     </div>
   </main>
 </template>
+
+<style scoped>
+@keyframes hold-fill {
+  from { stroke-dashoffset: 56.55; }
+  to   { stroke-dashoffset: 0; }
+}
+.hold-ring {
+  animation: hold-fill 350ms linear forwards;
+}
+</style>
