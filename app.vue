@@ -9,4 +9,8 @@
 
 <style>
 @import '@vuepic/vue-datepicker/dist/main.css';
+
+html {
+  scrollbar-gutter: stable;
+}
 </style>
