@@ -7,6 +7,8 @@ definePageMeta({
   layout: "admin",
 });
 
+useHead({ title: 'Velden | Kubb 2026' })
+
 interface Field {
   id: string;
   name: string;

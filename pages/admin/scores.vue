@@ -4,6 +4,8 @@ import { nl } from "~/i18n/nl";
 
 definePageMeta({ middleware: ["auth", "admin-tournament-guard"], layout: "admin" });
 
+useHead({ title: 'Scores | Kubb 2026' })
+
 interface MatchTeam {
   id: string;
   name: string;

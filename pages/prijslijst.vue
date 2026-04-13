@@ -27,10 +27,10 @@
 
 <script setup lang="ts">
 useHead({
-  title: 'Prijslijst — Kubb Toernooi Chiro Sint-Antonius',
+  title: 'Prijslijst | Kubb 2026',
   meta: [
     { name: 'description', content: 'Drankenlijst en prijzen op het Kubb-toernooi van Chiro Sint-Antonius.' },
-    { property: 'og:title', content: 'Prijslijst — Kubb Toernooi Chiro Sint-Antonius' },
+    { property: 'og:title', content: 'Prijslijst | Kubb 2026' },
     { property: 'og:description', content: 'Drankenlijst en prijzen op het Kubb-toernooi van Chiro Sint-Antonius.' },
     { property: 'og:image', content: 'https://kubb.chirosint-antonius.be/og-image.png' },
     { property: 'og:type', content: 'website' },

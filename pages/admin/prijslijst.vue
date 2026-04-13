@@ -7,6 +7,8 @@ definePageMeta({
   layout: "admin",
 });
 
+useHead({ title: 'Prijslijst | Kubb 2026' })
+
 interface BeverageItem {
   id: string;
   orderNumber: number;

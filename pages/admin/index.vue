@@ -7,6 +7,8 @@ definePageMeta({
   layout: "admin",
 });
 
+useHead({ title: 'Admin Dashboard | Kubb 2026' })
+
 const tournamentType = ref<string | null>(null);
 const teamCount = ref(0);
 const fieldCount = ref(0);

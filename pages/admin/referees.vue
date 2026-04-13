@@ -4,6 +4,8 @@ import { nl } from '~/i18n/nl'
 
 definePageMeta({ middleware: ['auth', 'admin-tournament-guard'], layout: 'admin' })
 
+useHead({ title: 'Scheidsrechters | Kubb 2026' })
+
 interface Referee {
   id: string
   name: string

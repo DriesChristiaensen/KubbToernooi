@@ -9,6 +9,8 @@ definePageMeta({
   layout: "admin",
 });
 
+useHead({ title: 'Knock-out Schema | Kubb 2026' })
+
 interface Team {
   id: string;
   name: string;
