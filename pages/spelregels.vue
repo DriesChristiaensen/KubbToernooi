@@ -17,5 +17,16 @@
 </template>
 
 <script setup lang="ts">
+useHead({
+  title: 'Spelregels — Kubb Toernooi Chiro Sint-Antonius',
+  meta: [
+    { name: 'description', content: 'De officiële spelregels van het Kubb-toernooi van Chiro Sint-Antonius.' },
+    { property: 'og:title', content: 'Spelregels — Kubb Toernooi Chiro Sint-Antonius' },
+    { property: 'og:description', content: 'De officiële spelregels van het Kubb-toernooi van Chiro Sint-Antonius.' },
+    { property: 'og:image', content: 'https://kubb.chirosint-antonius.be/og-image.png' },
+    { property: 'og:type', content: 'website' },
+  ],
+})
+
 const { data, pending, error } = await useFetch("/api/rule-groups");
 </script>

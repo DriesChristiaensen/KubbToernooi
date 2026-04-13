@@ -3,6 +3,17 @@ import { ref, computed, onMounted } from "vue";
 import { nl } from "~/i18n/nl";
 import { usePolling } from "~/composables/usePolling";
 
+useHead({
+  title: 'Kubb Toernooi — Chiro Sint-Antonius',
+  meta: [
+    { name: 'description', content: 'Live wedstrijdschema en standen van het Kubb-toernooi van Chiro Sint-Antonius.' },
+    { property: 'og:title', content: 'Kubb Toernooi — Chiro Sint-Antonius' },
+    { property: 'og:description', content: 'Live wedstrijdschema en standen van het Kubb-toernooi van Chiro Sint-Antonius.' },
+    { property: 'og:image', content: 'https://kubb.chirosint-antonius.be/og-image.png' },
+    { property: 'og:type', content: 'website' },
+  ],
+})
+
 const s = nl.public.schedule;
 
 interface Match {
