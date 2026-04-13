@@ -18,24 +18,28 @@ function throwStick() {
   const logoRect = logoEl.getBoundingClientRect();
   const headerRect = headerEl.getBoundingClientRect();
 
-  // Start: right edge of header, vertically centred in header
-  const startX = headerRect.right - 16;
-  const startY = headerRect.top + headerRect.height / 2;
+  // Convert viewport coords to header-relative (absolute positioning inside header)
+  const ox = headerRect.left;
+  const oy = headerRect.top;
 
-  // Target: centre of logo
-  const logoX = logoRect.left + logoRect.width / 2;
-  const logoY = logoRect.top + logoRect.height / 2;
+  // Start: right edge of header, vertically centred in header
+  const startX = headerRect.right - 16 - ox;
+  const startY = headerRect.height / 2;
+
+  // Target: centre of logo (header-relative)
+  const logoX = logoRect.left + logoRect.width / 2 - ox;
+  const logoY = logoRect.top + logoRect.height / 2 - oy;
 
   // Arc apex: above the midpoint between start and logo
   const midX = (startX + logoX) / 2;
   const midY = Math.min(startY, logoY) - 70;
 
   // Final rest: on the bottom of the logo (stick is horizontal = 4px tall)
-  const endY = logoRect.bottom - 2;
+  const endY = logoRect.bottom - 2 - oy;
 
   const stick = document.createElement("div");
   stick.style.cssText = `
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: 4px;
@@ -46,7 +50,7 @@ function throwStick() {
     z-index: 9999;
     transform-origin: center center;
   `;
-  document.body.appendChild(stick);
+  headerEl.appendChild(stick);
 
   // translate(x, y) centres the stick on the target coordinate (half of 4px, half of 30px)
   const at = (x: number, y: number, deg: number) =>
