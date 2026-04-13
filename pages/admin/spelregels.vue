@@ -7,6 +7,8 @@ definePageMeta({
   layout: "admin",
 });
 
+useHead({ title: 'Spelregels | Kubb 2026' })
+
 interface RuleItem {
   id: string;
   orderNumber: number;

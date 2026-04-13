@@ -4,10 +4,10 @@ import { nl } from "~/i18n/nl";
 import { usePolling } from "~/composables/usePolling";
 
 useHead({
-  title: 'Kubb Toernooi — Chiro Sint-Antonius',
+  title: 'Wedstrijdschema | Kubb 2026',
   meta: [
     { name: 'description', content: 'Live wedstrijdschema en standen van het Kubb-toernooi van Chiro Sint-Antonius.' },
-    { property: 'og:title', content: 'Kubb Toernooi — Chiro Sint-Antonius' },
+    { property: 'og:title', content: 'Wedstrijdschema | Kubb 2026' },
     { property: 'og:description', content: 'Live wedstrijdschema en standen van het Kubb-toernooi van Chiro Sint-Antonius.' },
     { property: 'og:image', content: 'https://kubb.chirosint-antonius.be/og-image.png' },
     { property: 'og:type', content: 'website' },

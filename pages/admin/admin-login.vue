@@ -4,6 +4,17 @@ import { nl } from '~/i18n/nl'
 
 definePageMeta({ layout: false })
 
+useHead({
+  title: 'Beheerder inloggen | Kubb 2026',
+  meta: [
+    { name: 'description', content: 'Beheerdersportaal van het Kubb-toernooi van Chiro Sint-Antonius.' },
+    { property: 'og:title', content: 'Beheerder inloggen | Kubb 2026' },
+    { property: 'og:description', content: 'Beheerdersportaal van het Kubb-toernooi van Chiro Sint-Antonius.' },
+    { property: 'og:image', content: 'https://kubb.chirosint-antonius.be/og-image.png' },
+    { property: 'og:type', content: 'website' },
+  ],
+})
+
 const { loggedIn, user } = useUserSession()
 if (loggedIn.value && user.value?.role === 'ADMIN') {
   await navigateTo('/admin')

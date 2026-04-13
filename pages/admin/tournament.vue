@@ -6,6 +6,8 @@ import { nl } from "~/i18n/nl";
 
 definePageMeta({ middleware: "auth", layout: "admin" });
 
+useHead({ title: 'Toernooi-instellingen | Kubb 2026' })
+
 interface Tournament {
   id: string;
   name: string;

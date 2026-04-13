@@ -5,6 +5,8 @@ import { useAuth } from "~/composables/useAuth";
 
 definePageMeta({ middleware: "auth", layout: "ref" });
 
+useHead({ title: 'Scheidsrechter Dashboard | Kubb 2026' })
+
 const { user } = useUserSession();
 const { logout } = useAuth();
 

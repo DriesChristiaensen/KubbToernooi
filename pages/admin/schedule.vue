@@ -9,6 +9,8 @@ definePageMeta({
   layout: "admin",
 });
 
+useHead({ title: 'Speelschema | Kubb 2026' })
+
 interface Field {
   id: string;
   name: string;
